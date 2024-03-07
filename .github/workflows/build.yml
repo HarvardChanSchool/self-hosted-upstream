@@ -7,7 +7,7 @@ jobs:
   Build:
     name: Create built package
     # Ensure that this job is skipped for downstream repos.
-    if: github.repository == 'hard-g/hsph-upstream-test'
+    if: github.repository == 'HarvardChanSchool/self-hosted-upstream'
     runs-on: ubuntu-latest
     steps:
       - name: Set up Git credentials
