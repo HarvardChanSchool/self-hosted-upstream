@@ -24,10 +24,10 @@ jobs:
         run: |
           git checkout -b build
       - name: Composer build
-        #env:
-#          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
+        env:
+          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
         run: |
-          composer config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          composer config -g github-oauth.github.com ${{ secrets.COMPOSER_AUTH }}
           composer install --no-dev
       - name: Commit built assets to build branch
         run: |
