@@ -1,0 +1,45 @@
+# Builds package for downstream use.
+name: Build upstream package for downstream use.
+
+on: push
+
+jobs:
+  Build:
+    name: Create built package
+    # Ensure that this job is skipped for downstream repos.
+    if: github.repository == 'hard-g/hsph-upstream-test'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2-latest
+        with:
+          global: true
+          token: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          # fix "shallow update not allowed" by Pantheon https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
+          fetch-depth: 0
+      - name: Check out build branch
+        run: |
+          git checkout -b build
+      - name: Composer build
+        env:
+#          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
+        run: |
+          composer config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          composer install --no-dev
+      - name: Commit built assets to build branch
+        run: |
+          for dir in wp-content/plugins/*; do
+            if [ -d "$dir" ]; then # Check if it's a directory
+              rm -rf "$dir/.git" # Remove the .git directory
+              git add -f "$dir" # Force add the directory
+            fi
+          done
+          git commit -m "Add built assets"
+      - name: Push build branch
+        run: |
+          git push --force origin build
+        
+
