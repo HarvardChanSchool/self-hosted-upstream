@@ -55,3 +55,15 @@ Thumbs.db
 # SASS #
 ##########
 .sass-cache
+
+# Unless your project has non-dev Composer packages, the vendor directory should be ignored. #
+##############################################################################################
+vendor
+
+# By default, WordPress plugin and theme directories are ignored. #
+###################################################################
+/wp-content/plugins/*
+/wp-content/themes/*
+
+# Single-site-specific plugins and themes #
+###########################################
