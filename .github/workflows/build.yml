@@ -24,7 +24,7 @@ jobs:
         run: |
           git checkout -b build
       - name: Composer build
-        env:
+        #env:
 #          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
         run: |
           composer config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
