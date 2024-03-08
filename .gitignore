@@ -67,6 +67,7 @@ vendor
 
 # Plugins that are shipped with the upstream #
 ##############################################
+!/wp-content/plugins/acf-gravityforms-add-on
 !/wp-content/plugins/advanced-custom-fields-pro
 !/wp-content/plugins/breadcrumb-navxt
 !/wp-content/plugins/disable-comments
