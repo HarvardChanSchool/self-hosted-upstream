@@ -68,6 +68,7 @@ vendor
 # Plugins that are shipped with the upstream #
 ##############################################
 !/wp-content/plugins/advanced-custom-fields-pro
+!/wp-content/plugins/breadcrumb-navxt
 
 # Single-site-specific plugins and themes #
 ###########################################
