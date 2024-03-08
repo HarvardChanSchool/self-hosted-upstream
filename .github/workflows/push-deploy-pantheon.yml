@@ -68,6 +68,12 @@ jobs:
               git add -f "$dir" # Force add the directory
             fi
           done
+          for dir in wp-content/themes/*; do
+            if [ -d "$dir" ]; then # Check if it's a directory
+              rm -rf "$dir/.git" # Remove the .git directory
+              git add -f "$dir" # Force add the directory
+            fi
+          done
           if git diff --cached --quiet wp-content; then
             echo "No changes to commit."
           else
