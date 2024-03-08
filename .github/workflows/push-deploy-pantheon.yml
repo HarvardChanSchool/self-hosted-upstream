@@ -57,8 +57,10 @@ jobs:
           # fix "shallow update not allowed" by Pantheon https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
           fetch-depth: 0
       - name: Composer build
+        env:
+          COMPOSER_AUTH: '{"github-oauth": {"github.com": "${{secrets.COMPOSER_AUTH}}"} }' # [tl! **]
         run: |
-          composer config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          composer config -g github-oauth.github.com ${{ secrets.COMPOSER_AUTH }}
           composer install --no-dev
       - name: Commit built assets to Pantheon branch
         run: |
