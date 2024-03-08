@@ -74,9 +74,16 @@ vendor
 !/wp-content/plugins/events-calendar-pro
 !/wp-content/plugins/gravityforms
 !/wp-content/plugins/pantheon-advanced-page-cache
+!/wp-content/plugins/safe-redirect-manager
 !/wp-content/plugins/simple-history
 !/wp-content/plugins/the-events-calendar
 !/wp-content/plugins/the-events-calendar-community-events
+!/wp-content/plugins/the-events-calendar-filterbar
+!/wp-content/plugins/tribe-ext-settings-import-export
+!/wp-content/plugins/wordpress-importer
+!/wp-content/plugins/wp-crontrol
+!/wp-content/plugins/wp-native-php-sessions
+!/wp-content/plugins/wp-svg-images
 
 # Single-site-specific plugins and themes #
 ###########################################
