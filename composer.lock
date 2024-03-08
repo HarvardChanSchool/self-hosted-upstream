@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b748b3a23c740a3f59d64fc75c677f87",
+    "content-hash": "199c98fe01ee3330165a4090d62196df",
     "packages": [
         {
             "name": "apereo/phpcas",
@@ -720,6 +720,36 @@
                 "source": "https://github.com/HarvardChanSchool/plugin-design-system/tree/main"
             },
             "time": "2023-05-09T19:16:01+00:00"
+        },
+        {
+            "name": "harvardchanschool/plugin-google-analytics-tracking",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "git@github.com:HarvardChanSchool/plugin-google-analytics-tracking.git",
+                "reference": "185cb9eb3cbca2b55f6dc5493b79453398a3b932"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/HarvardChanSchool/plugin-google-analytics-tracking/zipball/185cb9eb3cbca2b55f6dc5493b79453398a3b932",
+                "reference": "185cb9eb3cbca2b55f6dc5493b79453398a3b932",
+                "shasum": ""
+            },
+            "default-branch": true,
+            "type": "wordpress-plugin",
+            "authors": [
+                {
+                    "name": "HSPH Webteam",
+                    "email": "webteam@hsph.harvard.edu",
+                    "homepage": "http://www.hsph.harvard.edu/information-technology/"
+                }
+            ],
+            "description": "Adds the Google Analytics tracking code to the header of the site.",
+            "homepage": "http://www.hsph.harvard.edu/information-technology/",
+            "support": {
+                "source": "https://github.com/HarvardChanSchool/plugin-google-analytics-tracking/tree/master"
+            },
+            "time": "2020-11-13T21:52:28+00:00"
         },
         {
             "name": "harvardchanschool/plugin-harvard-key",
@@ -1627,6 +1657,7 @@
     "minimum-stability": "stable",
     "stability-flags": {
         "harvardchanschool/plugin-design-system": 20,
+        "harvardchanschool/plugin-google-analytics-tracking": 20,
         "harvardchanschool/plugin-harvard-key": 20,
         "harvardchanschool/plugin-social": 20,
         "harvardchanschool/plugin-ui-shortcodes": 20
