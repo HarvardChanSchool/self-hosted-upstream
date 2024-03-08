@@ -58,7 +58,7 @@ Thumbs.db
 
 # Unless your project has non-dev Composer packages, the vendor directory should be ignored. #
 ##############################################################################################
-vendor
+/vendor
 
 # By default, WordPress plugin and theme directories are ignored. #
 ###################################################################
