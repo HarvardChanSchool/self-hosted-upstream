@@ -69,6 +69,14 @@ vendor
 ##############################################
 !/wp-content/plugins/advanced-custom-fields-pro
 !/wp-content/plugins/breadcrumb-navxt
+!/wp-content/plugins/disable-comments
+!/wp-content/plugins/debug-bar
+!/wp-content/plugins/events-calendar-pro
+!/wp-content/plugins/gravityforms
+!/wp-content/plugins/pantheon-advanced-page-cache
+!/wp-content/plugins/simple-history
+!/wp-content/plugins/the-events-calendar
+!/wp-content/plugins/the-events-calendar-community-events
 
 # Single-site-specific plugins and themes #
 ###########################################
