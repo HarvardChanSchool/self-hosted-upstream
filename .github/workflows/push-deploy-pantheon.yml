@@ -68,7 +68,9 @@ jobs:
               git add -f "$dir" # Force add the directory
             fi
           done
-          git commit -m "Add built assets"
+          if git diff --cached --quiet; then
+            git commit -m "Add built assets"
+          fi
       - name: Setup Terminus
       # You may pin to the exact commit( c83a5d3..) or the version( 1.1.0).
         uses: pantheon-systems/terminus-github-actions@1.1.0
