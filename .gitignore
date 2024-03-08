@@ -65,5 +65,9 @@ vendor
 /wp-content/plugins/*
 /wp-content/themes/*
 
+# Plugins that are shipped with the upstream #
+##############################################
+!/wp-content/plugins/advanced-custom-fields-pro
+
 # Single-site-specific plugins and themes #
 ###########################################
