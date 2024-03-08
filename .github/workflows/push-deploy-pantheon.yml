@@ -1,0 +1,117 @@
+# Builds and pushes to Pantheon environments for deployment.
+name: Build and Push Deploy to Pantheon
+
+env:
+  BRANCH_NAME: ${{github.ref_name}}
+  # The Pantheon "site" name. e.g. wwwhsph
+  PANTHEON_SITE: ${{vars.PANTHEON_SITE}}
+  PANTHEON_SSH_CONFIG: ${{vars.PANTHEON_SSH_CONFIG}}
+  # Check Pantheon connection info in admin dashboard.
+  PANTHEON_REPO: ${{vars.PANTHEON_GIT_SSH_URL}}
+  PANTHEON_MACHINE_TOKEN: ${{secrets.PANTHEON_MACHINE_TOKEN}}
+
+# Events that should push or deploy codebase from Github to Pantheon.
+on:
+  # On push to Github repo - Push code to appropriate Pantheon environment.
+  push:
+    branches:
+      - '**'
+  # On pull request merged - Release staged code from Pantheon dev(beta) environment to test(stage).
+  # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-your-pull_request-workflow-when-a-pull-request-merges
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main
+  # On GH Release published - Release staged code from Pantheon test(stage) environment to live(prod).
+  release:
+    types:
+      - published
+    branches:
+      - main
+
+jobs:
+  Push-Deploy-Pantheon:
+    name: Push to beta or Deploy to live
+    # This action comes with the Upstream for distribution, but should run only on downstreams.
+    if: github.repository != 'HarvardChanSchool/self-hosted-upstream'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.PANTHEON_SSH_KEY }}
+          config: ${{ vars.PANTHEON_SSH_CONFIG }}  # ssh_config; optional
+          name: id_rsa # optional
+          known_hosts: unnecessary
+          # Trust all pantheon hosts https://docs.pantheon.io/ssh-keys#host-keys .
+          if_key_exists: replace # replace / ignore / fail; optional (defaults to fail)
+      - name: Set up Git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2-latest
+        with:
+          global: true
+          token: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          # fix "shallow update not allowed" by Pantheon https://github.com/actions/checkout#Fetch-all-history-for-all-tags-and-branches
+          fetch-depth: 0
+      - name: Composer build
+        run: |
+          composer config -g github-oauth.github.com ${{ secrets.GITHUB_TOKEN }}
+          composer install --no-dev
+      - name: Commit built assets to Pantheon branch
+        run: |
+          for dir in wp-content/plugins/*; do
+            if [ -d "$dir" ]; then # Check if it's a directory
+              rm -rf "$dir/.git" # Remove the .git directory
+              git add -f "$dir" # Force add the directory
+            fi
+          done
+          git commit -m "Add built assets"
+      - name: Setup Terminus
+      # You may pin to the exact commit( c83a5d3..) or the version( 1.1.0).
+        uses: pantheon-systems/terminus-github-actions@1.1.0
+        with:
+          # Machine token used to authenticate with Pantheon.
+          pantheon-machine-token: ${{secrets.PANTHEON_MACHINE_TOKEN}}
+          # The full version of Terminus to install. If omitted, the latest version is used.
+          terminus-version: 3.1.4
+      # Push code to "dev"(beta)
+      - name: push to dev|beta
+        # Was this workflow is for GitHub PR being merged?
+        if: github.event_name == 'push'
+        run: |
+          # Check if the branch name should be renamed Github 'main' which maps to Pantheon 'master', otherwise keep as-is.
+          if [[ $BRANCH_NAME == 'main' ]]; then
+            resolved_branch_name='master'
+          else
+            resolved_branch_name=$BRANCH_NAME
+          fi;
+          git remote add pantheon $PANTHEON_REPO >> action-debug.log 2>&1
+          echo $PANTHEON_REPO
+          echo $resolved_branch_name
+          git fetch pantheon >> action-debug.log 2>&1
+          git push -v --force pantheon HEAD:$resolved_branch_name >> action-debug.log 2>&1
+      - name: Deploy to test|stage
+        # Was this workflow run triggered by PR merge or GitHub Release being published?
+        if: github.event_name == 'pull_request' || github.event_name == 'release'
+        # Push code to Pantheon "dev"(beta) environment and deploy to "test"(stage). This should ONLY run 'on:' 'branch:' main!!
+        run: |
+          git remote add pantheon $PANTHEON_REPO
+          git push -v --force pantheon HEAD:master >> action-debug.log 2>&1
+          terminus site:list
+          terminus env:deploy -vvv $PANTHEON_SITE.test --note='${{ github.triggering_actor }} - ${{ github.event.pull_request.title }}' >> action-debug.log 2>&1
+      - name: Deploy to live|prod
+        # Was this workflow run triggered by GitHub Release being published?
+        if: github.event_name == 'release'
+        # Release to Pantheon "live"(prod) environment. This should ONLY run 'on:' 'branch:' main!!
+        run: |
+          terminus env:deploy -vvv $PANTHEON_SITE.live --note=${{ github.event.release.tag_name }} >> action-debug.log 2>&1
+      - name: Debug Log
+        if: ${{ always() }}
+        # output logs for debugging
+        run: |
+          if [[ -r action-debug.log ]]; then
+            cat action-debug.log;
+          fi;
