@@ -1,0 +1,3 @@
+[merge "keepMine"]
+    name = always keep mine during merge
+    driver = scripts/keepMine.sh %O %A %B
