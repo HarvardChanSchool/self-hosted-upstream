@@ -1,5 +1,5 @@
 {
-    "name": "harvardchanschool/hsph-upstream-test",
+    "name": "harvardchanschool/self-hosted-upstream",
     "type": "project",
     "require": {
       "harvardchanschool/plugin-design-system": "dev-main",
