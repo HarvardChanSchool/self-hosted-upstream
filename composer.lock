@@ -604,12 +604,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:HarvardChanSchool/plugin-ui-shortcodes.git",
-                "reference": "83fc556a6cb93f2350e2f4738f73b7201b236b84"
+                "reference": "d690bd83553fba570d0e532e8258ea535aa08455"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/HarvardChanSchool/plugin-ui-shortcodes/zipball/83fc556a6cb93f2350e2f4738f73b7201b236b84",
-                "reference": "83fc556a6cb93f2350e2f4738f73b7201b236b84",
+                "url": "https://api.github.com/repos/HarvardChanSchool/plugin-ui-shortcodes/zipball/d690bd83553fba570d0e532e8258ea535aa08455",
+                "reference": "d690bd83553fba570d0e532e8258ea535aa08455",
                 "shasum": ""
             },
             "type": "wordpress-plugin",
@@ -625,7 +625,7 @@
             "support": {
                 "source": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes/tree/dont-require-acf"
             },
-            "time": "2024-03-18T14:07:16+00:00"
+            "time": "2024-03-18T14:15:51+00:00"
         },
         {
             "name": "monolog/monolog",
