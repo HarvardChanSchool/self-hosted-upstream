@@ -6,7 +6,7 @@
       "harvardchanschool/plugin-google-analytics-tracking": "dev-master",
       "harvardchanschool/plugin-harvard-key": "dev-main",
       "harvardchanschool/plugin-social": "dev-master",
-      "harvardchanschool/plugin-ui-shortcodes": "dev-dont-require-acf"
+      "harvardchanschool/plugin-ui-shortcodes": "dev-main"
 		},
 		"repositories": [
 			{

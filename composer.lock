@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "38888c12de162f9e6f5f725065efe30c",
+    "content-hash": "c7657f8899f0ecc5edc0bf007a1545e6",
     "packages": [
         {
             "name": "composer/installers",
@@ -600,18 +600,19 @@
         },
         {
             "name": "harvardchanschool/plugin-ui-shortcodes",
-            "version": "dev-dont-require-acf",
+            "version": "dev-main",
             "source": {
                 "type": "git",
                 "url": "git@github.com:HarvardChanSchool/plugin-ui-shortcodes.git",
-                "reference": "d690bd83553fba570d0e532e8258ea535aa08455"
+                "reference": "c10ff12d13b684e946e426fcf4952266a9fc5b13"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/HarvardChanSchool/plugin-ui-shortcodes/zipball/d690bd83553fba570d0e532e8258ea535aa08455",
-                "reference": "d690bd83553fba570d0e532e8258ea535aa08455",
+                "url": "https://api.github.com/repos/HarvardChanSchool/plugin-ui-shortcodes/zipball/c10ff12d13b684e946e426fcf4952266a9fc5b13",
+                "reference": "c10ff12d13b684e946e426fcf4952266a9fc5b13",
                 "shasum": ""
             },
+            "default-branch": true,
             "type": "wordpress-plugin",
             "authors": [
                 {
@@ -623,9 +624,9 @@
             "description": "A set of UI Shortcodes for use around the site.",
             "homepage": "http://www.hsph.harvard.edu/information-technology/",
             "support": {
-                "source": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes/tree/dont-require-acf"
+                "source": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes/tree/main"
             },
-            "time": "2024-03-18T14:15:51+00:00"
+            "time": "2024-03-20T17:15:26+00:00"
         },
         {
             "name": "monolog/monolog",
