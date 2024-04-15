@@ -60,6 +60,10 @@ Thumbs.db
 ##############################################################################################
 /vendor
 
+# Local configuration files
+###################################################################
+.htaccess
+
 # By default, WordPress plugin and theme directories are ignored. #
 ###################################################################
 /wp-content/plugins/*
