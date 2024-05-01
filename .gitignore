@@ -88,6 +88,7 @@ Thumbs.db
 !/wp-content/plugins/wordpress-importer
 !/wp-content/plugins/wp-crontrol
 !/wp-content/plugins/wp-native-php-sessions
+!/wp-content/plugins/wp-saml-auth
 !/wp-content/plugins/wp-svg-images
 
 # Single-site-specific plugins and themes #
