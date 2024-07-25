@@ -70,7 +70,7 @@ function run( $hookname, $sig ) {
 	return new WP_Error(
 		'not_found',
 		sprintf(
-			/* translators: 1: The name of the cron event. */
+			/* translators: %s: The name of the cron event. */
 			__( 'The cron event %s could not be found.', 'wp-crontrol' ),
 			$hookname
 		)
@@ -109,7 +109,7 @@ function force_schedule_single_event( $hook, $args = array() ) {
 		return new WP_Error(
 			'could_not_add',
 			sprintf(
-				/* translators: 1: The name of the cron event. */
+				/* translators: %s: The name of the cron event. */
 				__( 'Failed to schedule the cron event %s.', 'wp-crontrol' ),
 				$hook
 			)
@@ -123,9 +123,10 @@ function force_schedule_single_event( $hook, $args = array() ) {
  * Adds a new cron event.
  *
  * @param string  $next_run_local The time that the event should be run at, in the site's timezone.
- * @param string  $schedule       The recurrence of the cron event.
+ * @param string  $schedule       The schedule of the cron event.
  * @param string  $hook           The name of the hook to execute.
  * @param mixed[] $args           Arguments to add to the cron event.
+ * @phpstan-param list<mixed> $args
  * @return true|WP_error True if the addition was successful, WP_Error otherwise.
  */
 function add( $next_run_local, $schedule, $hook, array $args ) {
@@ -144,57 +145,35 @@ function add( $next_run_local, $schedule, $hook, array $args ) {
 
 	$next_run_utc = (int) get_gmt_from_date( gmdate( 'Y-m-d H:i:s', $next_run_local ), 'U' );
 
-	if ( ! is_array( $args ) ) {
-		$args = array();
-	}
-
-	if ( 'crontrol_cron_job' === $hook && ! empty( $args['code'] ) && class_exists( '\ParseError' ) ) {
+	if ( 'crontrol_cron_job' === $hook && ! empty( $args[0]['code'] ) ) {
 		try {
+			/**
+			 * The call to `eval()` below checks the syntax of the PHP code provided in the cron event. This is done to
+			 * add a flag to a cron event that contains invalid PHP code, so that the user can be informed of the syntax
+			 * error when viewing the event in the list table.
+			 *
+			 * Security: The code is not executed due to the early return statement that precedes it. The code is only
+			 * checked for syntax correctness.
+			 */
 			// phpcs:ignore Squiz.PHP.Eval.Discouraged
 			eval( sprintf(
 				'return true; %s',
-				$args['code']
+				$args[0]['code']
 			) );
-		// phpcs:ignore PHPCompatibility.Classes.NewClasses.parseerrorFound
 		} catch ( \ParseError $e ) {
-			$args['syntax_error_message'] = $e->getMessage();
-			$args['syntax_error_line']    = $e->getLine();
+			$args[0]['syntax_error_message'] = $e->getMessage();
+			$args[0]['syntax_error_line'] = $e->getLine();
 		}
 	}
 
 	if ( '_oneoff' === $schedule || '' === $schedule ) {
-		/**
-		 * @var bool|null|\WP_Error $result
-		 */
 		$result = wp_schedule_single_event( $next_run_utc, $hook, $args, true );
 	} else {
-		/**
-		 * @var bool|null|\WP_Error $result
-		 */
 		$result = wp_schedule_event( $next_run_utc, $schedule, $hook, $args, true );
 	}
 
-	/**
-	 * Possible return values of `wp_schedule_*()` as called above:
-	 *
-	 *   - 5.7+ Success: true, Failure: WP_Error
-	 *   - 5.1+ Success: true, Failure: false
-	 *   - <5.1 Success: null, Failure: false
-	 */
-
 	if ( is_wp_error( $result ) ) {
 		return $result;
-	}
-
-	if ( false === $result ) {
-		return new WP_Error(
-			'could_not_add',
-			sprintf(
-				/* translators: 1: The name of the cron event. */
-				__( 'Failed to schedule the cron event %s.', 'wp-crontrol' ),
-				$hook
-			)
-		);
 	}
 
 	return true;
@@ -215,32 +194,10 @@ function delete( $hook, $sig, $next_run_utc ) {
 		return $event;
 	}
 
-	/**
-	 * @var bool|null|\WP_Error $unscheduled
-	 */
 	$unscheduled = wp_unschedule_event( $event->timestamp, $event->hook, $event->args, true );
-
-	/**
-	 * Possible return values of `wp_unschedule_*()` as called above:
-	 *
-	 *   - 5.7+ Success: true, Failure: WP_Error
-	 *   - 5.1+ Success: true, Failure: false
-	 *   - <5.1 Success: null, Failure: false
-	 */
 
 	if ( is_wp_error( $unscheduled ) ) {
 		return $unscheduled;
-	}
-
-	if ( false === $unscheduled ) {
-		return new WP_Error(
-			'could_not_delete',
-			sprintf(
-				/* translators: 1: The name of the cron event. */
-				__( 'Failed to the delete the cron event %s.', 'wp-crontrol' ),
-				$hook
-			)
-		);
 	}
 
 	return true;
@@ -267,7 +224,7 @@ function pause( $hook ) {
 		return new WP_Error(
 			'could_not_pause',
 			sprintf(
-				/* translators: 1: The name of the cron event. */
+				/* translators: %s: The name of the cron event. */
 				__( 'Failed to pause the cron event %s.', 'wp-crontrol' ),
 				$hook
 			)
@@ -298,7 +255,7 @@ function resume( $hook ) {
 		return new WP_Error(
 			'could_not_resume',
 			sprintf(
-				/* translators: 1: The name of the cron event. */
+				/* translators: %s: The name of the cron event. */
 				__( 'Failed to resume the cron event %s.', 'wp-crontrol' ),
 				$hook
 			)
@@ -372,7 +329,7 @@ function get_single( $hook, $sig, $next_run_utc ) {
 	return new WP_Error(
 		'not_found',
 		sprintf(
-			/* translators: 1: The name of the cron event. */
+			/* translators: %s: The name of the cron event. */
 			__( 'The cron event %s could not be found.', 'wp-crontrol' ),
 			$hook
 		)
@@ -472,6 +429,57 @@ function is_paused( stdClass $event ) {
 }
 
 /**
+ * Determines whether the integrity check of a URL or PHP cron event has failed.
+ *
+ * @param stdClass $event The event.
+ * @return bool Whether the event integrity check has failed.
+ */
+function integrity_failed( stdClass $event ): bool {
+	$args = $event->args[0] ?? array();
+	$failed = false;
+
+	switch ( $event->hook ) {
+
+		// PHP cron events:
+		case 'crontrol_cron_job':
+			// This is a PHP cron event saved prior to WP Crontrol 1.16.2.
+			if ( isset( $event->args['code'] ) ) {
+				$failed = true;
+			} else {
+				$failed = ! check_integrity( $args['code'] ?? null, $args['hash'] ?? null );
+			}
+			break;
+
+		// URL cron events:
+		case 'crontrol_url_cron_job':
+			$failed = ! check_integrity( $args['url'] ?? null, $args['hash'] ?? null );
+			break;
+
+	}
+
+	return $failed;
+}
+
+/**
+ * Checks the integrity of a code string compared to its stored hash.
+ *
+ * @param string|null $code        The code string.
+ * @param string|null $stored_hash The stored HMAC of the code.
+ * @return bool
+ */
+function check_integrity( $code, $stored_hash ): bool {
+	// If there's no code or hash then the integrity check is not ok.
+	if ( empty( $code ) || empty( $stored_hash ) ) {
+		return false;
+	}
+
+	$code_hash = wp_hash( $code );
+
+	// If the hashes match then the integrity check is ok.
+	return hash_equals( $stored_hash, $code_hash );
+}
+
+/**
  * Initialises and returns the list table for events.
  *
  * @return Table The list table.
@@ -499,8 +507,8 @@ function get_list_table() {
  * @return int
  */
 function uasort_order_events( $a, $b ) {
-	$orderby = ( ! empty( $_GET['orderby'] ) ) ? sanitize_text_field( $_GET['orderby'] ) : 'crontrol_next';
-	$order   = ( ! empty( $_GET['order'] ) ) ? sanitize_text_field( $_GET['order'] ) : 'asc';
+	$orderby = ( ! empty( $_GET['orderby'] ) && is_string( $_GET['orderby'] ) ) ? sanitize_text_field( $_GET['orderby'] ) : 'crontrol_next';
+	$order   = ( ! empty( $_GET['order'] ) && is_string( $_GET['order'] ) ) ? sanitize_text_field( $_GET['order'] ) : 'asc';
 	$compare = 0;
 
 	switch ( $orderby ) {
@@ -511,7 +519,7 @@ function uasort_order_events( $a, $b ) {
 				$compare = strcmp( $b->hook, $a->hook );
 			}
 			break;
-		case 'crontrol_recurrence':
+		case 'crontrol_schedule':
 			if ( 'asc' === $order ) {
 				$compare = ( $a->interval ?? 0 ) <=> ( $b->interval ?? 0 );
 			} else {
