@@ -1,0 +1,11 @@
+{
+    "name": "harvardchanschool/self-hosted-upstream",
+    "type": "project",
+    "require": {},
+    "repositories": [],
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
+    }
+}
