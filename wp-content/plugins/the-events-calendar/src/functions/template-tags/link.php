@@ -136,11 +136,17 @@ function tribe_get_events_link( $context = 'href' ) {
 /**
  * Gets a view permalink.
  *
+ * Generates the permalink for a specific view based on the provided slug and optional term.
+ *
  * @since 5.7.0
+ * 
+ * @hook tribe_get_view_permalink        Filters the overall view permalink.
+ * @hook tribe_get_{slug}_view_permalink Filters the specific view permalink.
  *
- * @param bool|int|null $term
- *
- * @return string $permalink
+ * @param string        $slug      The slug of the view for which the permalink is being generated.
+ * @param bool|int|null $term      Optional. The term associated with the view. Default is null.
+ * 
+ * @return string       $permalink The generated permalink for the view.
  */
 function tribe_get_view_permalink( $slug, $term = null ) {
 	$permalink = tribe_events_get_url( $slug );
@@ -378,15 +384,17 @@ function tribe_get_event_link( $post_id = null, $full_link = false ) {
 /**
  * Event Website Link (more info)
  *
- * @param null|object|int $event
- * @param null|string     $label
+ * @param null|object|int $event The event object or ID.
+ * @param ?string         $label The link label.
+ * @param string          $target The link target.
  *
  * @return string $html
  */
-function tribe_get_event_website_link( $event = null, $label = null ) {
+function tribe_get_event_website_link( $event = null, $label = null, $target = '_self' ): string {
 	// We won't get far without a post ID. Especially since we pass it to filters that depend on it.
 	$post_id = Tribe__Events__Main::postIdHelper( $event );
 	$url     = tribe_get_event_website_url( $post_id );
+	$target  = $target ? $target : '_self';
 
 	/**
 	 * Filter the target attribute for the event website link
@@ -394,21 +402,29 @@ function tribe_get_event_website_link( $event = null, $label = null ) {
 	 * @since 5.1.0
 	 * @since 5.5.0 Added $post_id argument
 	 *
-	 * @param string          $target The target attribute string. Defaults to "_self".
+	 * @param string          $target The target attribute string. Defaults to "_self" (above).
 	 * @param string          $url    The link URL.
 	 * @param null|object|int $post_id  The event the url is attached to.
 	 */
-	$target = apply_filters( 'tribe_get_event_website_link_target', '_self', $url, $post_id );
+	$target = apply_filters( 'tribe_get_event_website_link_target', $target, $url, $post_id );
+
+	// Ensure the target is given a valid value.
+	$allowed = [ '_self', '_blank', '_parent', '_top', '_unfencedTop' ];
+	if ( ! in_array( $target, $allowed ) ) {
+		$target = '_self';
+	}
+
 	$rel    = ( '_blank' === $target ) ? 'noopener noreferrer' : 'external';
 
 	if ( ! empty( $url ) ) {
-		$label = is_null( $label ) ? $url : $label;
+		$label = empty( $label ) ? $url : $label;
 		/**
 		 * Filter the website link label
 		 *
 		 * @since 3.0
 		 *
-		 * @param string the link label/text.
+		 * @param string $label   The link label/text.
+		 * @param int    $post_id The post ID.
 		 */
 		$label = apply_filters( 'tribe_get_event_website_link_label', $label, $post_id );
 		$html  = sprintf(
@@ -427,7 +443,7 @@ function tribe_get_event_website_link( $event = null, $label = null ) {
 	 *
 	 * @since 3.0
 	 *
-	 * @param string the link HTML.
+	 * @param string $html The link HTML.
 	 */
 	return apply_filters( 'tribe_get_event_website_link', $html );
 }
