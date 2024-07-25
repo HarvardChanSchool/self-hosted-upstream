@@ -44,7 +44,7 @@ use mtekk\adminKit\{adminKit, form, message, setting};
  */
 class bcn_admin extends adminKit
 {
-	const version = '7.3.0';
+	const version = '7.3.1';
 	protected $full_name = 'Breadcrumb NavXT Settings';
 	protected $short_name = 'Breadcrumb NavXT';
 	protected $access_level = 'bcn_manage_options';
@@ -419,7 +419,7 @@ class bcn_admin extends adminKit
 		}
 		foreach($this->settings as $key => $setting)
 		{
-			if(isset($network_opts[$key]))
+			if(isset($network_opts[$key]) && ((defined('BCN_SETTINGS_USE_NETWORK') && BCN_SETTINGS_USE_NETWORK) || (defined('BCN_SETTINGS_FAVOR_NETWORK') && BCN_SETTINGS_FAVOR_NETWORK)))
 			{
 				$overriden[$key] = ' ' . __('Value has been set via network wide setting.', 'breadcrumb-navxt');
 				$overriden_style[$key] = ' disabled';
