@@ -38,13 +38,13 @@ jobs:
             fi
           done
           git commit -m "Add built assets"
-			- name: Replace composer.json with composer.json.dist, and rebuild composer.lock
-				run: |
-					cp composer.json.dist composer.json
-					rm -f composer.lock
-					composer install --no-dev
-					git add composer.json composer.lock
-					git commit -m "Replace composer.json with composer.json.dist"
+      - name: Replace composer.json with composer.json.dist, and rebuild composer.lock
+        run: |
+          cp composer.json.dist composer.json
+          rm -f composer.lock
+          composer install --no-dev
+          git add composer.json composer.lock
+          git commit -m "Replace composer.json with composer.json.dist"
       - name: Push build branch
         run: |
           git push --force origin build
