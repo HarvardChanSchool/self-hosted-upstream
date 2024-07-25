@@ -422,7 +422,7 @@ class Simple_History {
 	 */
 	public function get_core_dropins() {
 		$dropins = array(
-			Dropins\Debug_Dropin::class,
+			Dropins\Detective_Mode_Dropin::class,
 			Dropins\Donate_Dropin::class,
 			Dropins\Export_Dropin::class,
 			Dropins\Filter_Dropin::class,
@@ -438,6 +438,7 @@ class Simple_History {
 			Dropins\Event_Details_Dev_Dropin::class,
 			Dropins\Quick_Stats::class,
 			Dropins\Sidebar_Add_Ons_Dropin::class,
+			Dropins\Action_Links_Dropin::class,
 		);
 
 		/**
@@ -616,7 +617,7 @@ class Simple_History {
 	}
 
 	/**
-	 * How old log entried are allowed to be.
+	 * How old log entries are allowed to be.
 	 * 0 = don't delete old entries.
 	 *
 	 * @deprecated 4.8 Use Helpers::get_clear_history_interval().
@@ -789,6 +790,9 @@ class Simple_History {
 
 		$args = wp_parse_args( $args, $defaults );
 
+		$context = $one_log_row->context ?? [];
+		$message_key = $context['_message_key'] ?? null;
+
 		$header_html = $this->get_log_row_header_output( $one_log_row );
 		$plain_text_html = $this->get_log_row_plain_text_output( $one_log_row );
 		$sender_image_html = $this->get_log_row_sender_image_output( $one_log_row );
@@ -828,21 +832,32 @@ class Simple_History {
 			);
 			$occasions_html .= '</span>';
 
-			// Div with information about add-ons.
-			// TODO: Finalize copy. Make it shorter. Remember that it will be shown many times.
-			// Also only show for failed logins.
-			// $occasions_html .= '<div class="SimpleHistoryLogitem__occasionsAddOns">';
-			// $occasions_html .= '<p class="SimpleHistoryLogitem__occasionsAddOnsText">';
-			// $occasions_html .= sprintf(
-			// * translators: 1 is link to add-on page */
-			// __(
-			// 'Set number of login attempts to store using the <a href="%1$s" class="sh-ExternalLink" target="_blank">Extended Settings add-on</a>.',
-			// 'simple-history'
-			// ),
-			// 'https://simple-history.com/add-ons/extended-settings/?utm_source=wpadmin'
-			// );
-			// $occasions_html .= '</p>';
-			// $occasions_html .= '</div>';
+			// Div with information about add-ons that can limit the number of login attempts stored.
+			// Only show for SimpleUserLogger and login failed events and if the add-on is not active.
+			$logger = $one_log_row->logger;
+			$is_simple_history_extended_settings_active = Helpers::is_plugin_active( 'simple-history-extended-settings/index.php' );
+			if ( $logger === 'SimpleUserLogger' && in_array( $message_key, [ 'user_login_failed', 'user_unknown_login_failed' ], true ) ) {
+
+				if ( $is_simple_history_extended_settings_active ) {
+					// Show link to extended settings settings page if extended settings plugin is active.
+					$occasions_html .= '<div class="SimpleHistoryLogitem__occasionsAddOns">';
+					$occasions_html .= '<p class="SimpleHistoryLogitem__occasionsAddOnsText">';
+					$occasions_html .= '<a href="' . admin_url( 'options-general.php?page=simple_history_settings_menu_slug&selected-sub-tab=failed-login-attempts' ) . '">';
+					$occasions_html .= __( 'Configure failed login attempts', 'simple-history' );
+					$occasions_html .= '</a>';
+					$occasions_html .= '</p>';
+					$occasions_html .= '</div>';
+				} else {
+					// Show link to add-on if extended settings plugin is not active.
+					$occasions_html .= '<div class="SimpleHistoryLogitem__occasionsAddOns">';
+					$occasions_html .= '<p class="SimpleHistoryLogitem__occasionsAddOnsText">';
+					$occasions_html .= '<a href="https://simple-history.com/add-ons/extended-settings/?utm_source=wpadmin#limit-number-of-failed-login-attempts" class="sh-ExternalLink" target="_blank">';
+					$occasions_html .= __( 'Limit logged login attempts', 'simple-history' );
+					$occasions_html .= '</a>';
+					$occasions_html .= '</p>';
+					$occasions_html .= '</div>';
+				}
+			}
 
 			$occasions_html .= '</div>';
 		}
@@ -1029,7 +1044,7 @@ class Simple_History {
 				$one_log_row
 			);
 
-			foreach ( $one_log_row->context as $contextKey => $contextVal ) {
+			foreach ( $context as $contextKey => $contextVal ) {
 				// Only columns from context that exist in logRowContextKeysToShow will be outputted.
 				if (
 					! array_key_exists( $contextKey, $logRowContextKeysToShow ) ||
@@ -1217,7 +1232,7 @@ class Simple_History {
 	 * @return array|string Array or SQL string with loggers that user can read.
 	 */
 	public function get_loggers_that_user_can_read( $user_id = null, $format = 'array' ) {
-		$arr_loggers_user_can_view = array();
+		$arr_loggers_user_can_view = [];
 
 		if ( is_null( $user_id ) ) {
 			$user_id = get_current_user_id();
@@ -1292,7 +1307,7 @@ class Simple_History {
 
 			if ( count( $arr_loggers_user_can_view ) ) {
 				foreach ( $arr_loggers_user_can_view as $one_logger ) {
-					$str_return .= sprintf( '"%1$s", ', esc_sql( $one_logger['instance']->get_slug() ) );
+					$str_return .= sprintf( '\'%1$s\', ', esc_sql( $one_logger['instance']->get_slug() ) );
 				}
 
 				$str_return = rtrim( $str_return, ' ,' );

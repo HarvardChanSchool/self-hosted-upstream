@@ -10,10 +10,17 @@ namespace Simple_History;
  *      events_table_name:string,
  *      simple_history_instance:Simple_History,
  *      wpdb:\wpdb
+ *      plugins:array,
+ *      dropins:array
+ *      tables_info:array
+ *      table_size_result:array
+ *      db_engine:string
  * } $args
  */
 
 defined( 'ABSPATH' ) || die();
+
+$args = $args ?? [];
 
 /**
  * Check that required tables exists.
@@ -22,9 +29,7 @@ defined( 'ABSPATH' ) || die();
  * are not moved with the rest of the database, but the options table are and that
  * confuses Simple History.
  */
-$tables_info = Helpers::required_tables_exist();
-
-foreach ( $tables_info as $table_info ) {
+foreach ( $args['tables_info'] as $table_info ) {
 	if ( ! $table_info['table_exists'] ) {
 		echo '<div class="notice notice-error">';
 		echo '<p>';
@@ -48,12 +53,28 @@ echo wp_kses(
 );
 
 /**
+ * Database info.
+ */
+echo '<h3>' . esc_html_x( 'Database', 'debug dropin', 'simple-history' ) . '</h3>';
+
+echo '<h4>' . esc_html_x( 'Database engine', 'debug dropin', 'simple-history' ) . '</h4>';
+
+echo wp_kses(
+	sprintf(
+		/* translators: %1$s database engine name, %2$s database engine version. */
+		__( 'Database engine used to perform queries: <code>%1$s</code>.', 'simple-history' ),
+		$args['db_engine']
+	),
+	[
+		'code' => [],
+	]
+);
+
+/**
  * Size of database in both number or rows and table size
  */
 
-echo '<h3>' . esc_html_x( 'Database size', 'debug dropin', 'simple-history' ) . '</h3>';
-
-$table_size_result = Helpers::get_db_table_stats();
+echo '<h4>' . esc_html_x( 'Database size', 'debug dropin', 'simple-history' ) . '</h4>';
 
 echo "<table class='widefat striped'>";
 printf(
@@ -70,17 +91,17 @@ printf(
 	esc_html_x( 'Rows', 'debug dropin', 'simple-history' )
 );
 
-if ( sizeof( $table_size_result ) === 0 ) {
+if ( sizeof( $args['table_size_result'] ) === 0 ) {
 	echo '<tr><td colspan="3">';
 	echo esc_html_x( 'No tables found.', 'debug dropin', 'simple-history' );
 	echo '</td></tr>';
 } else {
-	foreach ( $table_size_result as $one_table ) {
+	foreach ( $args['table_size_result'] as $one_table ) {
 		/* translators: %s size in mb. */
-		$size = sprintf( _x( '%s MB', 'debug dropin', 'simple-history' ), $one_table->size_in_mb );
+		$size = sprintf( _x( '%s MB', 'debug dropin', 'simple-history' ), $one_table['size_in_mb'] );
 
 		/* translators: %s number of rows. */
-		$rows = sprintf( _x( '%s rows', 'debug dropin', 'simple-history' ), number_format_i18n( $one_table->num_rows, 0 ) );
+		$rows = sprintf( _x( '%s rows', 'debug dropin', 'simple-history' ), number_format_i18n( $one_table['num_rows'], 0 ) );
 
 		printf(
 			'<tr>
@@ -88,7 +109,7 @@ if ( sizeof( $table_size_result ) === 0 ) {
 				<td>%2$s</td>
 				<td>%3$s</td>
 			</tr>',
-			esc_html( $one_table->table_name ),
+			esc_html( $one_table['table_name'] ),
 			esc_html( $size ),
 			esc_html( $rows ),
 		);
@@ -100,13 +121,7 @@ echo '</table>';
 /**
  * Number of rows in database
  */
-$logQuery = new Log_Query();
-
-$rows = $logQuery->query(
-	array(
-		'posts_per_page' => 1,
-	)
-);
+$rows = ( new Log_Query() )->query( [ 'posts_per_page' => 1 ] );
 
 // This is the number of rows with occasions taken into consideration.
 $total_accassions_rows_count = $rows['total_row_count'];
@@ -381,8 +396,6 @@ echo '<h2>' . esc_html_x( 'Plugins', 'debug dropin', 'simple-history' ) . '</h2>
 
 echo '<p>' . esc_html_x( 'As returned from get_plugins().', 'debug dropin', 'simple-history' ) . '</p>';
 
-$all_plugins = get_plugins();
-
 echo "<table class='widefat striped'>";
 printf(
 	'<thead>
@@ -398,7 +411,7 @@ printf(
 	esc_html_x( 'Active', 'debug dropin', 'simple-history' )
 );
 
-foreach ( $all_plugins as $pluginFilePath => $onePlugin ) {
+foreach ( $args['plugins'] as $pluginFilePath => $onePlugin ) {
 	$isPluginActive = Helpers::is_plugin_active( $pluginFilePath );
 
 	printf(
@@ -417,3 +430,40 @@ foreach ( $all_plugins as $pluginFilePath => $onePlugin ) {
 }
 
 echo '</table>';
+
+// WordPress drop-ins.
+echo '<h2>' . esc_html_x( 'WordPress drop-ins', 'debug dropin', 'simple-history' ) . '</h2>';
+
+echo '<p>' . esc_html_x( 'As returned from get_dropins().', 'debug dropin', 'simple-history' ) . '</p>';
+
+if ( count( $args['dropins'] ) === 0 ) {
+	echo '<p>' . esc_html_x( 'No drop-ins found.', 'debug dropin', 'simple-history' ) . '</p>';
+} else {
+	echo "<table class='widefat striped'>";
+	printf(
+		'<thead>
+			<tr>
+				<th>%1$s</th>
+				<th>%2$s</th>
+			</tr>
+		</thead>
+		',
+		esc_html_x( 'Drop-in name', 'debug dropin', 'simple-history' ),
+		esc_html_x( 'Drop-in filename', 'debug dropin', 'simple-history' )
+	);
+
+	foreach ( $args['dropins'] as $dropinFilename => $dropinInfo ) {
+		printf(
+			'
+			<tr>
+				<td><strong>%1$s</strong></td>
+				<td>%2$s</td>
+			</tr>
+			',
+			esc_html( $dropinInfo['Name'] ),
+			esc_html( $dropinFilename )
+		);
+	}
+
+	echo '</table>';
+}

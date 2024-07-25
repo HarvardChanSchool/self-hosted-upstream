@@ -6,25 +6,6 @@ use Simple_History\Helpers;
 
 /**
  * Queries the Simple History Log.
- *
- * Todo
- * - Occasions should check user permissions, or otherwise it can add any id and the user will have access to it.
- * - Test if fix for full group is working.
- * - [x] Finish query_overview_full_group_by() to return same data as query_overview(), and then compare and verify that it returns same data.
- *  - Also print SQL query and do some EXPLAIN on it in a regular editor. If this works it would be nice to blog about the findings,
- *    and print benchmarks etc.
- * - [x] Get num rows using second query with count(*)
- * - [x] Add limit.
- * - [x] Test in MySQL 5.5, 5.7, MariaDB 10.4.
- * - [x] Add support for SQLite.
- * - [x] Use get_cache_group
- * - [x] Use clear_cache instead of (true)
- * - [x] Date filtering is broken (sql where clause missing/not added)
- * - [x] Add caching to SQLite
- * - [x] Add tests for single event occasions.
- * - [x] Add tests for log row notifier.
- * - [ ] Run PHPStan and Rector.
- * - [ ] Merge together all git commits to one commit with close-##-messages.
  */
 class Log_Query {
 	/**
@@ -100,6 +81,7 @@ class Log_Query {
 	 *
 	 * @param string|array|object $args Arguments.
 	 * @return array Log rows.
+	 * @throws \Exception If error when performing query.
 	 */
 	protected function query_overview_sqlite( $args ) {
 		$args = $this->prepare_args( $args );
@@ -162,7 +144,15 @@ class Log_Query {
 		$result_log_rows = $wpdb->get_results( $sql_query_log_rows, OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 		if ( ! empty( $wpdb->last_error ) ) {
-			exit;
+			throw new \Exception(
+				esc_html(
+					sprintf(
+						/* translators: %s: error message */
+						__( 'Error when performing query: %s', 'simple-history' ),
+						$wpdb->last_error
+					)
+				)
+			);
 		}
 
 		// Append context to log rows.
@@ -227,6 +217,7 @@ class Log_Query {
 	/**
 	 * @param string|array|object $args Arguments.
 	 * @return array Log rows.
+	 * @throws \Exception If error when performing query.
 	 */
 	protected function query_overview_mysql( $args ) {
 		// Parse and prepare args.
@@ -249,7 +240,7 @@ class Log_Query {
 
 		$Simple_History = Simple_History::get_instance();
 
-		$wpdb->query( 'SET @a:=NULL, @counter:=1, @groupby:=0' );
+		$wpdb->query( 'SET @a:=NULL, @counter:=1, @groupby:=0, SQL_BIG_SELECTS=1' );
 
 		/**
 		 *  @var string SQL statement that will be used for inner join.
@@ -276,7 +267,7 @@ class Log_Query {
 			FROM %1$s AS h2
 
 			# Join column with message key so its searchable/filterable.
-			LEFT OUTER JOIN %2$s AS contexts ON (contexts.history_id = h2.id AND contexts.key = "_message_key")
+			LEFT OUTER JOIN %2$s AS contexts ON (contexts.history_id = h2.id AND contexts.key = \'_message_key\')
 
 			# Where statement.
 			%3$s
@@ -409,7 +400,15 @@ class Log_Query {
 		$result_log_rows = $wpdb->get_results( $sql_query_log_rows, OBJECT_K ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 
 		if ( ! empty( $wpdb->last_error ) ) {
-			exit;
+			throw new \Exception(
+				esc_html(
+					sprintf(
+						/* translators: %s: error message */
+						__( 'Error when performing query: %s', 'simple-history' ),
+						$wpdb->last_error
+					)
+				)
+			);
 		}
 
 		// Append context to log rows.
@@ -1002,14 +1001,82 @@ class Log_Query {
 	}
 
 	/**
+	 * Find logger and translated message that matches search string.
+	 * The search string in split into words and all words must be found in the translated text.
+	 * The message can contain more text/words than the words in the search string, and partial matches
+	 * are fine.
+	 *
+	 * Swedish examples:
+	 *
+	 * Search phrase "tillägg uppdaterade":
+	 * - Should match logger "SimplePluginLogger", message key "plugin_updated", message "uppdaterade tillägget ”{plugin_name}” till {plugin_version} från {plugin_prev_version}"
+	 * - Should match logger "SimplePluginLogger", message key "plugin_bulk_updated", message "uppdaterade tillägget ”{plugin_name}” till {plugin_version} från {plugin_prev_version}"
+	 *
+	 * Search phrase "misslyckades logga in":
+	 * - Should match logger "SimpleUserLogger", message key "user_login_failed", message "misslyckades att logga in med användarnamnet ”{login}” (felaktigt lösenord angavs)"
+	 * - Should match logger "SimpleUserLogger", message key "user_unknown_login_failed", message "misslyckades att logga in med användarnamnet ”{failed_username}” (användarnamnet finns inte)"
+	 *
+	 * @param string $searchstring Search string, for example "misslyckades logga in".
+	 * @return array<int,array> Array with logger and message that matched search string.
+	 */
+	protected function match_logger_messages_with_search( $searchstring ) {
+		$Simple_History = Simple_History::get_instance();
+
+		$loggers_user_can_read = $Simple_History->get_loggers_that_user_can_read();
+
+		$searchstring = strtolower( trim( $searchstring ) );
+
+		/** @var array<int,array<int,array>> Array with found logger, message key, translated message, and untranslated message. */
+		$found_matches = [];
+
+		if ( empty( $searchstring ) ) {
+			return [];
+		}
+
+		$words = preg_split( '/[\s,]+/', $searchstring );
+
+		foreach ( $loggers_user_can_read as $one_logger ) {
+			$one_logger_slug = $one_logger['instance']->slug;
+			$one_logger_name = $one_logger['name'];
+
+			/** @var array<string,array> */
+			$logger_instance_messages = $one_logger['instance']->messages;
+
+			foreach ( $logger_instance_messages as $one_message_key => $one_message ) {
+				$translated_text = strtolower( $one_message['translated_text'] );
+
+				// Check if every word in search string exists in translated text.
+				$all_words_found = true;
+
+				foreach ( $words as $one_word ) {
+					if ( strpos( $translated_text, $one_word ) === false ) {
+						$all_words_found = false;
+						break;
+					}
+				}
+
+				if ( $all_words_found ) {
+					$found_matches[] = [
+						'logger_name' => $one_logger_name,
+						'logger_slug' => $one_logger_slug,
+						'message_key' => $one_message_key,
+						'translated_text' => $translated_text,
+						'untranslated_text' => strtolower( $one_message['untranslated_text'] ),
+					];
+				}
+			}
+		}
+
+		return $found_matches;
+	}
+
+	/**
 	 * Get inner where clause.
 	 *
 	 * @param array $args Arguments.
 	 * @return array<string> Where clauses.
 	 */
 	protected function get_inner_where( $args ) {
-		global $wpdb;
-
 		$simple_history = Simple_History::get_instance();
 		$contexts_table_name = $simple_history->get_contexts_table_name();
 		$db_engine = $this->get_db_engine();
@@ -1047,13 +1114,13 @@ class Log_Query {
 		// Append date where clause.
 		// If date_from is set it is a timestamp.
 		if ( ! empty( $args['date_from'] ) ) {
-			$inner_where[] = sprintf( 'date >= "%1$s"', gmdate( 'Y-m-d H:i:s', $args['date_from'] ) );
+			$inner_where[] = sprintf( 'date >= \'%1$s\'', gmdate( 'Y-m-d H:i:s', $args['date_from'] ) );
 		}
 
 		// Date to.
 		// If date_to is set it is a timestamp.
 		if ( ! empty( $args['date_to'] ) ) {
-			$inner_where[] = sprintf( 'date <= "%1$s"', gmdate( 'Y-m-d H:i:s', $args['date_to'] ) );
+			$inner_where[] = sprintf( 'date <= \'%1$s\'', gmdate( 'Y-m-d H:i:s', $args['date_to'] ) );
 		}
 
 		// If "months" they translate to $args["months"] because we already have support for that
@@ -1164,54 +1231,7 @@ class Log_Query {
 		} // End if().
 
 		// Search.
-		if ( isset( $args['search'] ) ) {
-			$str_search_conditions = '';
-			$arr_search_words = preg_split( '/[\s,]+/', $args['search'] );
-
-			// create array of all searched words
-			// split both spaces and commas and such.
-			$arr_sql_like_cols = [ 'message', 'logger', 'level' ];
-
-			foreach ( $arr_sql_like_cols as $one_col ) {
-				$str_sql_search_words = '';
-
-				foreach ( $arr_search_words as $one_search_word ) {
-					$str_like = esc_sql( $wpdb->esc_like( $one_search_word ) );
-
-					$str_sql_search_words .= sprintf(
-						' AND %1$s LIKE "%2$s" ',
-						$one_col,
-						"%{$str_like}%"
-					);
-				}
-
-				$str_sql_search_words = ltrim( $str_sql_search_words, ' AND ' );
-
-				$str_search_conditions .= "\n" . sprintf(
-					' OR ( %1$s ) ',
-					$str_sql_search_words
-				);
-			}
-
-			$str_search_conditions = preg_replace( '/^OR /', ' ', trim( $str_search_conditions ) );
-
-			// Also search contexts.
-			$str_search_conditions .= "\n   OR ( ";
-			foreach ( $arr_search_words as $one_search_word ) {
-				$str_like = esc_sql( $wpdb->esc_like( $one_search_word ) );
-
-				$str_search_conditions .= "\n" . sprintf(
-					' id IN ( SELECT history_id FROM %1$s AS c WHERE c.value LIKE "%2$s" ) AND ',
-					$contexts_table_name, // 1
-					'%' . $str_like . '%' // 2
-				);
-			}
-			$str_search_conditions = preg_replace( '/ AND $/', '', $str_search_conditions );
-
-			$str_search_conditions .= "\n   ) "; // end OR for contexts.
-
-			$inner_where[] = "\n(\n {$str_search_conditions} \n ) ";
-		}// End if().
+		$inner_where = $this->add_search_to_inner_where_query( $inner_where, $args );
 
 		// "loglevels", array with loglevels.
 		// e.g. info, debug, and so on.
@@ -1219,7 +1239,7 @@ class Log_Query {
 			$sql_loglevels = '';
 
 			foreach ( $args['loglevels'] as $one_loglevel ) {
-				$sql_loglevels .= sprintf( ' "%s", ', esc_sql( $one_loglevel ) );
+				$sql_loglevels .= sprintf( ' \'%s\', ', esc_sql( $one_loglevel ) );
 			}
 
 			// Remove last comma.
@@ -1248,7 +1268,7 @@ class Log_Query {
 		// Add where for a single user ID.
 		if ( isset( $args['user'] ) ) {
 			$inner_where[] = sprintf(
-				'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = "_user_id" AND c.value = %2$s )',
+				'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = \'_user_id\' AND c.value = %2$s )',
 				$contexts_table_name, // 1
 				$args['user'], // 2
 			);
@@ -1257,7 +1277,7 @@ class Log_Query {
 		// Users, array with user ids.
 		if ( isset( $args['users'] ) ) {
 			$inner_where[] = sprintf(
-				'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = "_user_id" AND c.value IN (%2$s) )',
+				'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = \'_user_id\' AND c.value IN (%2$s) )',
 				$contexts_table_name, // 1
 				implode( ',', $args['users'] ), // 2
 			);
@@ -1284,7 +1304,7 @@ class Log_Query {
 				$sql_logger_messages_in = '';
 
 				foreach ( $logger_messages as $one_logger_message ) {
-					$sql_logger_messages_in .= sprintf( '"%s",', esc_sql( $one_logger_message ) );
+					$sql_logger_messages_in .= sprintf( '\'%s\',', esc_sql( $one_logger_message ) );
 				}
 
 				$sql_logger_messages_in = rtrim( $sql_logger_messages_in, ' ,' );
@@ -1293,7 +1313,7 @@ class Log_Query {
 				$sql_messages_where .= sprintf(
 					'
 					(
-						h.logger = "%1$s"
+						h.logger = \'%1$s\'
 						%2$s
 					)
 					OR ',
@@ -1322,7 +1342,95 @@ class Log_Query {
 	 * @return string "mysql" or "sqlite"
 	 */
 	public static function get_db_engine() {
-		$db_engine = defined( 'DB_ENGINE' ) && constant( 'DB_ENGINE' ) === 'sqlite' ? 'sqlite' : 'mysql';
-		return $db_engine;
+		return defined( 'DB_ENGINE' ) && constant( 'DB_ENGINE' ) === 'sqlite' ? 'sqlite' : 'mysql';
+	}
+
+	/**
+	 * Add search queries to inner where array.
+	 *
+	 * @param array $inner_where Existing inner where query.
+	 * @param array $args Arguments passed to API.
+	 * @return array $inner_where, possibly modified.
+	 */
+	private function add_search_to_inner_where_query( $inner_where, $args ) {
+		if ( ! isset( $args['search'] ) ) {
+			return $inner_where;
+		}
+
+		global $wpdb;
+
+		$contexts_table_name = Simple_History::get_instance()->get_contexts_table_name();
+
+		/** @var string $str_search_conditions
+		 * Example:
+		 * ```
+		 * ( message LIKE "%uppdaterade%"  AND message LIKE "%tillägg%"  )
+		 * OR ( logger LIKE "%uppdaterade%"  AND logger LIKE "%tillägg%"  )
+		 * OR ( level LIKE "%uppdaterade%"  AND level LIKE "%tillägg%"  )
+		 * OR (
+		 *   id IN ( SELECT history_id FROM wp_simple_history_contexts AS c WHERE c.value LIKE "%uppdaterade%" ) AND
+		 *   id IN ( SELECT history_id FROM wp_simple_history_contexts AS c WHERE c.value LIKE "%tillägg%" )
+		 *  )
+		 * ```
+		 */
+		$str_search_conditions = '';
+
+		$arr_search_words = preg_split( '/[\s,]+/', $args['search'] );
+
+		// create array of all searched words
+		// split both spaces and commas and such.
+		$arr_sql_like_cols = [ 'message', 'logger', 'level' ];
+
+		foreach ( $arr_sql_like_cols as $one_col ) {
+			$str_sql_search_words = '';
+
+			foreach ( $arr_search_words as $one_search_word ) {
+				$str_like = esc_sql( $wpdb->esc_like( $one_search_word ) );
+
+				$str_sql_search_words .= sprintf(
+					' AND %1$s LIKE \'%2$s\' ',
+					$one_col,
+					"%{$str_like}%"
+				);
+			}
+
+			$str_sql_search_words = ltrim( $str_sql_search_words, ' AND ' );
+
+			$str_search_conditions .= "\n" . sprintf(
+				' OR ( %1$s ) ',
+				$str_sql_search_words
+			);
+		}
+
+		// Remove first " OR ".
+		$str_search_conditions = preg_replace( '/^OR /', ' ', trim( $str_search_conditions ) );
+
+		// Also search contexts. Adds a OR for the first context and AND for the rest.
+		$str_search_conditions .= "\n   OR ( ";
+		foreach ( $arr_search_words as $one_search_word ) {
+			$str_like = esc_sql( $wpdb->esc_like( $one_search_word ) );
+
+			$str_search_conditions .= "\n" . sprintf(
+				' id IN ( SELECT history_id FROM %1$s AS c WHERE c.value LIKE \'%2$s\' ) AND ',
+				$contexts_table_name, // 1
+				'%' . $str_like . '%' // 2
+			);
+		}
+
+		$str_search_conditions = preg_replace( '/ AND $/', '', $str_search_conditions );
+		$str_search_conditions .= "\n   ) "; // end OR for contexts.
+
+		/**
+		 * Search for a string in the log messages with support for translated message.
+		 * https://github.com/bonny/WordPress-Simple-History/issues/277
+		 */
+		$logger_messages_with_search_string_matches = $this->match_logger_messages_with_search( $args['search'] );
+		foreach ( $logger_messages_with_search_string_matches as $one_logger_message ) {
+			$str_search_conditions .= "\n OR ( logger = '{$one_logger_message['logger_slug']}' AND contexts.value = '{$one_logger_message['message_key']}' ) ";
+		}
+
+		$inner_where[] = "\n(\n {$str_search_conditions} \n ) ";
+
+		return $inner_where;
 	}
 }

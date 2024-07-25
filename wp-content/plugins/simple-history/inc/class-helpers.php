@@ -232,9 +232,7 @@ class Helpers {
 	 * @param mixed $value array|object|string|whatever that is json_encode'able.
 	 */
 	public static function json_encode( $value ) {
-		return version_compare( PHP_VERSION, '5.4.0' ) >= 0
-			? json_encode( $value, JSON_PRETTY_PRINT )
-			: json_encode( $value );
+		return json_encode( $value, JSON_PRETTY_PRINT );
 	}
 
 	/**
@@ -350,11 +348,80 @@ class Helpers {
 	}
 
 	/**
-	 * Get number of rows in the database tables.
+	 * Get number of rows and the size of each Simple History table in the database.
 	 *
-	 * @return array Array with table name, size in mb and number of rows, if tables found.
+	 * @return array<string, object{table_name: string, size_in_mb: float, num_rows: int}>
 	 */
 	public static function get_db_table_stats() {
+		switch ( Log_Query::get_db_engine() ) {
+			case 'mysql':
+				return self::get_db_table_stats_mysql();
+			case 'sqlite':
+				return self::get_db_table_stats_sqlite();
+			default:
+				return [];
+		}
+	}
+
+	/**
+	 * Get number of rows and the size of each Simple History table in the database.
+	 *
+	 * @return array<string, object{table_name: string, size_in_mb: float, num_rows: int}>
+	 */
+	public static function get_db_table_stats_sqlite() {
+		/** @var \wpdb $wpdb */
+		global $wpdb;
+		$simple_history = Simple_History::get_instance();
+
+		/** @var array $events_table_size_result */
+		$events_table_size_result = $wpdb->get_row(
+			$wpdb->prepare(
+				'
+					SELECT dbstat.name as table_name , SUM(dbstat.pgsize) / 1024 as size_in_mb FROM sqlite_master 
+					INNER JOIN dbstat ON dbstat.name = sqlite_master.name 
+					WHERE sqlite_master.tbl_name = "%1$s"
+				',
+				$simple_history->get_events_table_name()
+			),
+			ARRAY_A
+		);
+
+		/** @var array $contexts_table_size_result */
+		$contexts_table_size_result = $wpdb->get_row(
+			$wpdb->prepare(
+				'
+					SELECT dbstat.name as table_name , SUM(dbstat.pgsize) / 1024 as size_in_mb FROM sqlite_master 
+					INNER JOIN dbstat ON dbstat.name = sqlite_master.name 
+					WHERE sqlite_master.tbl_name = "%1$s"
+				',
+				$simple_history->get_contexts_table_name()
+			),
+			ARRAY_A
+		);
+
+		// Bail if any of the tables are missing.
+		if ( empty( $events_table_size_result['table_name'] ) || empty( $contexts_table_size_result['table_name'] ) ) {
+			return [];
+		}
+
+		$table_size_result = [
+			'simple_history' => $events_table_size_result,
+			'simple_history_contexts' => $contexts_table_size_result,
+		];
+
+		// Get num of rows for each table.
+		$table_size_result['simple_history']['num_rows'] = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_events_table_name()}" ); // phpcs:ignore
+		$table_size_result['simple_history_contexts']['num_rows'] = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_contexts_table_name()}" ); // phpcs:ignore
+
+		return $table_size_result;
+	}
+
+	/**
+	 * Get number of rows and the size of each Simple History table in the database.
+	 *
+	 * @return array<string, object{table_name: string, size_in_mb: float, num_rows: int}>
+	 */
+	public static function get_db_table_stats_mysql() {
 		global $wpdb;
 		$simple_history = Simple_History::get_instance();
 
@@ -365,26 +432,29 @@ class Helpers {
 					SELECT table_name AS "table_name",
 					round(((data_length + index_length) / 1024 / 1024), 2) "size_in_mb"
 					FROM information_schema.TABLES
-					WHERE table_schema = "%1$s"
-					AND table_name IN ("%2$s", "%3$s");
+					WHERE table_schema = %s
+					AND table_name IN (%s, %s);
 					',
 				DB_NAME, // 1
 				$simple_history->get_events_table_name(), // 2
 				$simple_history->get_contexts_table_name() // 3
-			)
+			),
+			ARRAY_A
 		);
 
-		// If empty array returned then tables does not exist.
-		if ( sizeof( $table_size_result ) === 0 ) {
-			return array();
+		// Bail if not exactly two tables found.
+		if ( sizeof( $table_size_result ) !== 2 ) {
+			return [];
 		}
 
-		// Get num of rows for each table.
-		$total_num_rows_table = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_events_table_name()}" ); // phpcs:ignore
-		$total_num_rows_table_contexts = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_contexts_table_name()}" ); // phpcs:ignore
+		$table_size_result = [
+			'simple_history' => $table_size_result[0],
+			'simple_history_contexts' => $table_size_result[1],
+		];
 
-		$table_size_result[0]->num_rows = $total_num_rows_table;
-		$table_size_result[1]->num_rows = $total_num_rows_table_contexts;
+		// Get num of rows for each table.
+		$table_size_result['simple_history']['num_rows'] = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_events_table_name()}" ); // phpcs:ignore
+		$table_size_result['simple_history_contexts']['num_rows'] = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_contexts_table_name()}" ); // phpcs:ignore
 
 		return $table_size_result;
 	}
@@ -543,8 +613,8 @@ class Helpers {
 	}
 
 	/**
-	 * Check if Simple History dev mode is enabled.
 	 * Used by the developer of the plugin to test things.
+	 * Check if Simple History dev mode is enabled.
 	 *
 	 * @return bool True if dev mode is enabled.
 	 */
@@ -556,7 +626,7 @@ class Helpers {
 	 * Wrapper around WordPress function is_plugin_active()
 	 * that loads the required files if function does not exist.
 	 *
-	 * @param string $plugin_file_path Path to plugin file, relative to plugins dir.
+	 * @param string $plugin_file_path Path to plugin file, relative to plugins dir. I.e. "simple-history/simple-history.php".
 	 * @return bool True if plugin is active.
 	 */
 	public static function is_plugin_active( $plugin_file_path ) {
@@ -906,7 +976,7 @@ class Helpers {
 	}
 
 	/**
-	 * How old log entried are allowed to be.
+	 * How old log entries are allowed to be.
 	 * 0 = don't delete old entries.
 	 *
 	 * @return int Number of days.
@@ -1102,6 +1172,20 @@ class Helpers {
 	}
 
 	/**
+	 * Returns true if Detective Mode is active.
+	 *
+	 * Default is false.
+	 *
+	 * @return bool
+	 */
+	public static function detective_mode_is_enabled() {
+		return (bool) apply_filters(
+			'simple_history/detective_mode_enabled',
+			get_option( 'simple_history_detective_mode_enabled', 0 )
+		);
+	}
+
+	/**
 	 * Get number of events the last n days.
 	 *
 	 * @param int $period_days Number of days to get events for.
@@ -1239,5 +1323,14 @@ class Helpers {
 		}
 
 		return $numEvents;
+	}
+
+	/**
+	 * Check if the current request is a request made from WP CLI.
+	 *
+	 * @return bool
+	 */
+	public static function is_wp_cli() {
+		return defined( 'WP_CLI' ) && WP_CLI;
 	}
 }

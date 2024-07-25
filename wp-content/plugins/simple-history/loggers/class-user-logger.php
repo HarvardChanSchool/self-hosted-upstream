@@ -15,6 +15,12 @@ class User_Logger extends Logger {
 	/** @var array<int,array> Context for modified user. */
 	private $user_profile_update_modified_context = [];
 
+	/** @var array Detected WP Cli Changes */
+	private $wp_cli_changes = [
+		'user_roles_added' => [],
+		'user_roles_removed' => [],
+	];
+
 	/** @inheritDoc */
 	public function get_info() {
 
@@ -63,6 +69,16 @@ class User_Logger extends Logger {
 					'User updates the role for a user',
 					'simple-history'
 				),
+				'user_role_added' => _x(
+					'Added role(s) "{roles}" to user "{edited_user_login}"',
+					'A role is added to a user',
+					'simple-history'
+				),
+				'user_role_removed' => _x(
+					'Removed role(s) "{roles}" from user "{edited_user_login}"',
+					'A role is removed from a user',
+					'simple-history'
+				),
 				'user_admin_email_confirm_correct_clicked' => _x(
 					'Verified that administration email for website is correct',
 					'User clicks confirm admin email on admin email confirm screen',
@@ -77,44 +93,6 @@ class User_Logger extends Logger {
 					'Revoked application password "{application_password_name}" for user "{edited_user_login}"',
 					'User revoke application password',
 					'simple-history'
-				),
-			),
-			// Examples used for documentation.
-			'examples' => array(
-				array(
-					'description' => 'User fails to login',
-					'message' => 'user_login_failed',
-					'context' => array(
-						'login' => 'jane.doe@example.com',
-					),
-				),
-				array(
-					'description' => 'Another user fails to login',
-					'message' => 'user_login_failed',
-					'context' => array(
-						'login' => 'john.smith@example.com',
-					),
-				),
-				array(
-					'description' => 'User fails to login due to user account not existing',
-					'message' => 'user_unknown_login_failed',
-					'context' => array(
-						'failed_username' => 'janet',
-					),
-				),
-				array(
-					'message' => 'user_logged_in',
-					'user' => 'Jane Doe',
-					'description' => 'User logs in',
-				),
-				array(
-					'message' => 'user_unknown_logged_in',
-					'description' => 'Unknown user logs in',
-				),
-				array(
-					'message' => 'user_logged_out',
-					'user' => 'Jane Doe',
-					'description' => 'User logs out',
 				),
 			),
 			'labels'      => array(
@@ -204,6 +182,113 @@ class User_Logger extends Logger {
 
 		add_action( 'wp_create_application_password', array( $this, 'on_action_wp_create_application_password' ), 10, 4 );
 		add_action( 'wp_delete_application_password', array( $this, 'on_action_wp_delete_application_password' ), 10, 2 );
+		// TODO: there is also an action "wp_update_application_password". Used by rest api and fired when a user updates app password there.
+
+		$this->add_wp_cli_hooks();
+	}
+
+	/**
+	 * Adds hooks for WP CLI.
+	 */
+	private function add_wp_cli_hooks() {
+		if ( ! Helpers::is_wp_cli() ) {
+			return;
+		}
+
+		// Add hooks to collect and commit add-role changes.
+		\WP_CLI::add_hook( 'before_invoke:user add-role', [ $this, 'on_wp_cli_before_invoke_user_add_role_collect' ] );
+		\WP_CLI::add_hook( 'after_invoke:user add-role', [ $this, 'on_wp_cli_after_invoke_user_add_role_commit_changes' ] );
+
+		// Add hooks to collect and commit remove-role changes.
+		\WP_CLI::add_hook( 'before_invoke:user remove-role', [ $this, 'on_wp_cli_before_invoke_user_remove_role_collect' ] );
+		\WP_CLI::add_hook( 'after_invoke:user remove-role', [ $this, 'on_wp_cli_after_invoke_user_remove_role_commit_changes' ] );
+	}
+
+	/**
+	 * Collect user add role changes.
+	 */
+	public function on_wp_cli_before_invoke_user_add_role_collect() {
+		add_action( 'add_user_role', [ $this, 'on_wp_cli_add_user_role_collect' ], 10, 2 );
+	}
+
+	/**
+	 * Commit changes when functions has run.
+	 */
+	public function on_wp_cli_after_invoke_user_add_role_commit_changes() {
+		// Keyed by user id. Roles as array.
+		$user_roles_added = $this->wp_cli_changes['user_roles_added'];
+
+		foreach ( $user_roles_added as $user_id => $roles ) {
+			$user = get_user_by( 'ID', $user_id );
+
+			$context = [
+				'roles' => implode( ', ', $roles ),
+				'edited_user_id' => $user_id,
+				'edited_user_email' => $user->user_email,
+				'edited_user_login' => $user->user_login,
+			];
+
+			$this->info_message( 'user_role_added', $context );
+		}
+	}
+
+	/**
+	 * Collect user add role changes.
+	 */
+	public function on_wp_cli_before_invoke_user_remove_role_collect() {
+		add_action( 'remove_user_role', [ $this, 'on_wp_cli_remove_user_role_collect' ], 10, 2 );
+	}
+
+	/**
+	 * Commit changes when functions has run.
+	 */
+	public function on_wp_cli_after_invoke_user_remove_role_commit_changes() {
+		// Keyed by user id. Roles as array.
+		$user_roles_removed = $this->wp_cli_changes['user_roles_removed'];
+
+		foreach ( $user_roles_removed as $user_id => $roles ) {
+			$user = get_user_by( 'ID', $user_id );
+
+			$context = [
+				'roles' => implode( ', ', $roles ),
+				'edited_user_id' => $user_id,
+				'edited_user_email' => $user->user_email,
+				'edited_user_login' => $user->user_login,
+			];
+
+			$this->info_message( 'user_role_removed', $context );
+		}
+	}
+
+	/**
+	 * Collect changes when user role is removed via WP CLI.
+	 *
+	 * @param mixed $user_id User id.
+	 * @param mixed $role   Role that was removed.
+	 */
+	public function on_wp_cli_remove_user_role_collect( $user_id, $role ) {
+		if ( ! isset( $this->wp_cli_changes['user_roles_removed'][ $user_id ] ) ) {
+			$this->wp_cli_changes['user_roles_removed'][ $user_id ] = [];
+		}
+
+		$this->wp_cli_changes['user_roles_removed'][ $user_id ][] = $role;
+	}
+
+	/**
+	 * From WP_CLI this filter is only called when a user role is actually added,
+	 * it is not fired if the user already has the role.
+	 *
+	 * The filter will be called multiple times if multiple roles are added at the same time.
+	 *
+	 * @param mixed $user_id The user ID.
+	 * @param mixed $role The new role.
+	 */
+	public function on_wp_cli_add_user_role_collect( $user_id, $role ) {
+		if ( ! isset( $this->wp_cli_changes['user_roles_added'][ $user_id ] ) ) {
+			$this->wp_cli_changes['user_roles_added'][ $user_id ] = [];
+		}
+
+		$this->wp_cli_changes['user_roles_added'][ $user_id ][] = $role;
 	}
 
 	/**
@@ -452,8 +537,8 @@ class User_Logger extends Logger {
 
 		// Add diff to context.
 		foreach ( $user_data_diff as $one_diff_key => $one_diff_vals ) {
-				$context[ "user_prev_{$one_diff_key}" ] = $one_diff_vals['old'];
-				$context[ "user_new_{$one_diff_key}" ] = $one_diff_vals['new'];
+			$context[ "user_prev_{$one_diff_key}" ] = $one_diff_vals['old'];
+			$context[ "user_new_{$one_diff_key}" ] = $one_diff_vals['new'];
 		}
 
 		$context['user_prev_roles'] = (array) $user_before_update->roles;
