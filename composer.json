@@ -1,35 +1,8 @@
 {
-    "name": "harvardchanschool/self-hosted-upstream",
+    "name": "harvardchanschool/your-self-hosted-website",
     "type": "project",
-    "require": {
-      "harvardchanschool/plugin-design-system": "dev-main",
-      "harvardchanschool/plugin-google-analytics-tracking": "dev-master",
-      "harvardchanschool/plugin-harvard-key": "dev-main",
-      "harvardchanschool/plugin-social": "dev-master",
-      "harvardchanschool/plugin-ui-shortcodes": "dev-main"
-		},
-		"repositories": [
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-design-system"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-google-analytics-tracking"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-harvard-key"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-social"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes"
-			}
-		],
+    "require": {},
+    "repositories": [],
     "config": {
         "allow-plugins": {
             "composer/installers": true
