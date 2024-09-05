@@ -3,8 +3,8 @@
 Contributors: eskapism
 Donate link: https://www.paypal.me/eskapism
 Tags: history, audit log, event log, user tracking, activity
-Tested up to: 6.5
-Stable tag: 4.16.0
+Tested up to: 6.6
+Stable tag: 4.17.0
 
 Track changes and user activities on your WordPress site. See who created a page, uploaded an attachment, and more, for a complete audit trail.
 
@@ -273,20 +273,30 @@ Read more at the [FAQ on the plugin website](https://simple-history.com/docs/faq
 
 ## Changelog
 
+### 4.17.0
+
+🐞 This release contains some small bug fixes and enhancements. The [previous version](https://simple-history.com/2024/simple-history-4-16-0/?utm_source=wpadmin) had more cool new features so check out that one if you haven't already.
+
+- Tested on [WordPress 6.6](https://wordpress.org/news/2024/07/dorsey/).
+- Correct URL for "Go to Simple History" link on updated page on multisite.
+- Add `simple_history/log_query_inner_where_array` as a replacement for filter `simple_history/log_query_inner_where` that got removed in 4.9.0. The new filter is an array filter and can be used to add or modify the where clauses that the log query will use. See this [GitHub issue for some examples](https://github.com/bonny/WordPress-Simple-History/issues/455#issuecomment-2263206236).
+- Add link to Simple History below the "All updates have been completed" message for more cases (it was missing when translations was updated, for example).
+- Add filter `simple_history/show_action_link` that can be used to disable the link to the action that is shown in the log. This can be useful if you want to hide the link to the action for some users or in some cases. Example usage: `add_filter("simple_history/show_action_link", "__return_false");`.
+- Update Select2. [#456](https://github.com/bonny/WordPress-Simple-History/issues/456)
+
+🌟 Pssst.... Don't forget that you can [sponsor this project to keep it free and open source](https://simple-history.com/sponsor/). And if you need more features you can buy [add-ons that also get you some extra features](https://simple-history.com/add-ons/). 🌟
+
 ### 4.16.0
 
 This release contains many new features and improvements. Especially updates made on the settings screen has gonne through a major overhaul and is now much more user friendly and informative.
 [View the release post for screenshots and more information](https://simple-history.com/2024/simple-history-4-16-0/?utm_source=wpadmin).
-
-🌟 Remember that you can [sponsor this project to keep it free and open source](https://simple-history.com/sponsor/).
-And if you need more features you can buy [add-ons that also get you some extra features](https://simple-history.com/add-ons/). 🌟
 
 **Added**
 
 - Debug page additions
   - Display detected db engine to debug page. Can be useful for debugging since Simple History supports MySQL, MariaDB, and SQLite.
   - Table size and number of rows for SQLite databases are shown on the debug page (they were already shown for MySQL and MariaDB).
-  - Display [Must Use Plugins](https://developer.wordpress.org/advanced-administration/plugins/mu-plugins/) on the debug page.
+  - Display [Drop-ins](https://developer.wordpress.org/reference/functions/get_dropins/) on the debug page.
 - Throw exception if [log query](https://simple-history.com/docs/query-api/) has any db errors instead of just dying silently. This should help with debugging since the message often is visible in the log. [#438](https://github.com/bonny/WordPress-Simple-History/issues/438)
 - Plugin update failures are now logged, with error message added to context. This can happen when a plugin can't remove it's folder. [#345](https://github.com/bonny/WordPress-Simple-History/issues/345)
 - Support for the ANSI_QUOTES mode in MySQL/MariaDB. [#334](https://github.com/bonny/WordPress-Simple-History/issues/334)
