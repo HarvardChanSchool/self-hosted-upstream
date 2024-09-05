@@ -39,7 +39,7 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 		const POSTTYPE            = 'tribe_events';
 		const VENUE_POST_TYPE     = 'tribe_venue';
 		const ORGANIZER_POST_TYPE = 'tribe_organizer';
-		const VERSION             = '6.6.0.2';
+		const VERSION             = '6.6.3';
 
 		/**
 		 * Min Pro Addon.
@@ -402,7 +402,7 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 		}
 
 		/**
-		 * Resets the global common info back to ET's common path
+		 * Resets the global common info back to ET's common path.
 		 *
 		 * @since 4.9.3.2
 		 */
@@ -3706,7 +3706,7 @@ if ( ! class_exists( 'Tribe__Events__Main' ) ) {
 		}
 
 		/**
-		 * Add filters to register custom cron schedules
+		 * Add filters to register custom cron schedules.
 		 *
 		 */
 		public function filter_cron_schedules() {
