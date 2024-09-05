@@ -7,9 +7,9 @@
  * Author URI: https://pantheon.io
  * Text Domain: pantheon-advanced-page-cache
  * Domain Path: /languages
- * Version: 2.0.0
+ * Version: 2.1.0
  * Requires at least: 6.4
- * Tested up to: 6.5.3
+ * Tested up to: 6.6.1
  *
  * @package         Pantheon_Advanced_Page_Cache
  */
@@ -147,6 +147,11 @@ spl_autoload_register(
 		}
 	}
 );
+
+/**
+ * Init namespaced files.
+ */
+add_action( 'plugins_loaded', 'pantheon_bootstrap_namespaces' );
 
 /**
  * Init namespaced files.
