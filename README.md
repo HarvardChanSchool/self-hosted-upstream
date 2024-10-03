@@ -12,19 +12,25 @@ This is an outline of tasks that should be performed by maintainers during month
 
 1. All work must take place on the `master` branch of self-hosted upstream:
 
+    ```
     git checkout master
     git pull origin master
+    ```
 
 2. Fetch Pantheon upstream:
 
+    ```
     git fetch pantheon-wordpress
     git merge pantheon-wordpress/master
+    ```
 
 3. Check wordpress.org plugins
 
+    ```
     wp plugin list --update=available
     # Upgrade each one unless there's a reason not to
     wp gh plugin upgrade <plugin> # https://github.com/boonebgorges/wp-cli-git-helper
+    ```
 
 4. Copy latest versions of commercial plugins from wwwhsph repo:
 
@@ -37,29 +43,38 @@ This is an outline of tasks that should be performed by maintainers during month
 
 1. All work must take place on the `main` branch:
 
+    ```
     git checkout main
     git pull origin main
+    ```
 
 2. Sync from production site:
 
+    ```
     terminus rsync <site>.live:files/ wp-content/uploads/
     terminus local:getLiveDB --overwrite <site>.live
     gunzip ~/pantheon-local-copies/db/<site>-db.tgz
     wp db import ~/pantheon-local-copies/db/<site>-db.tar # Pantheon gives it the wrong extension
     wp search-replace <production-url> <local-url>
-    # Now verify local site
+    ```
+
+    Now verify local site
 
 3. Fetch and merge from self-hosted-upstream:
 
+    ```
     git fetch upstream
     git merge upstream/build # Important! Always pull from the build branch
     # Now verify local site
+    ```
 
 4. Check for wordpress.org plugin updates:
 
+    ```
     wp plugin list --update=available
     # Upgrade each one unless there's a reason not to
     wp gh plugin upgrade <plugin>
+    ```
 
 5. Check with team for updates to premium and HSPH plugins.
 
