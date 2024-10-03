@@ -96,7 +96,9 @@ This is an outline of tasks that should be performed by maintainers during month
 1. CHDS
 
 Web: https://chds.hsph.harvard.edu/
+
 GitHub: https://github.com/HarvardChanSchool/center-for-health-decision-science
+
 Pantheon: https://dashboard.pantheon.io/sites/4850d5e8-9a0a-42ce-b919-30b22d5704ec
 
 Verification URLs:
@@ -118,7 +120,9 @@ On this last URL, note that Vimeo will not permit promo-block__video embeds on l
 2. Mindfulness
 
 Web: https://www.mindfulpublichealth.org/
+
 GitHub: https://github.com/HarvardChanSchool/center-for-mindfulness-in-public-health
+
 Pantheon: https://dashboard.pantheon.io/sites/9558ba79-7451-404d-87ea-23f30299c214
 
 Verification URLs:
@@ -136,7 +140,9 @@ boone.cool/hsph/center-for-mindfulness-in-public-health versions:
 3. NPLI
 
 Web: https://npli.hsph.harvard.edu/
+
 GitHub: https://github.com/HarvardChanSchool/national-preparedness-leadership-initiative
+
 Pantheon: https://dashboard.pantheon.io/sites/07752cca-a62c-439b-8bdf-a3439f86d166#dev/code
 
 Verification URLs:
@@ -157,7 +163,9 @@ boone.cool/hsph/national-preparedness-leadership-initiative versions:
 4. Nutrition Source
 
 Web: https://nutritionsource.hsph.harvard.edu/
+
 GitHub: https://github.com/HarvardChanSchool/the-nutrition-source
+
 Pantheon: https://dashboard.pantheon.io/sites/bac3c981-cc7f-4c97-924d-bf1d29325b57
 
 Verification URLs:
