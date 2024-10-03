@@ -1,0 +1,43 @@
+{
+    "key": "group_5e78dbc23e030",
+    "title": "Social Share Buttons",
+    "fields": [
+        {
+            "key": "field_5e78dbd34d55e",
+            "label": "Hide Share Buttons for This Post",
+            "name": "hsph_hide_post_share_buttons",
+            "type": "true_false",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "message": "",
+            "default_value": 0,
+            "ui": 1,
+            "ui_on_text": "Yes",
+            "ui_off_text": ""
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "sharing_buttons_post_types",
+                "operator": "includes",
+                "value": "current_post_type"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": 1,
+    "description": "Allows users to show\/hide share buttons for individual posts.",
+    "modified": 1585856682
+}
