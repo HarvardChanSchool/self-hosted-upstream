@@ -93,91 +93,91 @@ This is an outline of tasks that should be performed by maintainers during month
 
 ### Site list for monthly maintenance
 
-1. CHDS
+1. __CHDS__
 
-Web: https://chds.hsph.harvard.edu/
+    Web: https://chds.hsph.harvard.edu/
+    
+    GitHub: https://github.com/HarvardChanSchool/center-for-health-decision-science
+    
+    Pantheon: https://dashboard.pantheon.io/sites/4850d5e8-9a0a-42ce-b919-30b22d5704ec
+    
+    Verification URLs:
+    - https://chds.hsph.harvard.edu/
+    - https://chds.hsph.harvard.edu/approaches/
+    - https://chds.hsph.harvard.edu/approaches/practice-and-policy/
+    - https://chds.hsph.harvard.edu/media-hub/people-and-perspectives/
+    - https://chds.hsph.harvard.edu/two-doctoral-students-join-chds/
+    
+    boone.cool/hsph/center-for-health-decision-science versions:
+    - http://boone.cool/hsph/center-for-health-decision-science/
+    - http://boone.cool/hsph/center-for-health-decision-science/approaches/
+    - http://boone.cool/hsph/center-for-health-decision-science/approaches/practice-and-policy/
+    - http://boone.cool/hsph/center-for-health-decision-science/media-hub/people-and-perspectives/
+    - http://boone.cool/hsph/center-for-health-decision-science/two-doctoral-students-join-chds/
+    
+    On this last URL, note that Vimeo will not permit promo-block__video embeds on local domains.
 
-GitHub: https://github.com/HarvardChanSchool/center-for-health-decision-science
+2. __Mindfulness__
 
-Pantheon: https://dashboard.pantheon.io/sites/4850d5e8-9a0a-42ce-b919-30b22d5704ec
+    Web: https://www.mindfulpublichealth.org/
+    
+    GitHub: https://github.com/HarvardChanSchool/center-for-mindfulness-in-public-health
+    
+    Pantheon: https://dashboard.pantheon.io/sites/9558ba79-7451-404d-87ea-23f30299c214
+    
+    Verification URLs:
+    - https://www.mindfulpublichealth.org/
+    - https://www.mindfulpublichealth.org/home-en/our-research/
+    - https://www.mindfulpublichealth.org/home-en/news-events/
+    - https://www.mindfulpublichealth.org/news-events/summer-2024-mindfulness-sessions/
+    
+    boone.cool/hsph/center-for-mindfulness-in-public-health versions:
+    - http://boone.cool/hsph/center-for-mindfulness-in-public-health/
+    - http://boone.cool/hsph/center-for-mindfulness-in-public-health/home-en/our-research/
+    - http://boone.cool/hsph/center-for-mindfulness-in-public-health/home-en/news-events/
+    - http://boone.cool/hsph/center-for-mindfulness-in-public-health/news-events/summer-2024-mindfulness-sessions/
 
-Verification URLs:
-- https://chds.hsph.harvard.edu/
-- https://chds.hsph.harvard.edu/approaches/
-- https://chds.hsph.harvard.edu/approaches/practice-and-policy/
-- https://chds.hsph.harvard.edu/media-hub/people-and-perspectives/
-- https://chds.hsph.harvard.edu/two-doctoral-students-join-chds/
+3. __NPLI__
 
-boone.cool/hsph/center-for-health-decision-science versions:
-- http://boone.cool/hsph/center-for-health-decision-science/
-- http://boone.cool/hsph/center-for-health-decision-science/approaches/
-- http://boone.cool/hsph/center-for-health-decision-science/approaches/practice-and-policy/
-- http://boone.cool/hsph/center-for-health-decision-science/media-hub/people-and-perspectives/
-- http://boone.cool/hsph/center-for-health-decision-science/two-doctoral-students-join-chds/
-
-On this last URL, note that Vimeo will not permit promo-block__video embeds on local domains.
-
-2. Mindfulness
-
-Web: https://www.mindfulpublichealth.org/
-
-GitHub: https://github.com/HarvardChanSchool/center-for-mindfulness-in-public-health
-
-Pantheon: https://dashboard.pantheon.io/sites/9558ba79-7451-404d-87ea-23f30299c214
-
-Verification URLs:
-- https://www.mindfulpublichealth.org/
-- https://www.mindfulpublichealth.org/home-en/our-research/
-- https://www.mindfulpublichealth.org/home-en/news-events/
-- https://www.mindfulpublichealth.org/news-events/summer-2024-mindfulness-sessions/
-
-boone.cool/hsph/center-for-mindfulness-in-public-health versions:
-- http://boone.cool/hsph/center-for-mindfulness-in-public-health/
-- http://boone.cool/hsph/center-for-mindfulness-in-public-health/home-en/our-research/
-- http://boone.cool/hsph/center-for-mindfulness-in-public-health/home-en/news-events/
-- http://boone.cool/hsph/center-for-mindfulness-in-public-health/news-events/summer-2024-mindfulness-sessions/
-
-3. NPLI
-
-Web: https://npli.hsph.harvard.edu/
-
-GitHub: https://github.com/HarvardChanSchool/national-preparedness-leadership-initiative
-
-Pantheon: https://dashboard.pantheon.io/sites/07752cca-a62c-439b-8bdf-a3439f86d166#dev/code
-
-Verification URLs:
-- https://npli.hsph.harvard.edu/
-- https://npli.hsph.harvard.edu/our-programs/
-- https://npli.hsph.harvard.edu/apply/
-- https://npli.hsph.harvard.edu/news-insights/
-- https://npli.hsph.harvard.edu/news-insights/implementing-large-language-models-in-healthcare/
-
-boone.cool/hsph/national-preparedness-leadership-initiative versions:
-- http://boone.cool/hsph/national-preparedness-leadership-initiative/
-- http://boone.cool/hsph/national-preparedness-leadership-initiative/our-programs/
-- http://boone.cool/hsph/national-preparedness-leadership-initiative/apply/
-- http://boone.cool/hsph/national-preparedness-leadership-initiative/news-insights/
-- http://boone.cool/hsph/national-preparedness-leadership-initiative/news-insights/implementing-large-language-models-in-healthcare/
+    Web: https://npli.hsph.harvard.edu/
+    
+    GitHub: https://github.com/HarvardChanSchool/national-preparedness-leadership-initiative
+    
+    Pantheon: https://dashboard.pantheon.io/sites/07752cca-a62c-439b-8bdf-a3439f86d166#dev/code
+    
+    Verification URLs:
+    - https://npli.hsph.harvard.edu/
+    - https://npli.hsph.harvard.edu/our-programs/
+    - https://npli.hsph.harvard.edu/apply/
+    - https://npli.hsph.harvard.edu/news-insights/
+    - https://npli.hsph.harvard.edu/news-insights/implementing-large-language-models-in-healthcare/
+    
+    boone.cool/hsph/national-preparedness-leadership-initiative versions:
+    - http://boone.cool/hsph/national-preparedness-leadership-initiative/
+    - http://boone.cool/hsph/national-preparedness-leadership-initiative/our-programs/
+    - http://boone.cool/hsph/national-preparedness-leadership-initiative/apply/
+    - http://boone.cool/hsph/national-preparedness-leadership-initiative/news-insights/
+    - http://boone.cool/hsph/national-preparedness-leadership-initiative/news-insights/implementing-large-language-models-in-healthcare/
 
 
-4. Nutrition Source
+4. __Nutrition Source__
 
-Web: https://nutritionsource.hsph.harvard.edu/
-
-GitHub: https://github.com/HarvardChanSchool/the-nutrition-source
-
-Pantheon: https://dashboard.pantheon.io/sites/bac3c981-cc7f-4c97-924d-bf1d29325b57
-
-Verification URLs:
-- https://nutritionsource.hsph.harvard.edu/
-- https://nutritionsource.hsph.harvard.edu/nutrition-news/
-- https://nutritionsource.hsph.harvard.edu/2024/01/02/healthy-living-guide-2023-2024/
-- https://nutritionsource.hsph.harvard.edu/healthy-drinks/
-- https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/
-
-boone.cool/hsph/the-nutrition-source versions:
-- http://boone.cool/hsph/the-nutrition-source/
-- http://boone.cool/hsph/the-nutrition-source/nutrition-news/
-- http://boone.cool/hsph/the-nutrition-source/2024/01/02/healthy-living-guide-2023-2024/
-- http://boone.cool/hsph/the-nutrition-source/healthy-drinks/
-- http://boone.cool/hsph/the-nutrition-source/healthy-eating-plate/
+    Web: https://nutritionsource.hsph.harvard.edu/
+    
+    GitHub: https://github.com/HarvardChanSchool/the-nutrition-source
+    
+    Pantheon: https://dashboard.pantheon.io/sites/bac3c981-cc7f-4c97-924d-bf1d29325b57
+    
+    Verification URLs:
+    - https://nutritionsource.hsph.harvard.edu/
+    - https://nutritionsource.hsph.harvard.edu/nutrition-news/
+    - https://nutritionsource.hsph.harvard.edu/2024/01/02/healthy-living-guide-2023-2024/
+    - https://nutritionsource.hsph.harvard.edu/healthy-drinks/
+    - https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/
+    
+    boone.cool/hsph/the-nutrition-source versions:
+    - http://boone.cool/hsph/the-nutrition-source/
+    - http://boone.cool/hsph/the-nutrition-source/nutrition-news/
+    - http://boone.cool/hsph/the-nutrition-source/2024/01/02/healthy-living-guide-2023-2024/
+    - http://boone.cool/hsph/the-nutrition-source/healthy-drinks/
+    - http://boone.cool/hsph/the-nutrition-source/healthy-eating-plate/
