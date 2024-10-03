@@ -133,6 +133,7 @@ class Simple_History {
 			Services\AddOns_Licences::class,
 			Services\Licences_Settings_Page::class,
 			Services\Plugin_List_Info::class,
+			Services\REST_API::class,
 		];
 	}
 
@@ -423,22 +424,21 @@ class Simple_History {
 	public function get_core_dropins() {
 		$dropins = array(
 			Dropins\Detective_Mode_Dropin::class,
+			Dropins\Experimental_Features_Dropin::class,
 			Dropins\Donate_Dropin::class,
 			Dropins\Export_Dropin::class,
-			Dropins\Filter_Dropin::class,
 			Dropins\IP_Info_Dropin::class,
-			Dropins\New_Rows_Notifier_Dropin::class,
 			Dropins\Plugin_Patches_Dropin::class,
 			Dropins\RSS_Dropin::class,
 			Dropins\Settings_Debug_Tab_Dropin::class,
 			Dropins\Sidebar_Stats_Dropin::class,
 			Dropins\Sidebar_Dropin::class,
-			Dropins\Sidebar_Settings_Dropin::class,
 			Dropins\WP_CLI_Dropin::class,
 			Dropins\Event_Details_Dev_Dropin::class,
 			Dropins\Quick_Stats::class,
 			Dropins\Sidebar_Add_Ons_Dropin::class,
 			Dropins\Action_Links_Dropin::class,
+			Dropins\React_Dropin::class,
 		);
 
 		/**
@@ -718,7 +718,8 @@ class Simple_History {
 	 * @param object $row Log row object.
 	 * @return string
 	 */
-	private function get_log_row_sender_image_output( $row ) {
+	public function get_log_row_sender_image_output( $row ) {
+		/** @var Loggers\Logger $row_logger */
 		$row_logger = $row->logger;
 		$row->context = isset( $row->context ) && is_array( $row->context ) ? $row->context : array();
 
@@ -1229,7 +1230,7 @@ class Simple_History {
 	 *
 	 * @param int|null $user_id Id of user to get loggers for. Defaults to current user id.
 	 * @param string   $format format to return loggers in. Default is array. Can also be "sql".
-	 * @return array|string Array or SQL string with loggers that user can read.
+	 * @return array<\Simple_History\Loggers\Simple_Logger>|string Array or SQL string with loggers that user can read.
 	 */
 	public function get_loggers_that_user_can_read( $user_id = null, $format = 'array' ) {
 		$arr_loggers_user_can_view = [];
