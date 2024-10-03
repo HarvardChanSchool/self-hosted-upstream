@@ -1,39 +1,160 @@
-# WordPress
+# HSPH Self-Hosted Upstream
 
-This is a WordPress repository configured to run on the [Pantheon platform](https://pantheon.io).
+This repository should be used as the upstream repository for compliant self-hosted sites running in the HSPH Pantheon environment. It contains plugins and themes officially supported by HSPH, default configurations for Composer and other internal tools, and deployment Actions.
 
-Pantheon is website platform optimized and configured to run high performance sites with an amazing developer workflow. There is built-in support for features such as Varnish, Redis, Apache Solr, New Relic, Nginx, PHP-FPM, MySQL, PhantomJS and more. 
+## Monthly maintenance tasks
 
-## Getting Started
+[Last updated: 2024-10-03]
 
-### 1. Spin-up a site
+This is an outline of tasks that should be performed by maintainers during monthly maintenance.
 
-If you do not yet have a Pantheon account, you can create one for free. Once you've verified your email address, you will be able to add sites from your dashboard. Choose "WordPress" to use this distribution.
+### Update self-hosted-upstream
 
-### 2. Load up the site
+1. All work must take place on the `master` branch of self-hosted upstream:
 
-When the spin-up process is complete, you will be redirected to the site's dashboard. Click on the link under the site's name to access the Dev environment.
+    git checkout master
+    git pull origin master
 
-![alt](http://i.imgur.com/2wjCj9j.png?1, '')
+2. Fetch Pantheon upstream:
 
-### 3. Run the WordPress installer
+    git fetch pantheon-wordpress
+    git merge pantheon-wordpress/master
 
-How about the WordPress database config screen? No need to worry about database connection information as that is taken care of in the background. The only step that you need to complete is the site information and the installation process will be complete.
+3. Check wordpress.org plugins
 
-We will post more information about how this works but we recommend developers take a look at `wp-config.php` to get an understanding.
+    wp plugin list --update=available
+    # Upgrade each one unless there's a reason not to
+    wp gh plugin upgrade <plugin> # https://github.com/boonebgorges/wp-cli-git-helper
 
-![alt](http://i.imgur.com/4EOcqYN.png, '')
+4. Copy latest versions of commercial plugins from wwwhsph repo:
 
-If you would like to keep a separate set of configuration for local development, you can use a file called `wp-config-local.php`, which is already in our .gitignore file.
+    - advanced-custom-fields-pro
+    - gravityforms
 
-### 4. Enjoy!
+5. Wait a moment - Before pulling content to site-specific repos, wait for the GitHub build action to run.
 
-![alt](http://i.imgur.com/fzIeQBP.png, '')
+### Update site-specific repos
 
-## Branches
+1. All work must take place on the `main` branch:
 
-The `default` branch of this repository is where PRs are merged, and has [CI](https://github.com/pantheon-systems/WordPress/tree/default/.circleci) that copies `default` to `master` after removing the CI directories. This allows customers to clone from `master` and implement their own CI without needing to worry about potential merge conflicts.
+    git checkout main
+    git pull origin main
 
-## Custom Upstreams
+2. Sync from production site:
 
-If you are using this repository as a starting point for a custom upstream, be sure to review the [documentation](https://pantheon.io/docs/create-custom-upstream#pull-in-core-from-pantheons-upstream) and pull the core files from the `master` branch.
+    terminus rsync <site>.live:files/ wp-content/uploads/
+    terminus local:getLiveDB --overwrite <site>.live
+    gunzip ~/pantheon-local-copies/db/<site>-db.tgz
+    wp db import ~/pantheon-local-copies/db/<site>-db.tar # Pantheon gives it the wrong extension
+    wp search-replace <production-url> <local-url>
+    # Now verify local site
+
+3. Fetch and merge from self-hosted-upstream:
+
+    git fetch upstream
+    git merge upstream/build # Important! Always pull from the build branch
+    # Now verify local site
+
+4. Check for wordpress.org plugin updates:
+
+    wp plugin list --update=available
+    # Upgrade each one unless there's a reason not to
+    wp gh plugin upgrade <plugin>
+
+5. Check with team for updates to premium and HSPH plugins.
+
+6. Verify site locally, checking site-specific URLs.
+
+7. Make sure everything is pushed to GitHub, and wait for the build Action to run.
+
+8. Create release. Use naming convention vx.y.z, where:
+  - x is only bumped for major changes
+  - y is bumped for monthly maintenance releases
+  - z is bumped for unscheduled bugfixes
+
+  Use 'September 2024 maintenance release' format for release description.
+
+9. Wait for release action to complete, then verify production site.
+
+### Site list for monthly maintenance
+
+1. CHDS
+
+Web: https://chds.hsph.harvard.edu/
+GitHub: https://github.com/HarvardChanSchool/center-for-health-decision-science
+Pantheon: https://dashboard.pantheon.io/sites/4850d5e8-9a0a-42ce-b919-30b22d5704ec
+
+Verification URLs:
+- https://chds.hsph.harvard.edu/
+- https://chds.hsph.harvard.edu/approaches/
+- https://chds.hsph.harvard.edu/approaches/practice-and-policy/
+- https://chds.hsph.harvard.edu/media-hub/people-and-perspectives/
+- https://chds.hsph.harvard.edu/two-doctoral-students-join-chds/
+
+boone.cool/hsph/center-for-health-decision-science versions:
+- http://boone.cool/hsph/center-for-health-decision-science/
+- http://boone.cool/hsph/center-for-health-decision-science/approaches/
+- http://boone.cool/hsph/center-for-health-decision-science/approaches/practice-and-policy/
+- http://boone.cool/hsph/center-for-health-decision-science/media-hub/people-and-perspectives/
+- http://boone.cool/hsph/center-for-health-decision-science/two-doctoral-students-join-chds/
+
+On this last URL, note that Vimeo will not permit promo-block__video embeds on local domains.
+
+2. Mindfulness
+
+Web: https://www.mindfulpublichealth.org/
+GitHub: https://github.com/HarvardChanSchool/center-for-mindfulness-in-public-health
+Pantheon: https://dashboard.pantheon.io/sites/9558ba79-7451-404d-87ea-23f30299c214
+
+Verification URLs:
+- https://www.mindfulpublichealth.org/
+- https://www.mindfulpublichealth.org/home-en/our-research/
+- https://www.mindfulpublichealth.org/home-en/news-events/
+- https://www.mindfulpublichealth.org/news-events/summer-2024-mindfulness-sessions/
+
+boone.cool/hsph/center-for-mindfulness-in-public-health versions:
+- http://boone.cool/hsph/center-for-mindfulness-in-public-health/
+- http://boone.cool/hsph/center-for-mindfulness-in-public-health/home-en/our-research/
+- http://boone.cool/hsph/center-for-mindfulness-in-public-health/home-en/news-events/
+- http://boone.cool/hsph/center-for-mindfulness-in-public-health/news-events/summer-2024-mindfulness-sessions/
+
+3. NPLI
+
+Web: https://npli.hsph.harvard.edu/
+GitHub: https://github.com/HarvardChanSchool/national-preparedness-leadership-initiative
+Pantheon: https://dashboard.pantheon.io/sites/07752cca-a62c-439b-8bdf-a3439f86d166#dev/code
+
+Verification URLs:
+- https://npli.hsph.harvard.edu/
+- https://npli.hsph.harvard.edu/our-programs/
+- https://npli.hsph.harvard.edu/apply/
+- https://npli.hsph.harvard.edu/news-insights/
+- https://npli.hsph.harvard.edu/news-insights/implementing-large-language-models-in-healthcare/
+
+boone.cool/hsph/national-preparedness-leadership-initiative versions:
+- http://boone.cool/hsph/national-preparedness-leadership-initiative/
+- http://boone.cool/hsph/national-preparedness-leadership-initiative/our-programs/
+- http://boone.cool/hsph/national-preparedness-leadership-initiative/apply/
+- http://boone.cool/hsph/national-preparedness-leadership-initiative/news-insights/
+- http://boone.cool/hsph/national-preparedness-leadership-initiative/news-insights/implementing-large-language-models-in-healthcare/
+
+
+4. Nutrition Source
+
+Web: https://nutritionsource.hsph.harvard.edu/
+GitHub: https://github.com/HarvardChanSchool/the-nutrition-source
+Pantheon: https://dashboard.pantheon.io/sites/bac3c981-cc7f-4c97-924d-bf1d29325b57
+
+Verification URLs:
+- https://nutritionsource.hsph.harvard.edu/
+- https://nutritionsource.hsph.harvard.edu/nutrition-news/
+- https://nutritionsource.hsph.harvard.edu/2024/01/02/healthy-living-guide-2023-2024/
+- https://nutritionsource.hsph.harvard.edu/healthy-drinks/
+- https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/
+
+boone.cool/hsph/the-nutrition-source versions:
+- http://boone.cool/hsph/the-nutrition-source/
+- http://boone.cool/hsph/the-nutrition-source/nutrition-news/
+- http://boone.cool/hsph/the-nutrition-source/2024/01/02/healthy-living-guide-2023-2024/
+- http://boone.cool/hsph/the-nutrition-source/healthy-drinks/
+- http://boone.cool/hsph/the-nutrition-source/healthy-eating-plate/
