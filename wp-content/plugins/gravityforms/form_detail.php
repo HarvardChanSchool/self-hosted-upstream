@@ -322,9 +322,7 @@ class GFFormDetail {
 						require_once( GFCommon::get_base_path() . '/form_display.php' );
 						foreach ( $form['fields'] as $field ) {
 							echo GFFormDisplay::get_field( $field, '', true, $form );
-							if ( $field->layoutSpacerGridColumnSpan && ! GFCommon::is_legacy_markup_enabled( $form ) ) {
-								printf( '<div class="spacer gfield" style="grid-column: span %d;" data-groupId="%s"></div>', $field->layoutSpacerGridColumnSpan, $field->layoutGroupId );
-							}
+							echo GFFormDisplay::get_row_spacer( $field, $form );
 						}
 					}
 					?>
@@ -1316,15 +1314,12 @@ class GFFormDetail {
 							<li class="name_setting field_setting">
 								<div class="custom_inputs_setting gfield_sub_setting">
 									<label for="field_name_fields" class="section_label inline">
-										<?php esc_html_e( 'Name Fields', 'gravityforms' ); ?>
-										<?php gform_tooltip( 'form_field_name_fields' ); ?>
-									</label>
-
+									    <?php esc_html_e( 'Name Fields', 'gravityforms' ); ?><?php gform_tooltip( 'form_field_name_fields' ); ?>
+                                    					</label>
 									<div id="field_name_fields_container" style="padding-top:10px;">
 										<!-- content dynamically created from js.php -->
 									</div>
 								</div>
-
 							</li>
 							<?php
 							do_action( 'gform_field_standard_settings', 1150, $form_id );
@@ -1979,7 +1974,7 @@ class GFFormDetail {
 									</label>
 								</div>
 
-								<div id="calculation_options" style="display:none;margin-top:10px;">
+								<div id="calculation_options" style="display:none;margin-top:10px;position:relative;">
 
 									<label for="field_calculation_formula">
 										<?php esc_html_e( 'Formula', 'gravityforms' ); ?>
@@ -1987,14 +1982,13 @@ class GFFormDetail {
 									</label>
 
 									<div>
-										<?php GFCommon::insert_calculation_variables( $form['fields'], 'field_calculation_formula', '', 'FormulaContentCallback', 40 ); ?>
 										<div class="gf_calculation_buttons">
 											<?php foreach ( array( '+', '-', '/', '*', '(', ')', '.' ) as $button ) { ?>
 											<input type="button" value="<?php echo in_array( $button, array( '.' ) ) ? $button : " $button "; ?>" onclick="InsertVariable('field_calculation_formula', 'FormulaContentCallback', this.value);" onkeypress="InsertVariable('field_calculation_formula', 'FormulaContentCallback', this.value);"/>
 											<?php } ?>
 										</div>
 									</div>
-									<textarea id="field_calculation_formula" fieldheight-2"></textarea>
+									<textarea id="field_calculation_formula" class="merge-tag-support mt-position-right mt-prepopulate merge-tag-calculation" fieldheight-2"></textarea>
 									<br/>
 									<a class="gf_calculation_trigger" href="javascript:void(0)" onclick="var field = GetSelectedField(); alert(IsValidFormula(field.calculationFormula) ? '<?php echo esc_js( __( 'The formula appears to be valid.', 'gravityforms' ) ); ?>' : '<?php echo esc_js( __( 'There appears to be a problem with the formula.', 'gravityforms' ) ); ?>');" onkeypress="var field = GetSelectedField(); alert(IsValidFormula(field.calculationFormula) ? '<?php echo esc_js( __( 'The formula appears to be valid.', 'gravityforms' ) ); ?>' : '<?php echo esc_js( __( 'There appears to be a problem with the formula.', 'gravityforms' ) ); ?>');"><?php esc_html_e( 'Validate Formula', 'gravityforms' ); ?></a>
 

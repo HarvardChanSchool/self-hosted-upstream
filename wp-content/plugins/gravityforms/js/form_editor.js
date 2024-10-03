@@ -2090,9 +2090,11 @@ function DeleteField( element ) {
 
 	// Get field ID from element.
 	var fieldId = jQuery( element )[0].id.split( '_' )[2];
+	var field = GetFieldById( fieldId );
+	var confirmDeleteMessage = field.displayOnly ? gf_vars.confirmationDeleteDisplayField : gf_vars.confirmationDeleteField;
 
 	// Confirm that user is aware about entry data being deleted.
-	if ( ! HasConditionalLogicDependency( fieldId ) && ! confirm( gf_vars.confirmationDeleteField ) ) {
+	if ( ! HasConditionalLogicDependency( fieldId ) && ! confirm( confirmDeleteMessage ) ) {
 		return;
 	}
 
@@ -3750,6 +3752,9 @@ function SetFieldLabel(label){
     var requiredElement = jQuery(".field_selected .gfield_required")[0];
     jQuery(".field_selected label.gfield_label, .field_selected .gsection_title, .field_selected legend.gfield_label > span").text(label).append(requiredElement);
 	SetFieldProperty("label", label);
+
+	var nativeEvent = new Event('gform/form_editor/set_field_label');
+	document.dispatchEvent(nativeEvent);
 }
 
 /**
@@ -4124,6 +4129,11 @@ function ToggleCalculationOptions(isEnabled, field) {
     }
 
     SetFieldProperty('enableCalculation', isEnabled);
+
+	if ( field.type === 'number' ) {
+		var nativeEvent = new Event('gform/form_editor/toggle_calculation_options');
+		document.dispatchEvent(nativeEvent);
+	}
 }
 
 function FormulaContentCallback() {
