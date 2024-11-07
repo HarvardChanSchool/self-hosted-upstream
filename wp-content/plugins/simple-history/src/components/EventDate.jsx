@@ -81,19 +81,26 @@ export function EventDate( props ) {
 		</>
 	);
 
+	let output;
+	if ( eventVariant === 'compact' ) {
+		output = <div>{ formattedDateLiveUpdated }</div>;
+	} else {
+		output = (
+			<Tooltip text={ tooltipText } delay={ 500 }>
+				{ eventVariant === 'modal' ? (
+					<Text>{ time }</Text>
+				) : (
+					<Button variant="link" onClick={ handleDateClick }>
+						{ time }
+					</Button>
+				) }
+			</Tooltip>
+		);
+	}
+
 	return (
-		<>
-			<EventHeaderItem className="SimpleHistoryLogitem__permalink SimpleHistoryLogitem__when">
-				<Tooltip text={ tooltipText } delay={ 500 }>
-					{ eventVariant === 'modal' ? (
-						<Text>{ time }</Text>
-					) : (
-						<Button variant="link" onClick={ handleDateClick }>
-							{ time }
-						</Button>
-					) }
-				</Tooltip>
-			</EventHeaderItem>
-		</>
+		<EventHeaderItem className="SimpleHistoryLogitem__permalink SimpleHistoryLogitem__when">
+			{ output }
+		</EventHeaderItem>
 	);
 }

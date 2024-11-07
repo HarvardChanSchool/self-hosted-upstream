@@ -4,7 +4,7 @@ Contributors: eskapism
 Donate link: https://www.paypal.me/eskapism
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 6.6
-Stable tag: 5.0.1
+Stable tag: 5.0.4
 
 Track changes and user activities on your WordPress site. See who created a page, uploaded an attachment, and more, for a complete audit trail.
 
@@ -273,7 +273,34 @@ Read more at the [FAQ on the plugin website](https://simple-history.com/docs/faq
 
 ## Changelog
 
-### Unreleased
+### 5.0.4 (October 2024)
+
+-   Fix PHP warning when viewing events from anonymous users (for example logged failed logins). [#477](https://github.com/bonny/WordPress-Simple-History/issues/477)
+-   Add tests for REST API endpoints.
+
+### 5.0.3 (October 2024)
+
+-   Fix for wrong version number in the readme.txt and index.php file, causing the plugin to find updates forever.
+
+### 5.0.2 (October 2024)
+
+**Added**
+
+-   Add `occasions_id` to the context data modal.
+-   Include `user_display_name` in events REST API response.
+-   Autoload options `simple_history_detective_mode_enabled`, `simple_history_experimental_features_enabled`, and `simple_history_db_version` to improve performance. Related: [Options API: Disabling Autoload for Large Options](https://make.wordpress.org/core/2024/06/18/options-api-disabling-autoload-for-large-options/).
+
+**Changed**
+
+-   Better output of JSON data in event details view. [#464](https://github.com/bonny/WordPress-Simple-History/issues/464)
+
+**Fixed**
+
+-   Display user "display name", with fallback to "username", in the event feed. This restores how it was displayed in version 4 of the plugin. [#468](https://github.com/bonny/WordPress-Simple-History/issues/468)
+-   Disable autoload of option `SimplePluginLogger_plugin_info_before_update`, to improve performance. [#457](https://github.com/bonny/WordPress-Simple-History/issues/457)
+-   Fix PHP warnings when fetching occasions.
+-   Only get edit link for a post if `get_post()` returns a post object. This _may_ fix issues with, for example, old versions of WPML. [#469](https://github.com/bonny/WordPress-Simple-History/issues/469)
+-   Make more strings in the GUI translatable. [#470](https://github.com/bonny/WordPress-Simple-History/issues/470), [#471](https://github.com/bonny/WordPress-Simple-History/issues/471)
 
 ### 5.0.1 (September 2024)
 

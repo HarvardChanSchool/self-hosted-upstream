@@ -121,6 +121,10 @@ export function EventInfoModal( props ) {
 									<td>{ loadedEvent.initiator }</td>
 								</tr>
 								<tr>
+									<td>occasions_id</td>
+									<td>{ loadedEvent.occasions_id }</td>
+								</tr>
+								<tr>
 									<td>subsequent_occasions_count</td>
 									<td>
 										{
@@ -152,7 +156,7 @@ export function EventInfoModal( props ) {
 									return (
 										<tr key={ key }>
 											<td>{ key }</td>
-											<td>{ JSON.stringify( value ) }</td>
+											<td>{ value }</td>
 										</tr>
 									);
 								} ) }
