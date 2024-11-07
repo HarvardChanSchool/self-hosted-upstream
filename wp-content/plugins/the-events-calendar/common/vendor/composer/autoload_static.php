@@ -4,53 +4,18 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInitbe6d00322c83caee63872c2b0f55033d
+class ComposerStaticInitdebf13c4d057fe67d06acfa7ae9872b2
 {
     public static $prefixLengthsPsr4 = array (
-        'l' => 
-        array (
-            'lucatume\\DI52\\' => 14,
-        ),
         'T' => 
         array (
             'Tribe\\' => 6,
             'TEC\\Event_Automator\\' => 20,
             'TEC\\Common\\' => 11,
         ),
-        'S' => 
-        array (
-            'StellarWP\\Telemetry\\Views_Dir\\' => 30,
-            'StellarWP\\Telemetry\\Assets_Dir\\' => 31,
-            'StellarWP\\Telemetry\\' => 20,
-            'StellarWP\\Schema\\' => 17,
-            'StellarWP\\Models\\' => 17,
-            'StellarWP\\Installer\\Assets_JS\\' => 30,
-            'StellarWP\\Installer\\Admin_Views\\' => 32,
-            'StellarWP\\Installer\\' => 20,
-            'StellarWP\\DB\\' => 13,
-            'StellarWP\\ContainerContract\\' => 28,
-            'StellarWP\\Assets\\' => 17,
-        ),
-        'P' => 
-        array (
-            'Psr\\Log\\' => 8,
-            'Psr\\Container\\' => 14,
-        ),
-        'M' => 
-        array (
-            'Monolog\\' => 8,
-        ),
-        'F' => 
-        array (
-            'Firebase\\JWT\\' => 13,
-        ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'lucatume\\DI52\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/lucatume/di52/src',
-        ),
         'Tribe\\' => 
         array (
             0 => __DIR__ . '/../..' . '/src/Tribe',
@@ -63,72 +28,17 @@ class ComposerStaticInitbe6d00322c83caee63872c2b0f55033d
         array (
             0 => __DIR__ . '/../..' . '/src/Common',
         ),
-        'StellarWP\\Telemetry\\Views_Dir\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/telemetry/src/views',
-        ),
-        'StellarWP\\Telemetry\\Assets_Dir\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/telemetry/src/resources',
-        ),
-        'StellarWP\\Telemetry\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/telemetry/src/Telemetry',
-        ),
-        'StellarWP\\Schema\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/schema/src/Schema',
-        ),
-        'StellarWP\\Models\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/models/src/Models',
-        ),
-        'StellarWP\\Installer\\Assets_JS\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/installer/src/assets/js',
-        ),
-        'StellarWP\\Installer\\Admin_Views\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/installer/src/admin-views',
-        ),
-        'StellarWP\\Installer\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/installer/src/Installer',
-        ),
-        'StellarWP\\DB\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/db/src/DB',
-        ),
-        'StellarWP\\ContainerContract\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/container-contract/src',
-        ),
-        'StellarWP\\Assets\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/stellarwp/assets/src/Assets',
-        ),
-        'Psr\\Log\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
-        ),
-        'Psr\\Container\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/psr/container/src',
-        ),
-        'Monolog\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
-        ),
-        'Firebase\\JWT\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
-        ),
     );
 
     public static $classMap = array (
         'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
+        'TEC\\Common\\Admin\\Conditional_Content\\Black_Friday' => __DIR__ . '/../..' . '/src/Common/Admin/Conditional_Content/Black_Friday.php',
+        'TEC\\Common\\Admin\\Conditional_Content\\Controller' => __DIR__ . '/../..' . '/src/Common/Admin/Conditional_Content/Controller.php',
+        'TEC\\Common\\Admin\\Conditional_Content\\Datetime_Conditional_Abstract' => __DIR__ . '/../..' . '/src/Common/Admin/Conditional_Content/Datetime_Conditional_Abstract.php',
+        'TEC\\Common\\Admin\\Conditional_Content\\Dismissible_Trait' => __DIR__ . '/../..' . '/src/Common/Admin/Conditional_Content/Dismissible_Trait.php',
         'TEC\\Common\\Admin\\Entities\\Base_Entity' => __DIR__ . '/../..' . '/src/Common/Admin/Entities/Base_Entity.php',
         'TEC\\Common\\Admin\\Entities\\Br' => __DIR__ . '/../..' . '/src/Common/Admin/Entities/Br.php',
+        'TEC\\Common\\Admin\\Entities\\Button' => __DIR__ . '/../..' . '/src/Common/Admin/Entities/Button.php',
         'TEC\\Common\\Admin\\Entities\\Container' => __DIR__ . '/../..' . '/src/Common/Admin/Entities/Container.php',
         'TEC\\Common\\Admin\\Entities\\Div' => __DIR__ . '/../..' . '/src/Common/Admin/Entities/Div.php',
         'TEC\\Common\\Admin\\Entities\\Element' => __DIR__ . '/../..' . '/src/Common/Admin/Entities/Element.php',
@@ -148,6 +58,7 @@ class ComposerStaticInitbe6d00322c83caee63872c2b0f55033d
         'TEC\\Common\\Admin\\Section' => __DIR__ . '/../..' . '/src/Common/Admin/Section.php',
         'TEC\\Common\\Admin\\Settings_Section' => __DIR__ . '/../..' . '/src/Common/Admin/Settings_Section.php',
         'TEC\\Common\\Admin\\Settings_Sidebar' => __DIR__ . '/../..' . '/src/Common/Admin/Settings_Sidebar.php',
+        'TEC\\Common\\Admin\\Settings_Sidebar_Section' => __DIR__ . '/../..' . '/src/Common/Admin/Settings_Sidebar_Section.php',
         'TEC\\Common\\Configuration\\Configuration' => __DIR__ . '/../..' . '/src/Common/Configuration/Configuration.php',
         'TEC\\Common\\Configuration\\Configuration_Loader' => __DIR__ . '/../..' . '/src/Common/Configuration/Configuration_Loader.php',
         'TEC\\Common\\Configuration\\Configuration_Provider_Interface' => __DIR__ . '/../..' . '/src/Common/Configuration/Configuration_Provider_Interface.php',
@@ -168,6 +79,7 @@ class ComposerStaticInitbe6d00322c83caee63872c2b0f55033d
         'TEC\\Common\\Integrations\\Traits\\Theme_Integration' => __DIR__ . '/../..' . '/src/Common/Integrations/Traits/Theme_Integration.php',
         'TEC\\Common\\Libraries\\Installer\\Provider' => __DIR__ . '/../..' . '/src/Common/Libraries/Installer/Provider.php',
         'TEC\\Common\\Libraries\\Provider' => __DIR__ . '/../..' . '/src/Common/Libraries/Provider.php',
+        'TEC\\Common\\Libraries\\Uplink_Controller' => __DIR__ . '/../..' . '/src/Common/Libraries/Uplink_Controller.php',
         'TEC\\Common\\Site_Health\\Factory' => __DIR__ . '/../..' . '/src/Common/Site_Health/Factory.php',
         'TEC\\Common\\Site_Health\\Fields\\Generic_Info_Field' => __DIR__ . '/../..' . '/src/Common/Site_Health/Fields/Generic_Info_Field.php',
         'TEC\\Common\\Site_Health\\Fields\\Post_Status_Count_Field' => __DIR__ . '/../..' . '/src/Common/Site_Health/Fields/Post_Status_Count_Field.php',
@@ -369,9 +281,9 @@ class ComposerStaticInitbe6d00322c83caee63872c2b0f55033d
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInitbe6d00322c83caee63872c2b0f55033d::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInitbe6d00322c83caee63872c2b0f55033d::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInitbe6d00322c83caee63872c2b0f55033d::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitdebf13c4d057fe67d06acfa7ae9872b2::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitdebf13c4d057fe67d06acfa7ae9872b2::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitdebf13c4d057fe67d06acfa7ae9872b2::$classMap;
 
         }, null, ClassLoader::class);
     }
