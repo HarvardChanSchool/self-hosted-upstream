@@ -212,3 +212,19 @@ This is an outline of tasks that should be performed by maintainers during month
     - http://boone.cool/hsph/ariadne-labs/safety-gaps/
     - http://boone.cool/hsph/ariadne-labs/resources/all/
     - http://boone.cool/hsph/ariadne-labs/events/
+
+6. __STRIPED Dietary Supplement Label Explorer__
+
+    Web: https://striped-dietary-supplement-label-explorer.hsph.harvard.edu/
+
+    GitHub: https://github.com/HarvardChanSchool/striped-dietary-supplement-label-explorer
+
+    Pantheon: https://dashboard.pantheon.io/sites/e59ad74c-14fd-4d42-b3d0-d80e3811fdd6
+
+    Verification URLs:
+    - https://striped-dietary-supplement-label-explorer.hsph.harvard.edu/
+
+    boone.cool/hsph/striped-dietary-supplement-label-explorer versions:
+    - http://boone.cool/hsph/striped-dietary-supplement-label-explorer/
+
+    chromium --incognito --new-window https://striped-dietary-supplement-label-explorer.hsph.harvard.edu/ http://boone.cool/hsph/striped-dietary-supplement-label-explorer/
