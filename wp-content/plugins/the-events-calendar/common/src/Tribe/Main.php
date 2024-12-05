@@ -19,7 +19,7 @@ class Tribe__Main {
 	const OPTIONNAME        = 'tribe_events_calendar_options';
 	const OPTIONNAMENETWORK = 'tribe_events_calendar_network_options';
 	const FEED_URL          = 'https://theeventscalendar.com/feed/';
-	const VERSION           = '6.3.1';
+	const VERSION           = '6.4.0';
 
 	protected $plugin_context;
 	protected $plugin_context_class;
@@ -759,6 +759,7 @@ class Tribe__Main {
 		tribe_register_provider( Tribe\Service_Providers\Onboarding::class );
 		tribe_register_provider( Tribe\Admin\Notice\Service_Provider::class );
 		tribe_register_provider( \TEC\Common\Admin\Conditional_Content\Controller::class );
+		tribe_register_provider( \TEC\Common\Notifications\Controller::class );
 		tribe_register_provider( Libraries\Provider::class );
 
 		// Load the new third-party integration system.
@@ -766,6 +767,9 @@ class Tribe__Main {
 		// Load Site Health and Telemetry.
 		tribe_register_provider( TEC\Common\Site_Health\Provider::class );
 		tribe_register_provider( TEC\Common\Telemetry\Provider::class );
+
+		// Load Help Hub.
+		tribe_register_provider( TEC\Common\Admin\Help_Hub\Provider::class );
 	}
 
 	/**
