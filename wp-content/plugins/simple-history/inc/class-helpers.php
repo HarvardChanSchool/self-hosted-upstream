@@ -819,13 +819,25 @@ class Helpers {
 	}
 
 	/**
+	 * Get URL for settings page.
+	 *
+	 * @return string URL for settings page, i.e. "/wp-admin/options-general.php?page=simple_history_settings_menu_slug"
+	 */
+	public static function get_settings_page_url() {
+		// return menu_page_url( Simple_History::SETTINGS_MENU_SLUG, 0 );
+		// menu_page_url() only works within amdin area.
+		// But we want to be able to link to settings page also from front end.
+		return admin_url( 'options-general.php?page=' . Simple_History::SETTINGS_MENU_SLUG );
+	}
+
+	/**
 	 * Get URL for a main tab in the settings page.
 	 *
 	 * @param string $tab_slug Slug for the tab.
 	 * @return string URL for the tab, unescaped.
 	 */
 	public static function get_settings_page_tab_url( $tab_slug ) {
-		$settings_base_url = menu_page_url( Simple_History::SETTINGS_MENU_SLUG, 0 );
+		$settings_base_url = self::get_settings_page_url();
 		$settings_tab_url = add_query_arg( 'selected-tab', $tab_slug, $settings_base_url );
 		return $settings_tab_url;
 	}
@@ -837,7 +849,7 @@ class Helpers {
 	 * @return string URL for the sub-tab, unescaped.
 	 */
 	public static function get_settings_page_sub_tab_url( $sub_tab_slug ) {
-		$settings_base_url = menu_page_url( Simple_History::SETTINGS_MENU_SLUG, 0 );
+		$settings_base_url = self::get_settings_page_url();
 		$settings_sub_tab_url = add_query_arg( 'selected-sub-tab', $sub_tab_slug, $settings_base_url );
 		return $settings_sub_tab_url;
 	}
@@ -1181,6 +1193,18 @@ class Helpers {
 	}
 
 	/**
+	 * Returns true if Simple History can be shown in the admin bar
+	 *
+	 * @return bool
+	 */
+	public static function setting_show_in_admin_bar() {
+		$setting = get_option( 'simple_history_show_in_admin_bar', 1 );
+		$setting = apply_filters( 'simple_history_show_in_admin_bar', $setting );
+
+		return (bool) $setting;
+	}
+
+	/**
 	 * Returns true if Detective Mode is active.
 	 *
 	 * Default is false.
@@ -1492,5 +1516,34 @@ class Helpers {
 		 * @param int $interval Interval in milliseconds.
 		 */
 		return (int) apply_filters( 'SimpleHistoryNewRowsNotifier/interval', 10000 );
+	}
+
+	/**
+	 * Increase the total number of logged events.
+	 * Used to keep track of how many events have been logged since the plugin was installed.
+	 */
+	public static function increase_total_logged_events_count() {
+		$logged_events_counter = self::get_total_logged_events_count();
+		$logged_events_counter++;
+		update_option( 'simple_history_total_logged_events_count', $logged_events_counter, false );
+	}
+
+	/**
+	 * Get the total number of logged events.
+	 * Used to keep track of how many events have been logged since the plugin was installed.
+	 *
+	 * @return int
+	 */
+	public static function get_total_logged_events_count() {
+		return (int) get_option( 'simple_history_total_logged_events_count', 0 );
+	}
+
+	/**
+	 * Get plugin install date as GMT.
+	 *
+	 * @return string|false Date as GMT or false if not set.
+	 */
+	public static function get_plugin_install_date() {
+		return get_option( 'simple_history_install_date_gmt' );
 	}
 }

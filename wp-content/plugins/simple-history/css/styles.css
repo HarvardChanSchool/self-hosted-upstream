@@ -380,11 +380,7 @@ Style different log levels.
 
 .SimpleHistoryLogitem__inlineDivided:before {
 	/* \b7 = middot, \a0 = space */
-	/*content: '\a0\b7\a0\a0';*/
 	content: "\b7\a0";
-	/* \2022 = bullet */
-	/* content: "\a0\2022\a0"; */
-	/*content: '\a0\a0\2022\a0\a0';*/
 	color: rgb(137, 143, 156);
 }
 
@@ -1391,14 +1387,7 @@ a.sh-SettingsTabs-link:hover {
 }
 
 .SimpleHistoryFilterDropin-showMoreFilters {
-	border: 0;
-	background: none;
-	color: rgb(0, 116, 162);
-	cursor: pointer;
-}
-
-.SimpleHistoryFilterDropin-showMoreFilters:hover {
-	color: rgb(46, 162, 204);
+	margin-left: 1rem;
 }
 
 /* more filters are hidden by default */

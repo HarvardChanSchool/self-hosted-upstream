@@ -420,7 +420,7 @@ abstract class Logger {
 		$item_permalink = $this->simple_history->get_view_history_page_admin_url();
 
 		if ( ! empty( $row->id ) ) {
-			$item_permalink .= "#item/{$row->id}";
+			$item_permalink .= "#simple-history/event/{$row->id}";
 		}
 
 		// Datetime attribute on <time> element.
@@ -1067,6 +1067,8 @@ abstract class Logger {
 	/**
 	 * Logs with an arbitrary level.
 	 *
+	 * This is the function that all other log functions call in the end.
+	 *
 	 * @param mixed  $level The log level. Default "info".
 	 * @param string $message The log message. Default "".
 	 * @param array  $context The log context. Default empty array.
@@ -1175,6 +1177,7 @@ abstract class Logger {
 			$context,
 			$this
 		);
+
 		$context = apply_filters(
 			'simple_history/log_argument/context',
 			$context,
@@ -1182,6 +1185,7 @@ abstract class Logger {
 			$message,
 			$this
 		);
+
 		$level = apply_filters(
 			'simple_history/log_argument/level',
 			$level,
@@ -1189,6 +1193,7 @@ abstract class Logger {
 			$message,
 			$this
 		);
+
 		$message = apply_filters(
 			'simple_history/log_argument/message',
 			$message,
@@ -1201,9 +1206,9 @@ abstract class Logger {
 		 * Store date as GMT date, i.e. not local date/time
 		 *
 		 * @see http://www.skyverge.com/blog/down-the-rabbit-hole-wordpress-and-timezones/
-		 * @string $localtime
+		 * @var string $date_gmt Date in GMT format.
 		 */
-		$localtime = current_time( 'mysql', 1 );
+		$date_gmt = current_time( 'mysql', 1 );
 
 		/**
 		 * Main table data row array.
@@ -1213,7 +1218,7 @@ abstract class Logger {
 		$data = array(
 			'logger' => $this->get_slug(),
 			'level' => $level,
-			'date' => $localtime,
+			'date' => $date_gmt,
 			'message' => $message,
 		);
 
@@ -1321,6 +1326,8 @@ abstract class Logger {
 			$data,
 			$this
 		);
+
+		Helpers::increase_total_logged_events_count();
 
 		return $this;
 	}

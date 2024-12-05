@@ -3,8 +3,8 @@
 Contributors: eskapism
 Donate link: https://www.paypal.me/eskapism
 Tags: history, audit log, event log, user tracking, activity
-Tested up to: 6.6
-Stable tag: 5.0.4
+Tested up to: 6.7
+Stable tag: 5.3.0
 
 Track changes and user activities on your WordPress site. See who created a page, uploaded an attachment, and more, for a complete audit trail.
 
@@ -174,14 +174,10 @@ Log sent emails, HTTP API requests, cron jobs, and more.
 
 If you like this plugin please consider donating to support the development. The plugin has been free for the last 10 years and will continue to be free.
 
--   [Donate using PayPal](https://www.paypal.me/eskapism)
+-   [Donate using PayPal](https://www.paypal.me/eskapism).
 -   [Become a GitHub sponsor](https://github.com/sponsors/bonny).
+-   [Send Bitcoin or Ethereum](https://simple-history.com/donate/).
 -   [Add-ons that you can buy to support the development](https://simple-history.com/add-ons/) (and get some extra features!).
-
-**Noteworthy sponsors**
-
--   [TextTV.nu](https://texttv.nu) - Swedish teletext on the web
--   [Brottsplatskartan.se](https://brottsplatskartan.se) - Swedish police reports on a map
 
 ## Frequently Asked Questions
 
@@ -273,6 +269,54 @@ Read more at the [FAQ on the plugin website](https://simple-history.com/docs/faq
 
 ## Changelog
 
+✨ Do you use Simple History a lot?
+[Then sponsor the plugin to keep it free](https://simple-history.com/sponsor/) or
+[add a 5-star review so other users know it's good](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5).
+
+### 5.3.0 (November 2024)
+
+⏱️ This release includes a performance improvement and an enhancement that makes it easier for users in different time zones to understand when an event occurred.
+[Read the release post for more info](https://simple-history.com/2024/simple-history-5-3-0-released/).
+
+-   Changed the interval for checking new events from 5 seconds to 30 seconds. This reduces resource usage and is more server-friendly. [#489](https://github.com/bonny/WordPress-Simple-History/issues/489)
+-   Event times are now displayed in the user's local time zone, as reported by the web browser, making it easier to understand when an event occurred for users in different time zones. [#488](https://github.com/bonny/WordPress-Simple-History/issues/488)
+-   Enhanced the datetime tooltip to show more information about the event date and time, including accurate local and GMT values.
+-   Renamed the date field in the REST API response to `date_local` to clarify that it represents the website's local date and time of the event.
+-   Added the `date_gmt` field to the event context modal.
+
+### 5.2.0 (November 2024)
+
+Some minor bugfixes but also a new feature in this update. [Read the release post for more info](https://simple-history.com/2024/simple-history-5-2-0-released/).
+
+-   Add counter with total number of events logged. The value of this can be seen on the debug page. [#483](https://github.com/bonny/WordPress-Simple-History/issues/483)
+-   Add option with plugin install date. The install date can be seen on the debug page. [#483](https://github.com/bonny/WordPress-Simple-History/issues/483)
+-   Fix notice `Function _load_textdomain_just_in_time was called incorrectly`.
+-   Fix Quick View not being activated by default after enabling experimental features.
+-   Hide WooCommerce Logger promo if [WooCommerce Logger](https://simple-history.com/add-ons/woocommerce/) is installed.
+
+### 5.1.0 (November 2024)
+
+This release contains some bugfixes 🐞 but also a new experimental Admin Bar Quick View feature. [See the release post for info and screenshots](https://simple-history.com/2024/simple-history-5-1-0-released-with-new-experimental-feature/).
+
+**Added**
+
+-   Add "Admin Bar Quick View" as experimental feature. This new feature adds a "History" link in the admin bar, that when hovered shows the latest events in a compact timeline format.
+    This is very convenient when you quickly want to check the latest events without leaving the page you are on.
+    (This feature is experimental and can be enabled on the settings page.) [#476](https://github.com/bonny/WordPress-Simple-History/issues/476)
+-   Add helper function `get_settings_page_url()`.
+-   Add helper function `sh_dd()`.
+
+**Changed**
+
+-   Tested on WordPress 6.7.
+
+**Fixed**
+
+-   Use selected WP admin theme colors for colors in links and buttons. [#463](https://github.com/bonny/WordPress-Simple-History/issues/463)
+-   Add pagination buttons to first page and last page. [#479](https://github.com/bonny/WordPress-Simple-History/issues/479)
+-   Add option to go enter page number to go to. [#479](https://github.com/bonny/WordPress-Simple-History/issues/479)
+-   Fix username not always showing in the event details modal.
+
 ### 5.0.4 (October 2024)
 
 -   Fix PHP warning when viewing events from anonymous users (for example logged failed logins). [#477](https://github.com/bonny/WordPress-Simple-History/issues/477)
@@ -335,8 +379,6 @@ A big update that keeps everything familiar. 🚀
 
 -   **Settings Metabox**: The metabox linking to the settings page has been removed, as settings are now accessible from the top menu bar.
 -   **Legacy Code Cleanup**: Removed several old and unused files, functions, and JavaScript hooks that are no longer relevant to the current implementation.
-
-🌟 Pssst.... Don't forget that you can [sponsor this project to keep it free and open source](https://simple-history.com/sponsor/).
 
 ### 4.17.0 (August 2024)
 
