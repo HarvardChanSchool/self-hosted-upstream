@@ -497,17 +497,7 @@ class GF_Confirmation {
 		$form_id         = absint( rgget( 'id' ) );
 		$confirmation_id = rgpost( 'confirmation_id' ) ? rgpost( 'confirmation_id' ) : rgget( 'cid' );
 
-		/**
-		 * Filters to form meta being used within the confirmations edit page.
-		 *
-		 * @since Unknown
-		 *
-		 * @param array $form The Form Object.
-		 */
-		$form = gf_apply_filters( array(
-			'gform_admin_pre_render',
-			$form_id
-		), GFFormsModel::get_form_meta( $form_id ) );
+		$form = GFCommon::gform_admin_pre_render( GFFormsModel::get_form_meta( $form_id ) );
 
 		// Get confirmation object.
 		$confirmation = self::get_confirmation( $confirmation_id, $form );
@@ -1104,10 +1094,14 @@ class GFConfirmationTable extends WP_List_Table {
 			unset( $actions['delete'] );
 		}
 
-
+		$aria_label = sprintf(
+			/* translators: %s: Confirmation name */
+			__( '%s (Edit)', 'gravityforms' ),
+			$item['name']
+		);
 		?>
 
-		<a href="<?php echo esc_url( $edit_url ); ?>"><strong><?php echo esc_html( rgar( $item, 'name' ) ); ?></strong></a>
+		<a href="<?php echo esc_url( $edit_url ); ?>" aria-label="<?php echo esc_attr( $aria_label ); ?>"><strong><?php echo esc_html( rgar( $item, 'name' ) ); ?></strong></a>
 		<div class="row-actions">
 
 			<?php
