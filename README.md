@@ -4,7 +4,7 @@ This repository should be used as the upstream repository for compliant self-hos
 
 ## Monthly maintenance tasks
 
-[Last updated: 2024-10-03]
+[Last updated: 2025-01-09]
 
 This is an outline of tasks that should be performed by maintainers during monthly maintenance.
 
@@ -27,7 +27,7 @@ This is an outline of tasks that should be performed by maintainers during month
 3. Check wordpress.org plugins
 
     ```
-    wp plugin list --update=available --fields=name,version,update_version
+    wp plugin list --update=available --fields=name,status,version,update_version
     # Upgrade each one unless there's a reason not to
     wp gh plugin upgrade <plugin> # https://github.com/boonebgorges/wp-cli-git-helper
     ```
