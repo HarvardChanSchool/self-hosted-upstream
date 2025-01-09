@@ -27,7 +27,7 @@ This is an outline of tasks that should be performed by maintainers during month
 3. Check wordpress.org plugins
 
     ```
-    wp plugin list --update=available
+    wp plugin list --update=available --fields=name,version,update_version
     # Upgrade each one unless there's a reason not to
     wp gh plugin upgrade <plugin> # https://github.com/boonebgorges/wp-cli-git-helper
     ```
@@ -212,6 +212,8 @@ This is an outline of tasks that should be performed by maintainers during month
     - http://boone.cool/hsph/ariadne-labs/safety-gaps/
     - http://boone.cool/hsph/ariadne-labs/resources/all/
     - http://boone.cool/hsph/ariadne-labs/events/
+
+    chromium --incognito --new-window https://www.ariadnelabs.org http://boone.cool/hsph/ariadne-labs https://www.ariadnelabs.org/safety-gaps/ http://boone.cool/hsph/ariadne-labs/safety-gaps/ https://www.ariadnelabs.org/resources/all/ http://boone.cool/hsph/ariadne-labs/resources/all/ https://www.ariadnelabs.org/events/ http://boone.cool/hsph/ariadne-labs/events/
 
 6. __STRIPED Dietary Supplement Label Explorer__
 
