@@ -4,7 +4,7 @@ This repository should be used as the upstream repository for compliant self-hos
 
 ## Monthly maintenance tasks
 
-[Last updated: 2025-01-09]
+[Last updated: 2025-02-06]
 
 This is an outline of tasks that should be performed by maintainers during monthly maintenance.
 
@@ -34,7 +34,6 @@ This is an outline of tasks that should be performed by maintainers during month
 
 4. Copy latest versions of commercial plugins from wwwhsph repo:
 
-    - advanced-custom-fields-pro
     - gravityforms
 
 5. Wait a moment - Before pulling content to site-specific repos, wait for the GitHub build action to run.
