@@ -20,7 +20,7 @@ class Tribe__Main {
 	const OPTIONNAME        = 'tribe_events_calendar_options';
 	const OPTIONNAMENETWORK = 'tribe_events_calendar_network_options';
 	const FEED_URL          = 'https://theeventscalendar.com/feed/';
-	const VERSION           = '6.4.1';
+	const VERSION           = '6.5.0';
 
 	protected $plugin_context;
 	protected $plugin_context_class;
@@ -258,6 +258,7 @@ class Tribe__Main {
 				[ 'tribe-attrchange', 'vendor/attrchange/js/attrchange.js' ],
 				[ 'tec-ky-module', 'vendor/ky/ky.js', [], null, [ 'module' => true ] ],
 				[ 'tec-ky', 'vendor/ky/tec-ky.js', [ 'tec-ky-module' ], null, [ 'module' => true ] ],
+				[ 'tec-common-php-date-formatter', 'node_modules/php-date-formatter/js/php-date-formatter.js' ],
 			]
 		);
 
@@ -485,6 +486,18 @@ class Tribe__Main {
 
 		add_filter( 'body_class', [ $this, 'add_js_class' ] );
 		add_action( 'wp_footer', [ $this, 'toggle_js_class' ] );
+
+		add_action( 'init', [ $this, 'load_action_scheduler' ], - 99999 );
+	}
+
+	/**
+	 * Load the Action Scheduler library.
+	 *
+	 * @since TDB
+	 */
+	public function load_action_scheduler(): void {
+		// Load the Action Scheduler library.
+		require_once $this->plugin_path . 'vendor/woocommerce/action-scheduler/action-scheduler.php';
 	}
 
 	/**
