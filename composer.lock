@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "425dc9fc6db966c219d7677131045350",
+    "content-hash": "d74cdc6ef8e78ad46da9c1aef7654704",
     "packages": [
         {
             "name": "composer/installers",
@@ -1289,6 +1289,15 @@
                 }
             ],
             "time": "2024-09-25T14:20:29+00:00"
+        },
+        {
+            "name": "the-events-calendar/events-calendar-pro",
+            "version": "7.3.0",
+            "dist": {
+                "type": "zip",
+                "url": "https://evnt.is/fetch-ecp?key=a0fb1ee00ac1590ec344fecde11be9fd2b4710fd&version=7.3.0"
+            },
+            "type": "wordpress-plugin"
         }
     ],
     "packages-dev": [],
