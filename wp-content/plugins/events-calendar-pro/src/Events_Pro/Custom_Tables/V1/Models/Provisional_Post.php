@@ -100,9 +100,7 @@ class Provisional_Post {
 			return $query;
 		}
 
-		remove_filter( 'query', [ $this, 'hydrate_provisional_post_query' ] );
 		$occurrence = $this->get_occurrence_row( $provisional_id );
-		add_filter( 'query', [ $this, 'hydrate_provisional_post_query' ] );
 
 		if ( ! $occurrence instanceof Occurrence ) {
 			// We might be getting a request for a cached Occurrence: it will not be found.
@@ -156,13 +154,14 @@ class Provisional_Post {
 	 * Returns the full row for an Occurrence, read from the database.
 	 *
 	 * @since 6.0.0
+	 * @since 7.3.0 The scope was switched private to public.
 	 *
 	 * @param int  $occurrence_id The Occurrence ID to return the row for.
 	 * @param bool $refresh       Whether to refresh the cache or not.
 	 *
 	 * @return Model|null Either the Occurrence row or `null` if not found.
 	 */
-	private function get_occurrence_row( int $occurrence_id, bool $refresh = false ): ?Occurrence {
+	public function get_occurrence_row( int $occurrence_id, bool $refresh = false ): ?Occurrence {
 		$uid_column               = Occurrences::uid_column();
 		$normalized_occurrence_id = $this->normalize_provisional_post_id( $occurrence_id );
 

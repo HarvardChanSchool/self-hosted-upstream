@@ -84,19 +84,6 @@ class Tribe__Events__Pro__Editor__Assets {
 
 		tribe_asset(
 			$plugin,
-			'tribe-pro-gutenberg-vendor-styles',
-			'app/vendor.css',
-			[],
-			'enqueue_block_editor_assets',
-			[
-				'in_footer'    => false,
-				'localize'     => [],
-				'conditionals' => tribe_callback( 'events.editor', 'is_events_post_type' ),
-			]
-		);
-
-		tribe_asset(
-			$plugin,
 			'tribe-pro-gutenberg-main-styles',
 			'app/main.css',
 			[],

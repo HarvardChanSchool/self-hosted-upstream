@@ -54,6 +54,7 @@ class Hooks extends Service_Provider {
 		add_action( 'in_admin_footer', tribe_callback( Page::class, 'inject_manager_link' ) );
 		add_action( 'admin_notices', tribe_callback( Modal\Split_Upcoming::class, 'render_modal' ) );
 		add_action( 'admin_notices', tribe_callback( Modal\Split_Single::class, 'render_modal' ) );
+		add_action( 'load-tribe_events_page_tribe-admin-manager', [ $this, 'add_page_title' ], 15 );
 	}
 
 	/**
@@ -62,16 +63,27 @@ class Hooks extends Service_Provider {
 	 * @since 5.9.0
 	 */
 	protected function add_filters() {
-		add_filter( 'admin_title', [ $this, 'filter_admin_title' ], 15, 2 );
 		add_filter( 'submenu_file', [ $this, 'change_default_events_menu_url' ] );
-		add_filter( 'tribe_general_settings_tab_fields', [ $this, 'filter_settings_general_tab' ], 25 );
+		add_filter( 'tribe_general_settings_editing_section', [ $this, 'filter_settings_general_tab' ], 25 );
 		add_filter( 'wp_redirect', [ $this, 'filter_edit_page_redirect_to_render_admin_manager' ] );
 		add_filter( 'tec_events_views_v2_disable_tribe_bar', [ $this, 'filter_views_v2_disable_tribe_bar_on_event_manager_page' ] );
 		add_filter( 'tec_events_views_v2_hide_location_search', [ $this, 'filter_views_v2_hide_location_search_on_event_manager_page' ] );
 	}
 
 	/**
-	 * Set the tribe_events shortcode to display if in the dashboard and on the manager page.
+	 * Set the global admin page title when this page is being loaded.
+	 *
+	 *  @since 6.3.1
+	 */
+	public function add_page_title() {
+		global $title;
+		if ( empty( $title ) ) {
+			$title = $this->container->make( Page::class )->get_page_title(); // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+		}
+	}
+
+	/**
+	 * Set the tribe_events shortcode to display when it's in the dashboard and on the manager page.
 	 *
 	 * @since 5.9.0
 	 */
@@ -90,20 +102,6 @@ class Hooks extends Service_Provider {
 	}
 
 	/**
-	 * Modify the Admin Title for the calendar manager page.
-	 *
-	 * @since 5.9.0
-	 *
-	 * @param string $admin_title Administration title.
-	 * @param string $title       Original title.
-	 *
-	 * @return string Modified page of the Calendar Manager.
-	 */
-	public function filter_admin_title( $admin_title, $title ) {
-		return $this->container->make( Page::class )->filter_admin_title( $admin_title, $title );
-	}
-
-	/**
 	 * Modify the General Settings tabs fields to include Calendar Manager checkbox.
 	 *
 	 * @since 5.9.0
@@ -117,7 +115,7 @@ class Hooks extends Service_Provider {
 	}
 
 	/**
-	 * Modify link on the Administration Bar for Editing Events.
+	 * Modify the link on the Administration Bar for Editing Events.
 	 *
 	 * @since 5.9.0
 	 *
@@ -132,9 +130,9 @@ class Hooks extends Service_Provider {
 	 *
 	 * @since 5.9.0
 	 *
-	 * @param  string    $slug    The current view Slug.
-	 * @param  array     $params  Params so far that will be used to build this view.
-	 * @param  Request   $request The rest request that generated this call.
+	 * @param string  $slug    The current view Slug.
+	 * @param array   $params  Params so far that will be used to build this view.
+	 * @param Request $request The REST request that generated this call.
 	 */
 	public function action_shortcode_toggle_hooks( $slug, $params, Request $request ) {
 		$this->container->make( Shortcode::class )->maybe_toggle_hooks_for_rest( $slug, $params, $request );
@@ -148,11 +146,12 @@ class Hooks extends Service_Provider {
 	 *
 	 * @since 5.10.0
 	 *
-	 * @param string|null $submenu_file
+	 * @param string|null $submenu_file A path to the file.
 	 *
+	 * @return string
 	 */
 	public function change_default_events_menu_url( $submenu_file ) {
-		$this->container->make( Page::class )->change_default_events_menu_url( $submenu_file );
+		return $this->container->make( Page::class )->change_default_events_menu_url( $submenu_file );
 	}
 
 	/**

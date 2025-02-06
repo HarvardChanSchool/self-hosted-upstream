@@ -426,8 +426,6 @@ class Assets extends Service_Provider {
 		add_filter( 'tribe_asset_enqueue_tribe-events-calendar-pro-override-style', '__return_false' );
 		add_filter( 'tribe_asset_enqueue_tribe-events-calendar-pro-style', '__return_false' );
 		add_filter( 'tribe_asset_enqueue_tribe-events-full-pro-calendar-style', '__return_false' );
-		add_filter( 'tribe_asset_enqueue_tribe-events-calendar-pro-mobile-style', '__return_false' );
-		add_filter( 'tribe_asset_enqueue_tribe-events-calendar-full-pro-mobile-style', '__return_false' );
 
 		remove_action( 'wp_enqueue_scripts', [ Plugin::instance(), 'enqueue_pro_scripts' ], 8 );
 	}

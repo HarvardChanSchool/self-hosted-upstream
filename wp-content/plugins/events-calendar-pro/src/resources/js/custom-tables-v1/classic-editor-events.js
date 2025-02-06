@@ -16,6 +16,8 @@ window.tec = window.tec || {};
  */
 tec.classicEditorEvents = tec.classicEditorEvents || {};
 
+dayjs.extend(window.dayjs_plugin_customParseFormat);
+
 /**
  * Handles the initial loading of the recurrence and exclusions.
  * Also handles syncing of the state when adding recurrence rules or exclusions,
@@ -55,8 +57,6 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 		deleteButton: '#delete-action a.submitdelete',
 		recurrence: '.tribe-event-recurrence',
 		exclusion: '.tribe-event-exclusion',
-		recurrenceDescription: '.tribe-recurrence-description',
-		recurrenceDescriptionInput: '[name="recurrence[description]"]',
 		recurrenceTypeButton: '.tribe-event-recurrence-rule > .tribe-buttonset .tribe-button-field[data-value]',
 	};
 
@@ -80,7 +80,9 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 		// requestAnimationFrame is required here so the updates happen after DOM modifications.
 		// The order of the actions below matter, be careful when modifying them.
 		requestAnimationFrame( function () {
-			const targetRows = document.querySelectorAll( obj.selectors.recurrence + ':not([data-defaults-set])' );
+			const targetRows = document.querySelectorAll(
+				obj.selectors.recurrence + ':not([data-defaults-set])'
+			);
 			obj.default.setRuleEndsText( targetRows );
 			obj.default.setNewEndsOnDefault( targetRows );
 			obj.default.setNewEndDateDefault( targetRows );
@@ -108,7 +110,9 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 		// requestAnimationFrame is required here so the updates happen after DOM modifications.
 		// The order of the actions below matter, be careful when modifying them.
 		requestAnimationFrame( function () {
-			const targetRows = document.querySelectorAll( obj.selectors.exclusion + ':not([data-defaults-set])' );
+			const targetRows = document.querySelectorAll(
+				obj.selectors.exclusion + ':not([data-defaults-set])'
+			);
 			obj.default.hideExclusionDescription( targetRows );
 			obj.default.setExclusionDatepickerMinDates( targetRows );
 			obj.default.setNewEndsOnDefault( targetRows );
@@ -149,8 +153,12 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 	obj.initExistingRecurrenceExclusionRows = function () {
 		tec.classicEditorEvents.eventDate.setCurrentEventDate();
 
-		const recurrenceRows = document.querySelectorAll( obj.selectors.recurrence + ':not([data-defaults-set])' );
-		const exclusionRows = document.querySelectorAll( obj.selectors.exclusion + ':not([data-defaults-set])' );
+		const recurrenceRows = document.querySelectorAll(
+			obj.selectors.recurrence + ':not([data-defaults-set])'
+		);
+		const exclusionRows = document.querySelectorAll(
+			obj.selectors.exclusion + ':not([data-defaults-set])'
+		);
 		obj.default.hideExclusionDescription( exclusionRows );
 		obj.default.setRuleEndsText( recurrenceRows );
 		obj.default.setRuleEndsText( exclusionRows );
@@ -168,30 +176,6 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 		obj.sync.syncRecurrenceState();
 
 		tec.classicEditorEvents.eventDate.setPreviousEventDate();
-	};
-
-	/**
-	 * Hides the recurrence description section and sets the description input to
-	 * a blank string.
-	 *
-	 * @todo This function should be converted to template modifications when
-	 *     integrated into ECP.
-	 *
-	 * @since 6.0.0
-	 *
-	 * @return {void} The function will hide the description section.
-	 */
-	obj.hideRecurrenceDescription = function () {
-		const deprecatedDescriptions = document.querySelectorAll( obj.selectors.recurrenceDescription );
-
-		deprecatedDescriptions.forEach( function ( description ) {
-			description.style.display = 'none';
-			const descriptionInput = description.querySelector( obj.selectors.recurrenceDescriptionInput );
-			if ( ! descriptionInput ) {
-				return;
-			}
-			descriptionInput.value = '';
-		} );
 	};
 
 	/**
@@ -298,6 +282,7 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 			.on( 'submit', obj.offStart.enableOffStartFieldsForSubmission )
 	};
 
+
 	/**
 	 * New update rule recurrence text function to replace the old function.
 	 * This replaces
@@ -328,11 +313,11 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 			 * replace [first_occurrence_date] with start date from the edit event
 			 * screen.
 			 */
-			const dateFormat = tribe_events_pro_admin.recurrence.date_format + ' hh:mm a';
+			const dateFormat = tribe_events_pro_admin.recurrence.date_format + ' hh:mmA';
 			const $startDate = $document.find( obj.selectors.eventStartDate );
 			const $startTime = $document.find( obj.selectors.eventStartTime );
 			const startDate = $startDate.val() + ' ' + $startTime.val().toUpperCase();
-			startMoment = moment( startDate, dateFormat );
+			startMoment = dayjs( startDate, dateFormat );
 
 		} else {
 			/**
@@ -340,18 +325,28 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 			 * replace
 			 * [first_occurrence_date].
 			 */
-			startMoment = moment( tecEventDetails.event.start_date );
+			startMoment = dayjs(
+				tecEventDetails.event.start_date,
+				tribe_events_pro_admin.recurrence.date_format
+			);
 		}
 
-		const displayFormat = tribe_events_pro_admin.recurrence.convert_date_format_php_to_moment( tribe_dynamic_help_text.date_with_year );
+		const displayFormat = tribe_events_pro_admin.recurrence.convert_date_format_php_to_moment(
+			tribe_dynamic_help_text.date_with_year
+		);
 		const $recurrenceDescription = $rule.find( '.tribe-event-recurrence-description' );
 		const text = $recurrenceDescription.text();
-		let updatedText = text.replace( '[first_occurrence_date]', startMoment.format( displayFormat ) );
+		let updatedText = text.replace(
+			'[first_occurrence_date]', startMoment.format( displayFormat )
+		);
 		/**
 		 * We need to apply our start time here, now that we support RDATE editing with new logic, the start_time
 		 * needs to pull this occurrences' time appropriately, legacy is not retrieving the correct time in edge cases.
 		 */
-		updatedText = updatedText.replace( '[first_occurrence_start_time]', startMoment.format( 'h:mma' ).toUpperCase() );
+		updatedText = updatedText.replace(
+			'[first_occurrence_start_time]',
+			startMoment.format( 'h:mma' ).toUpperCase()
+		);
 		$recurrenceDescription.html( updatedText );
 	};
 
@@ -398,7 +393,6 @@ tec.classicEditorEvents = tec.classicEditorEvents || {};
 
 		$document.on( 'setup.dependency', function () {
 			obj.initExistingRecurrenceExclusionRows();
-			obj.hideRecurrenceDescription();
 			obj.setupMutationObserver();
 			obj.bindEvents();
 

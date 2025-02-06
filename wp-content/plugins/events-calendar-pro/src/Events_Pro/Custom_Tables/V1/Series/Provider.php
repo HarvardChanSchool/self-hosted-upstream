@@ -82,7 +82,7 @@ class Provider extends Service_Provider {
 			] );
 		}
 
-		add_filter( 'tribe_events_community_allowed_event_fields', [ $this, 'register_events_to_series_request_key' ] );
+		add_filter( 'tec_events_community_allowed_fields', [ $this, 'register_events_to_series_request_key' ] );
 		add_filter( 'tribe_tickets_settings_post_types', [ $this, 'filter_remove_series_post_type' ] );
 		add_action( 'init', [ $this, 'remove_series_from_ticketable_post_types' ] );
 
@@ -93,6 +93,12 @@ class Provider extends Service_Provider {
 		$this->container->register( Base::class );
 		$this->container->register( Modifications::class );
 		$this->container->register( Theme_Compatibility::class );
+
+		if ( did_action( 'init' ) || doing_action( 'init' ) ) {
+			$this->container->get( Series::class )->register_post_type_or_fail();
+		} else {
+			add_action( 'init', $this->container->callback( Series::class, 'register_post_type_or_fail' ) );
+		}
 	}
 
 	/**
@@ -316,7 +322,7 @@ class Provider extends Service_Provider {
 	/**
 	 * Removes the Series post type from the list of post types that can have tickets.
 	 *
-	 * @since TBD
+	 * @since 6.3.0
 	 *
 	 * @return void
 	 */

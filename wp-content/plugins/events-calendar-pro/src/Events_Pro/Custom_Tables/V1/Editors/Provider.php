@@ -218,7 +218,11 @@ class Provider extends Service_Provider {
 			$plugin,
 			'tec-events-pro-editor-dialog-js',
 			'custom-tables-v1/editor-dialog.js',
-			[ 'jquery-ui-dialog' ],
+			[
+				'jquery-ui-dialog',
+				'tec-dayjs',
+				'tec-dayjs-customparseformat',
+			],
 			'admin_enqueue_scripts',
 			[
 				'in_footer'    => true,
@@ -324,7 +328,12 @@ class Provider extends Service_Provider {
 			$plugin,
 			'tec-events-pro-classic-editor-events-dialog-js',
 			'custom-tables-v1/classic-editor-events-dialog.js',
-			[ 'tec-events-pro-editor-dialog-js', 'tec-events-pro-classic-editor-events-state-js' ],
+			[
+				'tec-events-pro-editor-dialog-js',
+				'tec-events-pro-classic-editor-events-state-js',
+				'tec-dayjs',
+				'tec-dayjs-customparseformat',
+			],
 			'admin_enqueue_scripts',
 			[
 				'in_footer'    => true,
@@ -359,7 +368,11 @@ class Provider extends Service_Provider {
 			$plugin,
 			'tec-events-pro-classic-editor-events-event-date-js',
 			'custom-tables-v1/classic-editor-events-event-date.js',
-			[],
+			[
+				'tec-dayjs',
+				'tec-dayjs-isoweek',
+				'tec-dayjs-customparseformat',
+			],
 			'admin_enqueue_scripts',
 			[
 				'in_footer'    => true,
@@ -396,6 +409,9 @@ class Provider extends Service_Provider {
 			[
 				'tec-events-pro-classic-editor-events-event-date-js',
 				'tec-events-pro-classic-editor-events-off-start-js',
+				'tec-dayjs',
+				'tec-dayjs-isoweek',
+				'tec-dayjs-customparseformat',
 			],
 			'admin_enqueue_scripts',
 			[
@@ -417,6 +433,8 @@ class Provider extends Service_Provider {
 				'tec-events-pro-classic-editor-events-event-date-js',
 				'tec-events-pro-classic-editor-events-off-start-js',
 				'tec-events-pro-classic-editor-events-day-of-month-js',
+				'tec-dayjs',
+				'tec-dayjs-isoweek',
 			],
 			'admin_enqueue_scripts',
 			[
@@ -484,6 +502,8 @@ class Provider extends Service_Provider {
 				'tec-events-pro-classic-editor-events-default-js',
 				'tec-events-pro-classic-editor-events-sync-js',
 				'tec-events-pro-classic-editor-events-day-of-month-js',
+				'tec-dayjs',
+				'tec-dayjs-customparseformat',
 			],
 			'admin_enqueue_scripts',
 			[
@@ -575,32 +595,6 @@ class Provider extends Service_Provider {
 					],
 				],
 				'priority'     => 205,
-				'conditionals' => $context->is_blocks_event_post_screen(),
-				'groups'       => [ static::$block_event_group_key ],
-			]
-		);
-
-		tribe_asset(
-			$plugin,
-			'tec-events-pro-block-editor-blocks-css',
-			'custom-tables-v1/app/blocks.css',
-			[ 'tribe-pro-gutenberg-main-styles' ],
-			'enqueue_block_editor_assets',
-			[
-				'in_footer'    => false,
-				'conditionals' => $context->is_blocks_event_post_screen(),
-				'groups'       => [ static::$block_event_group_key ],
-			]
-		);
-
-		tribe_asset(
-			$plugin,
-			'tec-events-pro-block-editor-elements-css',
-			'custom-tables-v1/app/elements.css',
-			[ 'tribe-pro-gutenberg-main-styles' ],
-			'enqueue_block_editor_assets',
-			[
-				'in_footer'    => false,
 				'conditionals' => $context->is_blocks_event_post_screen(),
 				'groups'       => [ static::$block_event_group_key ],
 			]
