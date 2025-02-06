@@ -88,7 +88,7 @@ jobs:
           # Machine token used to authenticate with Pantheon.
           pantheon-machine-token: ${{secrets.PANTHEON_MACHINE_TOKEN}}
           # The full version of Terminus to install. If omitted, the latest version is used.
-          terminus-version: 3.1.4
+          # terminus-version: 3.1.4
       # Push code to "dev"(beta)
       - name: push to dev|beta
         # Was this workflow is for GitHub PR being merged?
