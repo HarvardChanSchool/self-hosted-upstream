@@ -6,7 +6,8 @@
       "harvardchanschool/plugin-google-analytics-tracking": "dev-master",
       "harvardchanschool/plugin-harvard-key": "dev-main",
       "harvardchanschool/plugin-social": "dev-master",
-      "harvardchanschool/plugin-ui-shortcodes": "dev-main"
+      "harvardchanschool/plugin-ui-shortcodes": "dev-main",
+			"rankmath/seo-by-rank-math-pro": "^3.0.80"
 		},
 		"repositories": [
 			{
@@ -28,6 +29,18 @@
 			{
 				"type": "vcs",
 				"url": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes"
+			},
+			{
+				"type": "package",
+				"package": {
+						"name": "rankmath/seo-by-rank-math-pro",
+						"type": "wordpress-plugin",
+						"version": "3.0.80",
+							"dist": {
+								"type": "zip",
+								"url": "https://rankmath.com/download/510590/?username=deane&api_key=bad0233c27f41b4aa64560a2254ef85f"
+						}
+				}
 			}
 		],
     "config": {
