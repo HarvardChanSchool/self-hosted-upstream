@@ -73,6 +73,7 @@ Thumbs.db
 ##############################################
 !/wp-content/plugins/acf-gravityforms-add-on
 !/wp-content/plugins/advanced-custom-fields-pro
+!/wp-content/plugins/akismet
 !/wp-content/plugins/breadcrumb-navxt
 !/wp-content/plugins/disable-comments
 !/wp-content/plugins/debug-bar
