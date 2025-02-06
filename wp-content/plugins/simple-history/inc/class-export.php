@@ -75,7 +75,10 @@ class Export {
 		$export_format = $this->format;
 
 		$query = new Log_Query();
-		$query_result = $query->query( $this->query_args );
+
+		$download_query_args = $this->query_args;
+
+		$query_result = $query->query( $download_query_args );
 
 		$pages_count = $query_result['pages_count'];
 		$page_current = $query_result['page_current'];
@@ -137,8 +140,8 @@ class Export {
 
 			// Fetch next page.
 			$page_current++;
-			$query_args['paged'] = $page_current;
-			$query_result = $query->query( $query_args );
+			$download_query_args['paged'] = $page_current;
+			$query_result = $query->query( $download_query_args );
 		}
 
 		if ( 'json' == $export_format ) {
@@ -169,9 +172,13 @@ class Export {
 
 		$user_email = empty( $one_row->context['_user_email'] ) ? null : $one_row->context['_user_email'];
 		$user_login = empty( $one_row->context['_user_login'] ) ? null : $one_row->context['_user_login'];
+		$user_roles = [];
 
-		$user = get_user_by( 'email', $user_email );
-		$user_roles = $user->roles ?? array();
+		if ( $user_email ) {
+			$user = get_user_by( 'email', $user_email );
+			$user_roles = $user->roles ?? array();
+		}
+
 		$user_roles_comma_separated = implode( ', ', $user_roles );
 
 		$date_local = wp_date( 'Y-m-d H:i:s', strtotime( $one_row->date ) );

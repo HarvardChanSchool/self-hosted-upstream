@@ -919,22 +919,13 @@ Modal window with detailss
 	max-height: 11em;
 	overflow: hidden;
 	position: relative;
+	/* https://github.com/bonny/WordPress-Simple-History/issues/530 */
+	scrollbar-gutter: stable both-edges;
 }
 
 .SimpleHistory__diff__contents--noContentsCrop {
 	max-height: none;
 }
-
-/* fade out that indicate more content */
-/*.SimpleHistory__diff__contents:after {
-	content: "";
-	position: absolute;
-	bottom: 0;
-	left: 0;
-	width: 100%;
-	height: 30px;
-	background: linear-gradient(transparent, white);
-}*/
 
 .SimpleHistory__diff__contents:hover,
 .SimpleHistory__diff__contents:focus {
@@ -980,7 +971,7 @@ Modal window with detailss
  * Based on style uses by core for Site Health and Privacy Policy, to keep things consistent.
  */
 .sh-PageHeader {
-	margin: 0 0 2rem -20px;
+	margin: 0 0 0 -20px;
 	padding: 1.5rem;
 	background: #fff;
 	border-bottom: 1px solid var(--sh-color-gray);
@@ -1203,11 +1194,8 @@ so add some extra place then to make it look a bit less ugly.
 
 /** Subtabs on settings page */
 .sh-SettingsTabs {
-	/* --color-link-hover: #3f9349; */
-	/* background-color: #f8f8f8; */
 	border-bottom: 1px solid rgb(206, 206, 206);
 	margin-bottom: 0;
-	margin-top: -1.5rem;
 	margin-left: -2.5em;
 	padding-left: 2.5em;
 }
@@ -1555,9 +1543,6 @@ a.sh-SettingsTabs-link:hover {
 /* New styles for React */
 .SimpleHistoryReactRoot {
 	flex: 1;
-}
-
-.SimpleHistoryReactRoot.is-page {
 }
 
 .SimpleHistoryReactRoot.is-dashboard .SimpleHistory-filters {

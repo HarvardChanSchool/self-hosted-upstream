@@ -3,6 +3,7 @@
 namespace Simple_History\Dropins;
 
 use Simple_History\Helpers;
+use Simple_History\Simple_History;
 
 /**
  * Displays the latest events from Simple History in the admin bar using React.
@@ -10,6 +11,15 @@ use Simple_History\Helpers;
 class Quick_View_Dropin extends Dropin {
 	/** @inheritDoc */
 	public function loaded() {
+		// Init the plugin at prio so it's easy to modify on init, without having to use a lower prio.
+		add_action( 'init', [ $this, 'initialize' ], 20 );
+	}
+
+	/**
+	 * Initialize the dropin.
+	 * Fired from the 'init' hook.
+	 */
+	public function initialize() {
 		// Only available for users with the view history capability.
 		if ( ! current_user_can( Helpers::get_view_history_capability() ) ) {
 			return;
@@ -47,7 +57,7 @@ class Quick_View_Dropin extends Dropin {
 				// Id's are prefixed automatically, so no need to prefix them here.
 				'id'    => 'simple-history',
 				'title' => 'History',
-				'href'  => $this->simple_history->get_view_history_page_admin_url(),
+				'href'  => Simple_History::get_view_history_page_admin_url(),
 			)
 		);
 
@@ -96,7 +106,7 @@ class Quick_View_Dropin extends Dropin {
 			'simple_history_admin_bar_scripts',
 			'simpleHistoryAdminBar',
 			[
-				'adminPageUrl' => $this->simple_history->get_view_history_page_admin_url(),
+				'adminPageUrl' => Simple_History::get_view_history_page_admin_url(),
 				'viewSettingsUrl' => Helpers::get_settings_page_url(),
 				'currentUserCanViewHistory' => current_user_can( Helpers::get_view_history_capability() ),
 			],

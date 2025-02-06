@@ -191,6 +191,7 @@ class Helpers {
 	public static function get_current_screen() {
 		if ( function_exists( 'get_current_screen' ) ) {
 			$current_screen = get_current_screen();
+
 			if ( $current_screen instanceof \WP_Screen ) {
 				return $current_screen;
 			}
@@ -821,13 +822,12 @@ class Helpers {
 	/**
 	 * Get URL for settings page.
 	 *
-	 * @return string URL for settings page, i.e. "/wp-admin/options-general.php?page=simple_history_settings_menu_slug"
+	 * @return string URL for settings page, i.e. "/wp-admin/admin.php?page=simple_history_admin_menu_page"
 	 */
 	public static function get_settings_page_url() {
-		// return menu_page_url( Simple_History::SETTINGS_MENU_SLUG, 0 );
-		// menu_page_url() only works within amdin area.
+		// Can not use `menu_page_url()` because it only works within the admin area.
 		// But we want to be able to link to settings page also from front end.
-		return admin_url( 'options-general.php?page=' . Simple_History::SETTINGS_MENU_SLUG );
+		return admin_url( 'admin.php?page=simple_history_settings_page' );
 	}
 
 	/**
@@ -1130,20 +1130,22 @@ class Helpers {
 	public static function is_on_our_own_pages( $hook = '' ) {
 		$current_screen = self::get_current_screen();
 
-		$basePrefix = apply_filters( 'simple_history/admin_location', 'index' );
-		$basePrefix = $basePrefix === 'index' ? 'dashboard' : $basePrefix;
+		// Seems like subpages to main admin page have bases that begin with "simple-history_page_".
+		$begins_with_simple_history = $current_screen && str_starts_with( $current_screen->base, 'simple-history_page_' );
 
-		if ( $current_screen && $current_screen->base == 'settings_page_' . Simple_History::SETTINGS_MENU_SLUG ) {
+		if ( $begins_with_simple_history ) {
 			return true;
-		} elseif ( $current_screen && $current_screen->base === $basePrefix . '_page_simple_history_page' ) {
+		} elseif ( $current_screen && $current_screen->base === 'settings_page_' . Simple_History::SETTINGS_MENU_SLUG ) {
+			// Base is "settings_page_simple_history_settings_menu_slug".
+			// Applies for settings page and settings page tabs.
 			return true;
-		} elseif (
-			$hook == 'settings_page_' . Simple_History::SETTINGS_MENU_SLUG ||
-			( self::setting_show_on_dashboard() && $hook == 'index.php' ) ||
-			( self::setting_show_as_page() && $hook == $basePrefix . '_page_simple_history_page' )
-		) {
+		} elseif ( $current_screen && $current_screen->base === 'simple-history_page_simple_history_settings_page' ) {
+			// History page below main admin page, ie. WP Admin › Simple History › Settings.
 			return true;
-		} elseif ( $current_screen && $current_screen->base == 'dashboard' && self::setting_show_on_dashboard() ) {
+		} elseif ( $current_screen && $current_screen->base === 'dashboard' && self::setting_show_on_dashboard() ) {
+			return true;
+		} elseif ( $current_screen && $current_screen->base === 'toplevel_page_' . Simple_History::MENU_PAGE_SLUG ) {
+			// New main menu menu.
 			return true;
 		}
 
@@ -1178,13 +1180,23 @@ class Helpers {
 	 */
 	public static function setting_show_on_dashboard() {
 		$show_on_dashboard = get_option( 'simple_history_show_on_dashboard', 1 );
+
 		$show_on_dashboard = apply_filters( 'simple_history_show_on_dashboard', $show_on_dashboard );
+
+		/**
+		 * Filter if Simple History should be shown on the dashboard.
+		 *
+		 * @param int $show_on_dashboard If 1 then show on dashboard, if 0 then do not show on dashboard.
+		 */
+		$show_on_dashboard = apply_filters( 'simple_history/show_on_dashboard', $show_on_dashboard );
+
 		return (bool) $show_on_dashboard;
 	}
 
 	/**
-	 * Should simple history be shown as a page
-	 * Defaults to true
+	 * Should Simple History be shown as a page inside the dashboard menu.
+	 *
+	 * Defaults to true.
 	 *
 	 * @return bool
 	 */
@@ -1196,6 +1208,57 @@ class Helpers {
 	}
 
 	/**
+	 * Should Simple History be shown as a page in the main menu, at top level,
+	 * next to pages, tools, settings, etc.
+	 *
+	 * Defaults to true.
+	 *
+	 * @return bool
+	 */
+	public static function setting_show_as_menu_page() {
+		/**
+		 * Filter if Simple History should be shown as a page in the main admin menu.
+		 *
+		 * @since 5.5.2
+		 */
+		$setting = apply_filters( 'simple_history/show_admin_menu_page', true );
+
+		return (bool) $setting;
+	}
+
+	/**
+	 * Returns the location of the main simple history menu page.
+	 * Valid locations are:
+	 * - 'top' = Below dashboard and Jetpack and similar top level menu items.
+	 * - 'bottom' = Below settings and similar bottom level menu items.
+	 *
+	 * Defaults to 'top'.
+	 *
+	 * @return string Location of the main menu page.
+	 */
+	public static function setting_menu_page_location() {
+		$option_slug = 'simple_history_menu_page_location';
+		$setting = get_option( $option_slug );
+
+		// If it does not exist, then default so the option can auto-load.
+		if ( false === $setting ) {
+			$setting = 'top';
+			update_option( $option_slug, $setting, true );
+		}
+
+		/**
+		 * Filter to control the placement of Simple History in the Admin Menu.
+		 *
+		 * @since 5.5.2
+		 *
+		 * @param string $setting Either 'top' for placement below dashboard or 'bottom' for placement below settings.
+		 */
+		$setting = apply_filters( 'simple_history/admin_menu_location', $setting );
+
+		return $setting;
+	}
+
+	/**
 	 * Returns true if Simple History can be shown in the admin bar
 	 *
 	 * @return bool
@@ -1204,8 +1267,16 @@ class Helpers {
 		$setting = get_option( 'simple_history_show_in_admin_bar', 1 );
 		$setting = apply_filters( 'simple_history_show_in_admin_bar', $setting );
 
+		/**
+		 * Filter if Simple History should be shown in the admin bar.
+		 *
+		 * @since 5.5.1
+		 */
+		$setting = apply_filters( 'simple_history/show_in_admin_bar', $setting );
+
 		return (bool) $setting;
 	}
+
 
 	/**
 	 * Returns true if Detective Mode is active.
