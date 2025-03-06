@@ -4,6 +4,7 @@ namespace Simple_History\Dropins;
 use Simple_History\Simple_History;
 use Simple_History\Export;
 use Simple_History\Helpers;
+use Simple_History\Menu_Page;
 use Simple_History\Services\Admin_Pages;
 
 /**
@@ -13,38 +14,62 @@ use Simple_History\Services\Admin_Pages;
  * Author: Pär Thernström
  */
 class Export_Dropin extends Dropin {
+	/** @var string Slug for the export menu. */
+	const MENU_SLUG = 'simple_history_export_history';
+
 	/**
 	 * @inheritdoc
 	 */
 	public function loaded() {
-		add_action( 'admin_menu', array( $this, 'add_submenu' ) );
-		add_action( 'load-simple-history_page_simple_history_export_history', array( $this, 'download_export' ) );
+		add_action( 'admin_menu', array( $this, 'add_menu' ) );
+		add_action( 'admin_init', array( $this, 'download_export' ) );
 	}
 
 	/**
 	 * Add submenu page for export
 	 */
-	public function add_submenu() {
+	public function add_menu() {
 		if ( ! Helpers::setting_show_as_menu_page() ) {
 			return;
 		}
 
-		add_submenu_page(
-			Simple_History::MENU_PAGE_SLUG,
-			__( 'Export', 'simple-history' ),
-			__( 'Export', 'simple-history' ),
-			'manage_options',
-			'simple_history_export_history',
-			array( $this, 'output_export_page' ),
-			50
-		);
+		// Add page using new menu manager.
+		$admin_page_location = Helpers::get_menu_page_location();
+
+		$export_menu_page = ( new Menu_Page() )
+			->set_page_title( _x( 'Simple History Export', 'dashboard title name', 'simple-history' ) )
+			->set_menu_slug( self::MENU_SLUG )
+			->set_capability( 'manage_options' )
+			->set_callback( [ $this, 'output_export_page' ] )
+			->set_icon( 'download' );
+
+		// Set different options depending on location.
+		if ( in_array( $admin_page_location, [ 'top', 'bottom' ], true ) ) {
+			$export_menu_page
+				->set_menu_title( _x( 'Export', 'settings menu name', 'simple-history' ) )
+				->set_parent( Simple_History::MENU_PAGE_SLUG )
+				->set_location( 'submenu' );
+		} else if ( in_array( $admin_page_location, [ 'inside_dashboard', 'inside_tools' ], true ) ) {
+			// If main page is shown as child to tools or dashboard then export page is shown as a tab on the settings page.
+			$export_menu_page
+				->set_menu_title( _x( 'Export', 'settings menu name', 'simple-history' ) )
+				->set_parent( Simple_History::SETTINGS_MENU_PAGE_SLUG );
+		}
+
+		$export_menu_page->add();
 	}
 
 	/**
 	 * Download export file.
 	 */
 	public function download_export() {
+		$page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
 		$action = sanitize_key( wp_unslash( $_POST['simple-history-action'] ?? '' ) );
+
+		// Bail of not correct page.
+		if ( $page !== self::MENU_SLUG ) {
+			return;
+		}
 
 		// Bail if not export action.
 		if ( $action !== 'export-history' ) {
@@ -90,6 +115,7 @@ class Export_Dropin extends Dropin {
 				)
 			);
 			?>
+			
 			<p><?php echo esc_html_x( 'The export function will export the full history.', 'Export dropin: introtext', 'simple-history' ); ?></p>
 
 			<form method="post">

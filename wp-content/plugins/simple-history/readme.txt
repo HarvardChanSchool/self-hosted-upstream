@@ -4,7 +4,7 @@ Contributors: eskapism, wpsimplehistory
 Donate link: https://simple-history.com/sponsor/
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 6.7
-Stable tag: 5.6.1
+Stable tag: 5.7.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -125,15 +125,15 @@ Is your plugin missing? No problem – plugin authors can add support for Simple
 
 -   _"It is a standard plugin for all of our sites"_ - [Mr Tibbs](https://wordpress.org/support/topic/it-is-a-standard-plugin-for-all-of-our-sites/)
 
-## Getting Started
+### 🚀 Zero-Config Activity Tracking
 
-After installation, Simple History automatically starts logging activities. Access the history log through the dashboard widget or via the 'Simple History' page.
+Simple History begins tracking your WordPress site's activities instantly after installation - no setup required. View your activity logs through the convenient dashboard widget or browse the full history on the dedicated 'Simple History' page in your WordPress admin.
 
-### RSS feed with changes
+### 📡 RSS feed with changes
 
 Using the optional password protected **RSS feed** you can keep track of the changes made on your website using your favorite RSS reader.
 
-### WP-CLI commands for automation
+### 🤖 WP-CLI commands for automation
 
 [Multiple WP-CLI commands exist](https://simple-history.com/features/wp-cli-commands/), to view and search the log, and to view more information about a specific event.
 
@@ -144,7 +144,7 @@ Example commands:
 -   `wp simple-history event list` – List the latest logged events.
 -   `wp simple-history event search` – Search for events.
 
-### Stealth Mode – Hide Simple History from the WordPress Admin
+### 🥷 Stealth Mode – Hide Simple History from the WordPress Admin
 
 [Stealth Mode](https://simple-history.com/features/stealth-mode/) allows Simple History to run completely in the background, hidden from the WordPress admin interface. This is ideal for agencies, developers, and administrators who want to track user activity discreetly without exposing the logs to other users.
 
@@ -305,11 +305,35 @@ For more information, see the full [GDPR FAQ](https://simple-history.com/docs/fa
 -   [Add a 5-star review so other users know it's good.](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5)
 -   [Get the premium add-on for more features.](https://simple-history.com/add-ons/premium/?utm_source=wpadmin&utm_content=readme).
 
-### Unreleased
+### 5.7.0 (February 2025)
 
--   Fix export regression, causing not all events to be exported.
--   Fix WordPress error notice when exporting event with no user email.
--   Improve usability for Quick View/post revision info by modifying hover styles to not make scrollbar "jump". [#530](https://github.com/bonny/WordPress-Simple-History/issues/530)
+🔄 This release adds more menu location options and some other smaller improvements to the interface and internal code.
+[Read the release post](https://simple-history.com/2025/simple-history-5-7-0-released/) for more details and screenshots.
+
+**Added**
+
+-   Add new menu location options "Inside dashboard menu item" and "Inside tools menu item" (in addition to the available "Top of main menu" and "Bottom of main menu").
+    -   The "Inside dashboard menu item" option will add the main history log page to the Dashboard page, while the settings page for the plugin will be located under the Settings menu item. This is pretty much the same location as before the 5.5.0 update.
+    -   The location can be set using filter `simple_history/admin_menu_location`.
+-   Total number of events logged since install in now shown in the [Stats & Insights box](https://simple-history.com/features/stats-insights/).
+
+**Changed**
+
+-   Enhancement: Format number of events in Stats & Insights.
+-   Update menu settings name from "Menu page location" to "History menu position".
+-   Improve location of settings errors.
+-   Improve logic for determine if the current admin page belongs to Simple History or not. Improves compatibility with translation plugins. [#531](https://github.com/bonny/WordPress-Simple-History/issues/531)
+
+**Fixed**
+
+-   Fix warning for [deprecated bottom styles in SelectControl component](https://make.wordpress.org/core/2024/10/18/editor-components-updates-in-wordpress-6-7/#bottom-margin-styles-are-deprecated).
+-   Show correct [limit login attempts link](https://simple-history.com/add-ons/premium/#limit-failed-logins) for [premium](https://simple-history.com/add-ons/premium/) users.
+-   Remove setting "Show history: as a page under the dashboard menu", since the history menu now can be set to multiple locations.
+
+**Other**
+
+-   Deprecate functions `register_settings_tab()`, `get_main_nav_html()`, `get_subnav_html()`, `get_settings_tabs()`.
+-   Misc internal improvements and changes.
 
 ### 5.6.1 (January 2025)
 

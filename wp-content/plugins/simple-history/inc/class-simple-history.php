@@ -13,6 +13,7 @@ use Simple_History\Services\Service;
 use Simple_History\Event_Details\Event_Details_Simple_Container;
 use Simple_History\Event_Details\Event_Details_Container_Interface;
 use Simple_History\Event_Details\Event_Details_Group;
+use Simple_History\Services\Setup_Settings_Page;
 
 /**
  * Main class for Simple History.
@@ -63,10 +64,20 @@ class Simple_History {
 	/** Slug for the admin menu main page. */
 	public const MENU_PAGE_SLUG = 'simple_history_admin_menu_page';
 
-	/** Slug for the settings menu */
-	public const SETTINGS_MENU_PAGE_SLUG = 'simple_history_settings_menu_page';
+	/** Slug for the view events subpage_default page */
+	public const VIEW_EVENTS_PAGE_SLUG = 'simple_history_view_events_page';
 
-	/** Slug for the settings menu */
+	/**
+	 * Settings page menu slug used in WordPress admin.
+	 *
+	 * This constant defines the unique identifier (slug) used for the Simple History
+	 * settings page in the WordPress admin menu.
+	 *
+	 * @var string
+	 */
+	public const SETTINGS_MENU_PAGE_SLUG = 'simple_history_settings_page';
+
+	/** Slug for the settings menu. Is this the slug for options groups? */
 	public const SETTINGS_MENU_SLUG = 'simple_history_settings_menu_slug';
 
 	/** Slug for the settings menu */
@@ -142,6 +153,7 @@ class Simple_History {
 			Services\REST_API::class,
 			Services\WP_CLI_Commands::class,
 			Services\Stealth_Mode::class,
+			Services\Menu_Service::class,
 		];
 	}
 
@@ -521,6 +533,7 @@ class Simple_History {
 	/**
 	 * Register a settings tab.
 	 *
+	 * @deprecated 5.7.0 Use Menu_Page class instead. See Message_Control_Module or Failed_Login_Attempts_Settings_Module for examples.
 	 * @param array $arr_tab_settings {
 	 *     An array of default site sign-up variables.
 	 *
@@ -533,23 +546,51 @@ class Simple_History {
 	 * }
 	 */
 	public function register_settings_tab( $arr_tab_settings ) {
-		$arr_tab_settings = wp_parse_args(
-			$arr_tab_settings,
-			[
-				'slug' => null,
-				'parent_slug' => null,
-				'name' => null,
-				'icon' => null,
-				'function' => null,
-				'order' => 10,
-			]
+		_deprecated_function(
+			__METHOD__,
+			'5.7.0',
+			'Menu_Page class. See Message_Control_Module or Failed_Login_Attempts_Settings_Module for examples.'
 		);
 
-		$this->arr_settings_tabs[] = $arr_tab_settings;
+		// This is called early from add-ons, while the new menu manager expects
+		// registration to be called on menu_manager hook.
+		// Also we want to call it after Simple History core has done its init stuff.
+		add_action(
+			'admin_menu',
+			function () use ( $arr_tab_settings ) {
+				// Create new Menu_Page instance using method chaining pattern.
+				$menu_page = ( new Menu_Page() )
+				->set_page_title( $arr_tab_settings['name'] )
+				->set_menu_title( $arr_tab_settings['name'] )
+				->set_menu_slug( $arr_tab_settings['slug'] )
+				->set_callback( $arr_tab_settings['function'] )
+				->set_order( $arr_tab_settings['order'] ?? 10 );
+
+				// Set icon if provided.
+				if ( ! empty( $arr_tab_settings['icon'] ) ) {
+					$menu_page->set_icon( $arr_tab_settings['icon'] );
+				}
+
+				// Set parent.
+				$parent_slug = $arr_tab_settings['parent_slug'] ?? null;
+
+				if ( $parent_slug === null || $parent_slug === 'settings' ) {
+					// In premium and extended settings parent was always "settings".
+					$parent_slug = Setup_Settings_Page::SETTINGS_GENERAL_SUBTAB_SLUG;
+				}
+
+				$menu_page->set_parent( $parent_slug );
+
+				$menu_page->add();
+			},
+			20
+		);
 	}
 
 	/**
 	 * Get the registered settings tabs.
+	 *
+	 * @deprecated 5.7.0 Use Menu_Page class instead. See Message_Control_Module or Failed_Login_Attempts_Settings_Module for examples.
 	 *
 	 * The tabs are ordered by the order key, where higher number means earlier output,
 	 * i.e. the tab is outputted more to the left in the settings page.
@@ -560,6 +601,12 @@ class Simple_History {
 	 * @return array
 	 */
 	public function get_settings_tabs( $type = 'top' ) {
+		// _deprecated_function(
+		// __METHOD__,
+		// '5.7.0',
+		// 'Menu_Page class. See Message_Control_Module or Failed_Login_Attempts_Settings_Module for examples.'
+		// );
+
 		// Sort by order, where higher number means earlier output.
 		usort(
 			$this->arr_settings_tabs,
@@ -849,12 +896,13 @@ class Simple_History {
 
 			if ( $logger === 'SimpleUserLogger' && in_array( $message_key, [ 'user_login_failed', 'user_unknown_login_failed' ], true ) ) {
 
-				// TODO: the admin-url links below should get the URL using functions.
+				$ƒailed_login_attempts_settings_page_url = Helpers::get_settings_page_tab_url( 'failed-login-attempts' );
+
 				if ( $is_simple_history_extended_settings_active ) {
 					// Show link to extended settings settings page if extended settings plugin is active.
 					$occasions_html .= '<div class="SimpleHistoryLogitem__occasionsAddOns">';
 					$occasions_html .= '<p class="SimpleHistoryLogitem__occasionsAddOnsText">';
-					$occasions_html .= '<a href="' . admin_url( 'admin.php?page=simple_history_admin_menu_page&selected-sub-tab=failed-login-attempts' ) . '">';
+					$occasions_html .= '<a href="' . esc_url( $ƒailed_login_attempts_settings_page_url ) . '">';
 					$occasions_html .= __( 'Configure failed login attempts', 'simple-history' );
 					$occasions_html .= '</a>';
 					$occasions_html .= '</p>';
@@ -863,7 +911,7 @@ class Simple_History {
 					// Show link to premium settings page if extended settings plugin is active.
 					$occasions_html .= '<div class="SimpleHistoryLogitem__occasionsAddOns">';
 					$occasions_html .= '<p class="SimpleHistoryLogitem__occasionsAddOnsText">';
-					$occasions_html .= '<a href="' . admin_url( 'admin.php?page=simple_history_admin_menu_page&selected-sub-tab=failed-login-attempts' ) . '">';
+					$occasions_html .= '<a href="' . esc_url( $ƒailed_login_attempts_settings_page_url ) . '">';
 					$occasions_html .= __( 'Configure failed login attempts', 'simple-history' );
 					$occasions_html .= '</a>';
 					$occasions_html .= '</p>';
@@ -1350,7 +1398,7 @@ class Simple_History {
 	 *
 	 * @deprecated 4.8 Use Helpers::get_num_events_last_n_days().
 	 * @param int $period_days Number of days to get events for.
-	 * @return int Number of days.
+	 * @return int
 	 */
 	public function get_num_events_last_n_days( $period_days = 28 ) {
 		_deprecated_function( __METHOD__, '4.8', 'Helpers::get_num_events_last_n_days()' );
@@ -1438,13 +1486,14 @@ class Simple_History {
 	}
 
 	/**
-	 * Get the URL to the admin page where user views the history feed.
+	 * Get the menu manager class from the menu_service class instance.
 	 *
-	 * @return string URL to admin page, for example http://wordpress-stable.test/wordpress/wp-admin/index.php?page=simple_history_page.
+	 * @return Menu_Manager Menu manager instance or null if menu service is not available.
 	 */
-	public static function get_view_history_page_admin_url() {
-		// Can not use `menu_page_url()` because it only works within the admin area.
-		// But we want to be able to link to history page also from front end.
-		return admin_url( 'admin.php?page=' . self::MENU_PAGE_SLUG );
+	public function get_menu_manager() {
+		/** @var Services\Menu_Service $menu_service */
+		$menu_service = $this->get_service( Services\Menu_Service::class );
+
+		return $menu_service->get_menu_manager();
 	}
 }

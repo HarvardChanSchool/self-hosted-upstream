@@ -3,6 +3,8 @@
 namespace Simple_History;
 
 use Simple_History\Simple_History;
+use Simple_History\Menu_Page;
+use Simple_History\Services\Setup_Settings_Page;
 
 /**
  * Helper functions.
@@ -820,41 +822,6 @@ class Helpers {
 	}
 
 	/**
-	 * Get URL for settings page.
-	 *
-	 * @return string URL for settings page, i.e. "/wp-admin/admin.php?page=simple_history_admin_menu_page"
-	 */
-	public static function get_settings_page_url() {
-		// Can not use `menu_page_url()` because it only works within the admin area.
-		// But we want to be able to link to settings page also from front end.
-		return admin_url( 'admin.php?page=simple_history_settings_page' );
-	}
-
-	/**
-	 * Get URL for a main tab in the settings page.
-	 *
-	 * @param string $tab_slug Slug for the tab.
-	 * @return string URL for the tab, unescaped.
-	 */
-	public static function get_settings_page_tab_url( $tab_slug ) {
-		$settings_base_url = self::get_settings_page_url();
-		$settings_tab_url = add_query_arg( 'selected-tab', $tab_slug, $settings_base_url );
-		return $settings_tab_url;
-	}
-
-	/**
-	 * Get URL for a sub-tab in the settings page.
-	 *
-	 * @param string $sub_tab_slug Slug for the sub-tab.
-	 * @return string URL for the sub-tab, unescaped.
-	 */
-	public static function get_settings_page_sub_tab_url( $sub_tab_slug ) {
-		$settings_base_url = self::get_settings_page_url();
-		$settings_sub_tab_url = add_query_arg( 'selected-sub-tab', $sub_tab_slug, $settings_base_url );
-		return $settings_sub_tab_url;
-	}
-
-	/**
 	 *  Add link to add-ons.
 	 *
 	 * @return string HTML for link to add-ons.
@@ -868,8 +835,6 @@ class Helpers {
 				<span class="sh-PageHeader-settingsLinkIcon sh-Icon sh-Icon--extension"></span>
 				<span class="sh-PageHeader-settingsLinkText"><?php esc_html_e( 'Add-ons', 'simple-history' ); ?></span>
 			</a>
-
-			<em class="sh-PremiumFeatureBadge"><?php esc_html_e( 'New', 'simple-history' ); ?></em>
 		</div>
 		<?php
 
@@ -1124,28 +1089,26 @@ class Helpers {
 	 * Check if the current page is any of the pages that belong
 	 * to Simple History.
 	 *
-	 * @param string $hook The current page hook.
+	 * Since it uses current_screen() is must be called
+	 * after the 'admin_menu' action has been fired.
+	 *
 	 * @return bool
 	 */
-	public static function is_on_our_own_pages( $hook = '' ) {
+	public static function is_on_our_own_pages() {
+		// Check if we are on an admin page with Simple History content.
+		// All Simple History admin pages have a ?page=simple_history_... query arg.
+		// where page is the slug of the registered page.
+		$all_menu_pages_slugs = Simple_History::get_instance()->get_menu_manager()->get_all_slugs();
+		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : null;
+
+		if ( $page && in_array( $page, $all_menu_pages_slugs, true ) ) {
+			return true;
+		}
+
 		$current_screen = self::get_current_screen();
 
-		// Seems like subpages to main admin page have bases that begin with "simple-history_page_".
-		$begins_with_simple_history = $current_screen && str_starts_with( $current_screen->base, 'simple-history_page_' );
-
-		if ( $begins_with_simple_history ) {
-			return true;
-		} elseif ( $current_screen && $current_screen->base === 'settings_page_' . Simple_History::SETTINGS_MENU_SLUG ) {
-			// Base is "settings_page_simple_history_settings_menu_slug".
-			// Applies for settings page and settings page tabs.
-			return true;
-		} elseif ( $current_screen && $current_screen->base === 'simple-history_page_simple_history_settings_page' ) {
-			// History page below main admin page, ie. WP Admin › Simple History › Settings.
-			return true;
-		} elseif ( $current_screen && $current_screen->base === 'dashboard' && self::setting_show_on_dashboard() ) {
-			return true;
-		} elseif ( $current_screen && $current_screen->base === 'toplevel_page_' . Simple_History::MENU_PAGE_SLUG ) {
-			// New main menu menu.
+		// We are on a Simple History page if we are on dashboard and the setting is set to show on dashboard.
+		if ( $current_screen->base === 'dashboard' && self::setting_show_on_dashboard() ) {
 			return true;
 		}
 
@@ -1198,6 +1161,7 @@ class Helpers {
 	 *
 	 * Defaults to true.
 	 *
+	 * @deprecated 5.7.0
 	 * @return bool
 	 */
 	public static function setting_show_as_page() {
@@ -1228,15 +1192,18 @@ class Helpers {
 
 	/**
 	 * Returns the location of the main simple history menu page.
+	 *
 	 * Valid locations are:
 	 * - 'top' = Below dashboard and Jetpack and similar top level menu items.
 	 * - 'bottom' = Below settings and similar bottom level menu items.
+	 * - 'inside_tools' = Inside the tools menu.
+	 * - 'inside_dashboard' = Inside the settings menu.
 	 *
 	 * Defaults to 'top'.
 	 *
 	 * @return string Location of the main menu page.
 	 */
-	public static function setting_menu_page_location() {
+	public static function get_menu_page_location() {
 		$option_slug = 'simple_history_menu_page_location';
 		$setting = get_option( $option_slug );
 
@@ -1248,10 +1215,15 @@ class Helpers {
 
 		/**
 		 * Filter to control the placement of Simple History in the Admin Menu.
+		 * Valid locations:
+		 * - 'top' for placement close to dashboard at top of main menu
+		 * - 'bottom' for placement near below settings
+		 * - 'inside_tools' for placement inside the tools menu
+		 * - 'inside_dashboard' for placement inside the dashboard menu
 		 *
 		 * @since 5.5.2
 		 *
-		 * @param string $setting Either 'top' for placement below dashboard or 'bottom' for placement below settings.
+		 * @param string $setting Location slug.
 		 */
 		$setting = apply_filters( 'simple_history/admin_menu_location', $setting );
 
@@ -1276,7 +1248,6 @@ class Helpers {
 
 		return (bool) $setting;
 	}
-
 
 	/**
 	 * Returns true if Detective Mode is active.
@@ -1689,5 +1660,82 @@ class Helpers {
 	 */
 	public static function is_extended_settings_add_on_active() {
 		return self::is_plugin_active( 'simple-history-extended-settings/index.php' );
+	}
+
+	/**
+	 * Get the URL to the admin page where user views the history feed.
+	 *
+	 * Can not use `menu_page_url()` because it only works within the admin area.
+	 * But we want to be able to link to history page also from front end.
+	 *
+	 * Calls to this from the Admin Bar Quick View also happens before menu is registered.
+	 *
+	 * @return string URL to admin page, for example http://wordpress-stable.test/wordpress/wp-admin/index.php?page=simple_history_page.
+	 */
+	public static function get_history_admin_url() {
+		$history_page_location = self::get_menu_page_location();
+
+		if ( in_array( $history_page_location, array( 'top', 'bottom' ), true ) ) {
+			return admin_url( 'admin.php?page=' . Simple_History::MENU_PAGE_SLUG );
+		} elseif ( 'inside_tools' === $history_page_location ) {
+			return admin_url( 'tools.php?page=' . Simple_History::MENU_PAGE_SLUG );
+		} elseif ( 'inside_dashboard' === $history_page_location ) {
+			return admin_url( 'index.php?page=' . Simple_History::MENU_PAGE_SLUG );
+		} else {
+			// Fallback if no match found.
+			return admin_url( 'admin.php?page=' . Simple_History::MENU_PAGE_SLUG );
+		}
+	}
+
+	/**
+	 * Get URL for settings page.
+	 *
+	 * Uses the same menu location logic as the main history page.
+	 *
+	 * @return string URL for settings page.
+	 */
+	public static function get_settings_page_url() {
+		$history_page_location = self::get_menu_page_location();
+
+		if ( in_array( $history_page_location, array( 'top', 'bottom' ), true ) ) {
+			return admin_url( 'admin.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
+		} elseif ( in_array( $history_page_location, array( 'inside_tools', 'inside_dashboard' ), true ) ) {
+			return admin_url( 'options-general.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
+		} else {
+			// Fallback if no match found.
+			return admin_url( 'admin.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
+		}
+	}
+
+
+	/**
+	 * Get URL for a main tab in the settings page.
+	 *
+	 * @param string $tab_slug Slug for the tab.
+	 * @return string URL for the tab, unescaped.
+	 */
+	public static function get_settings_page_tab_url( $tab_slug ) {
+		return add_query_arg(
+			[
+				'selected-tab' => $tab_slug,
+			],
+			self::get_settings_page_url()
+		);
+	}
+
+	/**
+	 * Get URL for a sub-tab in the settings page.
+	 *
+	 * @param string $sub_tab_slug Slug for the sub-tab.
+	 * @return string URL for the sub-tab, unescaped.
+	 */
+	public static function get_settings_page_sub_tab_url( $sub_tab_slug ) {
+		return add_query_arg(
+			[
+				'selected-tab'  => Setup_Settings_Page::SETTINGS_GENERAL_SUBTAB_SLUG,
+				'selected-sub-tab' => $sub_tab_slug,
+			],
+			self::get_settings_page_url()
+		);
 	}
 }
