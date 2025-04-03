@@ -137,6 +137,7 @@ class Simple_History {
 			Services\Setup_Database::class,
 			Services\Scripts_And_Templates::class,
 			Services\Admin_Pages::class,
+			Services\Admin_Page_Premium_Promo::class,
 			Services\Setup_Settings_Page::class,
 			Services\Loggers_Loader::class,
 			Services\Dropins_Loader::class,
@@ -154,6 +155,7 @@ class Simple_History {
 			Services\WP_CLI_Commands::class,
 			Services\Stealth_Mode::class,
 			Services\Menu_Service::class,
+			Services\Review_Reminder_Service::class,
 		];
 	}
 
@@ -422,6 +424,7 @@ class Simple_History {
 			Loggers\Theme_Logger::class,
 			Loggers\User_Logger::class,
 			Loggers\Simple_History_Logger::class,
+			Loggers\Custom_Entry_Logger::class,
 		);
 
 		/**
@@ -442,23 +445,33 @@ class Simple_History {
 	 * @return array
 	 */
 	public function get_core_dropins() {
-		$dropins = array(
-			Dropins\Detective_Mode_Dropin::class,
-			Dropins\Experimental_Features_Dropin::class,
-			Dropins\Donate_Dropin::class,
-			Dropins\Export_Dropin::class,
-			Dropins\IP_Info_Dropin::class,
-			Dropins\Plugin_Patches_Dropin::class,
-			Dropins\RSS_Dropin::class,
-			Dropins\Settings_Debug_Tab_Dropin::class,
-			Dropins\Sidebar_Stats_Dropin::class,
-			Dropins\Sidebar_Dropin::class,
-			Dropins\Quick_Stats::class,
-			Dropins\Sidebar_Add_Ons_Dropin::class,
-			Dropins\Action_Links_Dropin::class,
-			Dropins\React_Dropin::class,
-			Dropins\Quick_View_Dropin::class,
-		);
+		$dropins = [];
+		$dropins_dir = SIMPLE_HISTORY_PATH . 'dropins';
+		$dropin_files = glob( $dropins_dir . '/*.php' );
+
+		foreach ( $dropin_files as $file ) {
+			// Skip dropin main class that other classes depend on.
+			if ( basename( $file ) === 'class-dropin.php' ) {
+				continue;
+			}
+
+			// Skip non-class files.
+			if ( strpos( basename( $file ), 'class-' ) !== 0 ) {
+				continue;
+			}
+
+			// Convert filename to class name.
+			// e.g. class-quick-stats.php -> Quick_Stats.
+			$class_name = str_replace( 'class-', '', basename( $file, '.php' ) );
+			$class_name = str_replace( '-', '_', $class_name );
+			$class_name = str_replace( 'dropin', 'Dropin', $class_name );
+			$class_name = ucwords( $class_name, '_' );
+
+			// Add full namespace.
+			$class_name = "Simple_History\\Dropins\\{$class_name}";
+
+			$dropins[] = $class_name;
+		}
 
 		/**
 		 * Filter the array with class names of core dropins.
@@ -920,7 +933,7 @@ class Simple_History {
 					// Show link to add-on if extended settings plugin is not active.
 					$occasions_html .= '<div class="SimpleHistoryLogitem__occasionsAddOns">';
 					$occasions_html .= '<p class="SimpleHistoryLogitem__occasionsAddOnsText">';
-					$occasions_html .= '<a href="https://simple-history.com/add-ons/extended-settings/?utm_source=wpadmin&utm_content=login-occassions#limit-number-of-failed-login-attempts" class="sh-ExternalLink" target="_blank">';
+					$occasions_html .= '<a href="https://simple-history.com/add-ons/extended-settings/?utm_source=wordpress_admin&utm_medium=Simple_History&utm_campaign=premium_upsell&utm_content=login-attempts-limit" class="sh-ExternalLink" target="_blank">';
 					$occasions_html .= __( 'Limit logged login attempts', 'simple-history' );
 					$occasions_html .= '</a>';
 					$occasions_html .= '</p>';

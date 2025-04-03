@@ -103,7 +103,7 @@ class Helpers {
 			$r .= "</thead>\n";
 		}
 
-		$r .= "<tbody>\n$diff</div>\n</tbody>\n";
+		$r .= "<tbody>\n$diff\n</tbody>\n";
 		$r .= '</table>';
 
 		$r .= '</div>';
@@ -813,6 +813,12 @@ class Helpers {
 			$title = self::get_settings_section_title_output( $title );
 		}
 
+		/**
+		 * In WP 6.7 after section is not always outputted.
+		 * See track tickets:
+		 * https://core.trac.wordpress.org/ticket/62746
+		 * https://core.trac.wordpress.org/changeset/59564
+		 */
 		$args = [
 			'before_section' => '<div class="sh-SettingsPage-settingsSection-wrap">',
 			'after_section' => '</div>',
@@ -831,7 +837,7 @@ class Helpers {
 
 		?>
 		<div class="sh-PageHeader-rightLink">
-			<a href="https://simple-history.com/add-ons/?utm_source=wpadmin&utm_content=nav-header" target="_blank">
+			<a href="https://simple-history.com/add-ons/?utm_source=wordpress_admin&utm_medium=Simple_History&utm_campaign=premium_upsell&utm_content=header-addons" target="_blank">
 				<span class="sh-PageHeader-settingsLinkIcon sh-Icon sh-Icon--extension"></span>
 				<span class="sh-PageHeader-settingsLinkText"><?php esc_html_e( 'Add-ons', 'simple-history' ); ?></span>
 			</a>
@@ -916,7 +922,7 @@ class Helpers {
 		 *
 		 * @example
 		 * ```php
-		 *  // Remove the "Clear log"-button, so a user with admin access can not clear the log
+		 *  // Remove the "Clear"-button, so a user with admin access can not clear the log
 		 *  // and wipe their mischievous behavior from the log.
 		 *  add_filter(
 		 *      'simple_history/user_can_clear_log',
