@@ -4,7 +4,7 @@ This repository should be used as the upstream repository for compliant self-hos
 
 ## Monthly maintenance tasks
 
-[Last updated: 2025-02-06]
+[Last updated: 2025-05-01]
 
 This is an outline of tasks that should be performed by maintainers during monthly maintenance.
 
@@ -32,11 +32,12 @@ This is an outline of tasks that should be performed by maintainers during month
     wp gh plugin upgrade <plugin> # https://github.com/boonebgorges/wp-cli-git-helper
     ```
 
-4. Copy latest versions of commercial plugins from wwwhsph repo:
+4. Copy latest versions of commercial plugins from harvard-chan-website repo:
 
+    - advanced-custom-fields-pro
     - gravityforms
 
-5. Wait a moment - Before pulling content to site-specific repos, wait for the GitHub build action to run.
+5. Push to `master`, then wait a moment; before pulling content to site-specific repos, it's important to wait for the GitHub build action to run.
 
 ### Update site-specific repos
 
@@ -88,7 +89,15 @@ This is an outline of tasks that should be performed by maintainers during month
 
   Use 'September 2024 maintenance release' format for release description.
 
-9. Wait for release action to complete, then verify production site.
+9. Wait for release action to complete.
+
+10. Clear cache:
+  
+  ```
+  terminus env:clear-cache <site>.prod
+  ```
+
+11. Verify production site.
 
 ### Site list for monthly maintenance
 
