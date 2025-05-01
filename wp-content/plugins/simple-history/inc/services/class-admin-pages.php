@@ -181,8 +181,15 @@ class Admin_Pages extends Service {
 			echo $main_subnav_html_output;
 			?>
 		</header>
-
+		
 		<?php
+		/**
+		 * Fires after the page header in Simple History admin pages.
+		 * Use this to output content right after the header.
+		 *
+		 * @since 5.9
+		 */
+		do_action( 'simple_history/admin_page/after_header' );
 
 		// Output sub nav items.
 		// Todo: this contains the full html output so it should not be in this header function.

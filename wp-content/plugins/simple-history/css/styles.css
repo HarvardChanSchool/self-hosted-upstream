@@ -30,6 +30,40 @@
 	--sh-font-size-small: 0.75rem;
 	--sh-font-size-medium: 0.9rem;
 	--sh-font-size-large: 1.1rem;
+	--sh-font-size-xlarge: 1.3rem;
+	--sh-font-size-xxlarge: 1.5rem;
+	--sh-font-size-xxxlarge: 2rem;
+
+	/* Spacing */
+	--sh-spacing-xxsmall: 0.1rem;
+	--sh-spacing-xsmall: 0.25rem;
+	--sh-spacing-small: 0.5rem;
+	--sh-spacing-medium: 1rem;
+	--sh-spacing-large: 1.5rem;
+	--sh-spacing-xlarge: 2rem;
+	--sh-spacing-xxlarge: 3rem;
+	--sh-spacing-xxxlarge: 5rem;
+
+	/* Border radius */
+	--sh-border-radius: 4px;
+
+	/* Shadows. Resources to create: https://www.joshwcomeau.com/shadow-palette/ */
+	--sh-shadow-color: 0deg 0% 57%;
+	--sh-shadow-elevation-low: 0.1px 0.2px 0.2px
+			hsl(var(--sh-shadow-color) / 0.4),
+		0.2px 0.3px 0.4px -1.5px hsl(var(--sh-shadow-color) / 0.36),
+		0.6px 0.8px 1.1px -3px hsl(var(--sh-shadow-color) / 0.31);
+	--sh-shadow-elevation-medium: 0.1px 0.2px 0.2px
+			hsl(var(--sh-shadow-color) / 0.42),
+		0.4px 0.6px 0.8px -1px hsl(var(--sh-shadow-color) / 0.38),
+		1.2px 1.5px 2px -2px hsl(var(--sh-shadow-color) / 0.35),
+		2.9px 3.8px 5px -3px hsl(var(--sh-shadow-color) / 0.31);
+	--sh-shadow-elevation-high: 0.1px 0.2px 0.2px
+			hsl(var(--sh-shadow-color) / 0.45),
+		0.6px 0.8px 1px -0.5px hsl(var(--sh-shadow-color) / 0.42),
+		1.8px 2.3px 3px -1px hsl(var(--sh-shadow-color) / 0.38),
+		3.5px 4.5px 6px -1.5px hsl(var(--sh-shadow-color) / 0.35),
+		6px 8px 10px -2px hsl(var(--sh-shadow-color) / 0.32);
 }
 
 /* clearfix */
@@ -987,7 +1021,7 @@ Modal window with detailss
  */
 .sh-PageHeader {
 	margin: 0 0 0 -20px;
-	padding: 1.5rem;
+	padding: var(--sh-spacing-large);
 	background: #fff;
 	border-bottom: 1px solid var(--sh-color-gray);
 	display: flex;
@@ -1031,7 +1065,24 @@ so add some extra place then to make it look a bit less ugly.
 }
 
 .sh-PageHeader-settingsLinkIcon {
-	--icon-size: 25px;
+	--sh-icon-size: 25px;
+}
+
+.sh-NotificationBar {
+	position: relative;
+	text-align: center;
+	background-color: var(--sh-color-cream);
+	padding: var(--sh-spacing-small) var(--sh-spacing-large);
+	margin: 0 0 0 calc(var(--sh-spacing-large) * -1);
+	font-weight: 600;
+	border-bottom: 1px solid var(--sh-color-gray);
+	transition: background-color 0.125s ease-out;
+}
+
+.sh-NotificationBar-link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
 }
 
 .sh-PremiumFeatureBadge {
@@ -1113,10 +1164,6 @@ so add some extra place then to make it look a bit less ugly.
 	font-style: normal;
 }
 
-.sh-Page-content {
-	margin: 0 1rem;
-}
-
 .sh-PageNav {
 	width: 100%;
 	display: flex;
@@ -1184,9 +1231,9 @@ so add some extra place then to make it look a bit less ugly.
 }
 
 .sh-SettingsPage-settingsSection-icon {
-	--icon-size: 24px;
-	width: var(--icon-size);
-	height: var(--icon-size);
+	--sh-icon-size: 24px;
+	width: var(--sh-icon-size);
+	height: var(--sh-icon-size);
 	/* background-image: url(./icons/info_FILL0_wght400_GRAD0_opsz48.svg); */
 	display: inline-block;
 	background-size: 100%;
@@ -1197,9 +1244,9 @@ so add some extra place then to make it look a bit less ugly.
 }
 
 .sh-SettingsPage-settingsField-icon {
-	--icon-size: 20px;
-	width: var(--icon-size);
-	height: var(--icon-size);
+	--sh-icon-size: 20px;
+	width: var(--sh-icon-size);
+	height: var(--sh-icon-size);
 	/* background-image: url(./icons/info_FILL0_wght400_GRAD0_opsz48.svg); */
 	display: inline-block;
 	background-size: 100%;
@@ -1211,9 +1258,9 @@ so add some extra place then to make it look a bit less ugly.
 }
 
 .sh-PageNav-icon {
-	--icon-size: 20px;
-	width: var(--icon-size);
-	height: var(--icon-size);
+	--sh-icon-size: 20px;
+	width: var(--sh-icon-size);
+	height: var(--sh-icon-size);
 	/* background-image: url(./icons/info_FILL0_wght400_GRAD0_opsz48.svg); */
 	display: inline-block;
 	background-size: 100%;
@@ -1583,4 +1630,10 @@ a.sh-SettingsTabs-link:hover {
 .SimpleHistory__modal {
 	min-width: 50vw;
 	min-height: 50vh;
+}
+
+.sh-PageHeader a,
+.sh-NotificationBar a,
+.sh-Page-content a {
+	text-underline-position: from-font;
 }

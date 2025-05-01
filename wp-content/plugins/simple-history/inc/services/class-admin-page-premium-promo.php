@@ -13,7 +13,7 @@ use Simple_History\Menu_Page;
 class Admin_Page_Premium_Promo extends Service {
 	/** @inheritdoc */
 	public function loaded() {
-		add_action( 'admin_menu', array( $this, 'add_promo_upsell_page' ), 20 );
+		add_action( 'admin_menu', array( $this, 'add_promo_upsell_page' ), 50 );
 	}
 
 	/**
@@ -56,7 +56,7 @@ class Admin_Page_Premium_Promo extends Service {
 	public function promo_upsell_page_output() {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		echo Admin_Pages::header_output();
-		
+
 		?>
 		<div class="wrap">
 			<?php

@@ -6,6 +6,7 @@ use Simple_History\Helpers;
 use Simple_History\Simple_History;
 use Simple_History\Log_Query;
 use Simple_History\Log_Levels;
+use Simple_History\Compat;
 
 /**
  * Dropin Name: Global RSS Feed
@@ -18,6 +19,7 @@ class RSS_Dropin extends Dropin {
 	 */
 	public function loaded() {
 		if ( ! function_exists( 'get_editable_roles' ) ) {
+			/** @phpstan-ignore requireOnce.fileNotFound */
 			require_once ABSPATH . '/wp-admin/includes/user.php';
 		}
 
@@ -244,8 +246,10 @@ class RSS_Dropin extends Dropin {
 			?>
 			<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 				<channel>
-					<title><?php echo esc_xml( $title ); ?></title>
-					<description><?php echo esc_xml( $description ); ?></description> 
+					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<title><?php echo Compat::esc_xml( $title ); ?></title>
+					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<description><?php echo Compat::esc_xml( $description ); ?></description> 
 					<link><?php echo esc_url( get_bloginfo( 'url' ) ); ?></link>
 					<atom:link href="<?php echo esc_url( $self_link ); ?>" rel="self" type="application/atom+xml" />
 					<?php
@@ -292,7 +296,7 @@ class RSS_Dropin extends Dropin {
 					 * );
 					 *
 					 * @param array $args SimpleHistoryLogQuery arguments.
-					 * @return array.
+					 * @return array
 					 */
 					$args = apply_filters( 'simple_history/rss_feed_args', $args );
 
@@ -377,7 +381,8 @@ class RSS_Dropin extends Dropin {
 						);
 						?>
 						<item>
-							<title><?php echo esc_xml( $item_title ); ?></title>
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							<title><?php echo Compat::esc_xml( $item_title ); ?></title>
 							<description><![CDATA[
 								<p><?php echo wp_kses( $header_output, $wp_kses_attrs ); ?></p>
 								<p><?php echo wp_kses( $text_output, $wp_kses_attrs ); ?></p>
@@ -404,8 +409,10 @@ class RSS_Dropin extends Dropin {
 							// author must be email to validate, but the field is optional, so we skip it.
 							/* <author><?php echo $row->initiator ?></author> */
 							?>
-							<pubDate><?php echo esc_xml( gmdate( 'D, d M Y H:i:s', strtotime( $row->date ) ) ); ?> GMT</pubDate>
-							<guid isPermaLink="false"><![CDATA[<?php echo esc_xml( $item_guid ); ?>]]></guid>
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							<pubDate><?php echo Compat::esc_xml( gmdate( 'D, d M Y H:i:s', strtotime( $row->date ) ) ); ?> GMT</pubDate>
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							<guid isPermaLink="false"><![CDATA[<?php echo Compat::esc_xml( $item_guid ); ?>]]></guid>
 							<link><![CDATA[<?php echo esc_url( $item_link ); ?>]]></link>
 						</item>
 						<?php
@@ -421,14 +428,20 @@ class RSS_Dropin extends Dropin {
 			?>
 			<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 				<channel>
-					<title><?php echo esc_xml( $title ); ?></title>
-					<description><?php echo esc_xml( $description ); ?></description>
+					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<title><?php echo Compat::esc_xml( $title ); ?></title>
+					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+					<description><?php echo Compat::esc_xml( $description ); ?></description>
 					<link><?php echo esc_url( home_url() ); ?></link>
 					<atom:link href="<?php echo esc_url( $self_link ); ?>" rel="self" type="application/atom+xml" />
 					<item>
-						<title><?php echo esc_xml( __( 'Wrong RSS secret', 'simple-history' ) ); ?></title>
-						<description><?php echo esc_xml( __( 'Your RSS secret for Simple History RSS feed is wrong. Please see WordPress settings for current link to the RSS feed.', 'simple-history' ) ); ?></description>
-						<pubDate><?php echo esc_xml( gmdate( 'D, d M Y H:i:s', time() ) ); ?> GMT</pubDate>
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<title><?php echo Compat::esc_xml( __( 'Wrong RSS secret', 'simple-history' ) ); ?></title>
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<description><?php echo Compat::esc_xml( __( 'Your RSS secret for Simple History RSS feed is wrong. Please see WordPress settings for current link to the RSS feed.', 'simple-history' ) ); ?></description>
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<pubDate><?php echo Compat::esc_xml( gmdate( 'D, d M Y H:i:s', time() ) ); ?> GMT</pubDate>
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 						<guid><?php echo esc_url( add_query_arg( 'SimpleHistoryGuid', 'wrong-secret', home_url() ) ); ?></guid>
 					</item>
 				</channel>
@@ -472,7 +485,7 @@ class RSS_Dropin extends Dropin {
 			sprintf(
 				/* translators: %s is a link to the documentation */
 				__( 'Query parameters can be used to control what to include in the feed. <a href="%1$s" class="sh-ExternalLink" target="_blank">View documentation</a>.', 'simple-history' ),
-				'https://simple-history.com/docs/feeds/?utm_source=wpadmin&utm_content=rss-feed-params'
+				'https://simple-history.com/docs/feeds/?utm_source=wordpress_admin&utm_medium=Simple_History&utm_campaign=documentation&utm_content=rss-feed-params'
 			),
 			[
 				'a' => [

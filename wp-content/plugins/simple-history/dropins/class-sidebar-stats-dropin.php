@@ -6,7 +6,7 @@ use DateTime;
 use DateInterval;
 use DatePeriod;
 use Simple_History\Helpers;
-
+use Simple_History\Menu_Manager;
 /**
  * Dropin Name: Sidebar with short stats
  * Dropin URI: https://simple-history.com/
@@ -24,7 +24,7 @@ class Sidebar_Stats_Dropin extends Dropin {
 	 * Enqueue scripts.
 	 */
 	public function on_admin_enqueue_scripts() {
-		wp_enqueue_script( 'simple_history_chart.js', SIMPLE_HISTORY_DIR_URL . 'js/chart.4.3.0.min.js', array( 'jquery' ), '4.3.0', true );
+		wp_enqueue_script( 'simple_history_chart.js', SIMPLE_HISTORY_DIR_URL . 'js/chart.4.4.8.min.js', array( 'jquery' ), '4.4.0', true );
 	}
 
 	/**
@@ -261,6 +261,25 @@ class Sidebar_Stats_Dropin extends Dropin {
 	}
 
 	/**
+	 * Get HTML for stats and summaries link.
+	 *
+	 * @return string HTML.
+	 */
+	protected function get_stats_and_summaries_link_html() {
+		$stats_page_url = Menu_Manager::get_admin_url_by_slug( 'simple_history_stats_page' );
+
+		ob_start();
+		?>
+		<p>
+			<a class="sh-PremiumFeaturesPostbox-button" href="<?php echo esc_url( $stats_page_url ); ?>">
+				<?php esc_html_e( 'View detailed stats & summaries', 'simple-history' ); ?>
+			</a>
+		</p>
+		<?php
+		return ob_get_clean();
+	}
+
+	/**
 	 * Output HTML for sidebar.
 	 */
 	public function on_sidebar_html() {
@@ -305,6 +324,9 @@ class Sidebar_Stats_Dropin extends Dropin {
 
 				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				echo $this->get_chart_data( $num_days );
+
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo $this->get_stats_and_summaries_link_html();
 				?>
 			</div>
 		</div>
