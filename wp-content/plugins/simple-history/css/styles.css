@@ -1,5 +1,3 @@
-@import url(icons.css);
-
 /**
  * Use SuitCSS based classnames.
  */
@@ -13,6 +11,8 @@
 	--sh-color-gray-4: #ededed;
 	--sh-color-green: #3f9349;
 	--sh-color-green-2: darkgreen;
+	--sh-color-separator: rgb(229, 229, 229);
+	--sh-color-item-hover: #fafafa;
 
 	/* Colors from Figma document 2025 */
 	--sh-color-black: #000000;
@@ -64,6 +64,9 @@
 		1.8px 2.3px 3px -1px hsl(var(--sh-shadow-color) / 0.38),
 		3.5px 4.5px 6px -1.5px hsl(var(--sh-shadow-color) / 0.35),
 		6px 8px 10px -2px hsl(var(--sh-shadow-color) / 0.32);
+
+	/* Avatar size */
+	--sh-avatar-size: var(--sh-font-size-xxxlarge);
 }
 
 /* clearfix */
@@ -149,8 +152,8 @@
 .SimpleHistoryLogitems {
 	margin: 0;
 	background: #fff;
-	border-top: 1px solid rgb(229, 229, 229);
-	border-bottom: 1px solid rgb(229, 229, 229);
+	/* border-top: 1px solid var(--sh-color-separator); */
+	border-bottom: 1px solid var(--sh-color-separator);
 	opacity: 1;
 	transition: all 0.25s ease-out;
 }
@@ -172,11 +175,18 @@
 	position: relative;
 	list-style-type: none;
 	margin: 0;
-	padding: 20px 20px 20px 16px;
+	/* padding: 20px 20px 20px 16px; */
+	padding: var(--sh-spacing-medium);
+	/* Margin top gets same height as separator */
+	/* margin-top: var(--sh-spacing-medium); */
+}
+
+.SimpleHistoryLogitem:hover {
+	background-color: var(--sh-color-item-hover);
 }
 
 /* add border below items */
-.SimpleHistoryLogitem::before {
+/* .SimpleHistoryLogitem::before {
 	content: "";
 	position: absolute;
 	bottom: 0;
@@ -184,7 +194,7 @@
 	height: 1px;
 	right: 0;
 	background: rgb(229, 229, 229);
-}
+} */
 
 .postbox .SimpleHistoryLogitem::before {
 	left: 0;
@@ -192,6 +202,56 @@
 
 .SimpleHistoryLogitem:last-of-type:before {
 	background: none;
+}
+
+/* Targets the element before a divider with a label. */
+.SimpleHistoryLogitem:has(
+		+ .SimpleHistoryLogitem .SimpleHistoryEventSeparator--hasLabel
+	) {
+	/* outline: 2px solid red; */
+	padding-bottom: calc(var(--sh-spacing-medium) * 3);
+}
+
+.SimpleHistoryEventSeparator {
+	width: calc(100% + var(--sh-spacing-medium) * 2);
+	margin-left: calc(var(--sh-spacing-medium) * -1);
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	border-top: 1px solid var(--sh-color-separator);
+	margin-top: calc(var(--sh-spacing-medium) * -1);
+	min-height: 30px;
+	font-weight: 600;
+	/* outline: 1px dotted pink; */
+}
+
+/* Divider line, at middle of divider. */
+
+.SimpleHistoryEventSeparator__label {
+	padding: var(--sh-spacing-small) var(--sh-spacing-medium);
+	border-radius: 1rem;
+	line-height: 1;
+	background-color: var(--sh-color-white);
+	border: 1px solid var(--sh-color-separator);
+	font-size: var(--sh-font-size-small);
+	transform: translateY(-50%);
+	box-shadow: 0px 3px 3px 0px #f7f7f7;
+}
+
+/* Sticky events style */
+.SimpleHistoryLogitem--is-sticky {
+	/* background-color: var(--sh-color-cream); */
+}
+
+/* Text inside event, contains tooltip and SVG icon component */
+.SimpleHistoryLogitem--sticky {
+	display: inline-block;
+	line-height: 1;
+	vertical-align: middle;
+
+	> svg {
+		display: block;
+	}
 }
 
 /*
@@ -204,7 +264,6 @@ Tag = the pill with the log level.
 	font-size: 10px;
 	padding: 3px 4px;
 	border-radius: 3px;
-	/*opacity: .75;*/
 	vertical-align: 1px;
 	line-height: 1;
 }
@@ -350,10 +409,6 @@ Tag = the pill with the log level.
 	position: absolute;
 	top: 12px;
 	right: 12px;
-}
-
-.SimpleHistoryLogitem:hover {
-	background-color: #fafafa;
 }
 
 .SimpleHistoryLogitem__keyValueTable th,
@@ -919,12 +974,24 @@ Modal window with detailss
 }
 
 /**
- * span is used as tooltip.
+ * span is used as tooltip. The tooltip is text with dotted underline and the tooltip is shown on hover, using
+ * built in browser tooltip.
  */
-.SimpleHistoryQuickStats--totalLoggedEvents span {
+.sh-Tooltip {
 	text-decoration: dotted underline;
 	text-underline-offset: 2px;
 	cursor: help;
+}
+
+/**
+ * An icon that is used as tooltip.
+ */
+.sh-TooltipIcon {
+	--sh-icon-size: 1.2em;
+	cursor: help;
+	top: -0.1em;
+	margin-left: 0.25em;
+	opacity: 0.6;
 }
 
 /* if not hits when using filter function + if ajax error */
@@ -1095,9 +1162,8 @@ so add some extra place then to make it look a bit less ugly.
 	align-items: center;
 	text-transform: uppercase;
 	font-size: 0.8em;
-	font-weight: normal;
+	font-weight: 600;
 	font-style: normal;
-	/* border: 1px solid var(--sh-color-green-2); */
 	border-radius: 4px;
 	padding: 0.25em 0.5em;
 	opacity: 0.75;
@@ -1110,6 +1176,7 @@ so add some extra place then to make it look a bit less ugly.
 	text-wrap-style: pretty;
 	padding: 1rem;
 	background-color: var(--box-bg-color);
+	border-radius: 10px;
 }
 
 .sh-PremiumFeaturesPostbox-preTitleFeaturesBadge {
@@ -1564,8 +1631,9 @@ a.sh-SettingsTabs-link:hover {
 	max-height: 0;
 	overflow: hidden;
 	text-align: center;
-	background: white;
 	background: rgba(0, 255, 30, 0.15);
+	/* Make room for divider label that will overlap otherwise. */
+	border-bottom: 30px;
 	transition:
 		max-height 0.5s ease-out,
 		background 0s;

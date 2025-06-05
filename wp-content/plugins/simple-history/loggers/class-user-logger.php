@@ -151,7 +151,7 @@ class User_Logger extends Logger {
 	 */
 	public function loaded() {
 		// Plain logins and logouts.
-		add_action( 'wp_login', array( $this, 'onWpLogin' ), 10, 2 );
+		add_action( 'wp_login', array( $this, 'on_wp_login' ), 1, 2 );
 		add_action( 'wp_logout', array( $this, 'onWpLogout' ), 10, 1 );
 
 		// Failed login attempt to username that exists.
@@ -538,7 +538,6 @@ class User_Logger extends Logger {
 			'edited_user_id' => $user_id,
 			'edited_user_email' => $user_before_update->user_email,
 			'edited_user_login' => $user_before_update->user_login,
-			'server_http_user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
 		);
 
 		if ( $password_changed ) {
@@ -680,7 +679,6 @@ class User_Logger extends Logger {
 			'deleted_user_login' => $wp_user_to_delete->user_login,
 			'deleted_user_role' => implode( ', ', $wp_user_to_delete->roles ),
 			'reassign_user_id' => $reassign,
-			'server_http_user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
 		);
 
 		$this->notice_message( 'user_deleted', $context );
@@ -760,7 +758,7 @@ class User_Logger extends Logger {
 	 * @param string $user_login Username.
 	 * @param object $user   WP_User object.
 	 */
-	public function onWpLogin( $user_login = null, $user = null ) {
+	public function on_wp_login( $user_login = null, $user = null ) {
 
 		$user_obj = null;
 		$context = array(
@@ -856,7 +854,6 @@ class User_Logger extends Logger {
 			'created_user_url' => $wp_user_added->user_url,
 			'created_user_role' => implode( ', ', $roles ),
 			'send_user_notification' => $send_user_notification,
-			'server_http_user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
 		);
 
 		$this->info_message( 'user_created', $context );

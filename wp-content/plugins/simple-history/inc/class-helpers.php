@@ -1745,4 +1745,45 @@ class Helpers {
 			self::get_settings_page_url()
 		);
 	}
+
+	/**
+	 * Checks if an event exists in the database.
+	 * Does not check permissions.
+	 *
+	 * @param int $event_id Event ID.
+	 * @return bool True if event exists, false otherwise.
+	 */
+	public static function event_exists( $event_id ) {
+		global $wpdb;
+		$simple_history = Simple_History::get_instance();
+		$events_table_name = $simple_history->get_events_table_name();
+
+		return (bool) $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT COUNT(*) FROM %i WHERE id = %d',
+				$events_table_name,
+				$event_id
+			)
+		);
+	}
+
+	/**
+	 * Returns markup for a tooltip with help text icon.
+	 *
+	 * @param string $tooltip_text The text to display in the tooltip.
+	 * @return string
+	 */
+	public static function get_tooltip_html( $tooltip_text ) {
+		$tooltip_text = trim( $tooltip_text );
+
+		if ( empty( $tooltip_text ) ) {
+			return '';
+		}
+
+		ob_start();
+		?>
+		<span class="sh-Icon sh-Icon--help sh-TooltipIcon" title="<?php echo esc_html( $tooltip_text ); ?>"></span>
+		<?php
+		return trim( ob_get_clean() );
+	}
 }

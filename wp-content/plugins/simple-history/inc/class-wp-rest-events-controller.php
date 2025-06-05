@@ -7,6 +7,7 @@ use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Server;
 use Simple_History\Compat;
+use Simple_History\Helpers;
 
 /**
  * REST API controller for events.
@@ -33,6 +34,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 	 */
 	public function register_routes() {
 		// GET /wp-json/simple-history/v1/events.
+		// To get events.
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base,
@@ -48,6 +50,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 		);
 
 		// POST /wp-json/simple-history/v1/events.
+		// To create an event.
 		register_rest_route(
 			$this->namespace,
 			'/' . $this->rest_base,
@@ -114,6 +117,44 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 				),
 			],
 		);
+
+		// POST /wp-json/simple-history/v1/events/<event-id>/stick.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>[\d]+)/stick',
+			[
+				'args' => [
+					'id' => [
+						'description' => __( 'Unique identifier for the event.', 'simple-history' ),
+						'type'        => 'integer',
+					],
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'stick_event' ],
+					'permission_callback' => [ $this, 'update_item_permissions_check' ],
+				],
+			],
+		);
+
+		// POST /wp-json/simple-history/v1/events/<event-id>/unstick.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>[\d]+)/unstick',
+			[
+				'args' => [
+					'id' => [
+						'description' => __( 'Unique identifier for the event.', 'simple-history' ),
+						'type'        => 'integer',
+					],
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'unstick_event' ],
+					'permission_callback' => [ $this, 'update_item_permissions_check' ],
+				],
+			],
+		);
 	}
 
 	/**
@@ -149,7 +190,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 		}
 
 		// Event must exist.
-		if ( ! $this->event_exists( $request['id'] ) ) {
+		if ( ! Helpers::event_exists( $request['id'] ) ) {
 			return new WP_Error(
 				'rest_event_invalid_id',
 				__( 'Invalid event ID.', 'simple-history' ),
@@ -188,23 +229,6 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Checks if a event exists in the database.
-	 *
-	 * @param int $event_id Event ID.
-	 * @return bool True if event exists, false otherwise.
-	 */
-	protected function event_exists( $event_id ) {
-		global $wpdb;
-		return (bool) $wpdb->get_var(
-			$wpdb->prepare(
-				'SELECT COUNT(*) FROM %i WHERE id = %d',
-				$this->simple_history->get_events_table_name(),
-				$event_id
-			)
-		);
 	}
 
 	/**
@@ -400,6 +424,18 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'type'        => 'integer',
 		);
 
+		$query_params['include_sticky'] = array(
+			'description' => __( 'Include sticky events in the result set.', 'simple-history' ),
+			'type'        => 'boolean',
+			'default'     => false,
+		);
+
+		$query_params['only_sticky'] = array(
+			'description' => __( 'Only return sticky events.', 'simple-history' ),
+			'type'        => 'boolean',
+			'default'     => false,
+		);
+
 		return $query_params;
 	}
 
@@ -505,6 +541,14 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 				'permalink' => array(
 					'description' => __( 'The permalink of the event.', 'simple-history' ),
 					'type'        => 'string',
+				),
+				'sticky' => array(
+					'description' => __( 'Whether the event is sticky.', 'simple-history' ),
+					'type'        => 'boolean',
+				),
+				'sticky_appended' => array(
+					'description' => __( 'Whether the event is sticky and appended to the result set.', 'simple-history' ),
+					'type'        => 'boolean',
 				),
 			),
 		);
@@ -647,6 +691,8 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'messages'                => 'messages',
 			'users'                   => 'users',
 			'user'                    => 'user',
+			'include_sticky'          => 'include_sticky',
+			'only_sticky'             => 'only_sticky',
 		);
 
 		/*
@@ -835,6 +881,14 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			$data['subsequent_occasions_count'] = (int) $item->subsequentOccasions;
 		}
 
+		if ( Compat::rest_is_field_included( 'sticky', $fields ) ) {
+			$data['sticky'] = isset( $item->context['_sticky'] ) ? true : false;
+		}
+
+		if ( Compat::rest_is_field_included( 'sticky_appended', $fields ) ) {
+			$data['sticky_appended'] = isset( $item->sticky_appended ) ? true : false;
+		}
+
 		if ( Compat::rest_is_field_included( 'context', $fields ) ) {
 			$data['context'] = $item->context;
 		}
@@ -911,5 +965,102 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			),
 			201
 		);
+	}
+
+	/**
+	 * Checks if a given request has access to update an event.
+	 *
+	 * @param \WP_REST_Request $request Full details about the request.
+	 * @return bool|\WP_Error True if the request has access to update the item, WP_Error object otherwise.
+	 */
+	public function update_item_permissions_check( $request ) {
+		// User must be logged in and have manage_options capability.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return new WP_Error(
+				'rest_forbidden_context',
+				__( 'Sorry, you are not allowed to update events.', 'simple-history' ),
+				array( 'status' => rest_authorization_required_code() )
+			);
+		}
+
+		// Event must exist.
+		if ( ! Helpers::event_exists( $request['id'] ) ) {
+			return new WP_Error(
+				'rest_event_invalid_id',
+				__( 'Invalid event ID.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sticks an event by setting its sticky status.
+	 *
+	 * @param \WP_REST_Request $request Full details about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function stick_event( $request ) {
+		$event_id = $request['id'];
+
+		global $wpdb;
+		$table_name = $this->simple_history->get_contexts_table_name();
+
+		// First remove any existing sticky context.
+		$wpdb->delete(
+			$table_name,
+			array(
+				'history_id' => $event_id,
+				'key' => '_sticky',
+			),
+			array( '%d', '%s' )
+		);
+
+		// Add the sticky context.
+		$wpdb->insert(
+			$table_name,
+			array(
+				'history_id' => $event_id,
+				'key' => '_sticky',
+				'value' => '{}',
+			),
+			array( '%d', '%s', '%s' )
+		);
+
+		// Get the updated event.
+		$event = $this->get_single_event( $event_id );
+		$data = $this->prepare_item_for_response( $event, $request );
+
+		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Unsticks an event by removing its sticky status.
+	 *
+	 * @param \WP_REST_Request $request Full details about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function unstick_event( $request ) {
+		$event_id = $request['id'];
+
+		global $wpdb;
+		$table_name = $this->simple_history->get_contexts_table_name();
+
+		// Delete the sticky context entry for this event.
+		$wpdb->delete(
+			$table_name,
+			array(
+				'history_id' => $event_id,
+				'key' => '_sticky',
+			),
+			array( '%d', '%s' )
+		);
+
+		// Get the updated event.
+		$event = $this->get_single_event( $event_id );
+		$data = $this->prepare_item_for_response( $event, $request );
+
+		return rest_ensure_response( $data );
 	}
 }

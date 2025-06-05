@@ -31,24 +31,27 @@ class Events_Stats {
 		// This creates a string like this: "%s,%s,%s".
 		$value_placeholders = implode( ',', array_fill( 0, count( $values ), '%s' ) );
 
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
 		$query_args = array_merge(
-			[ $logger_slug ],
+			[ $events_table, $contexts_table, $logger_slug ],
 			$values,
 			[ $date_from, $date_to ]
 		);
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- value_placeholders is safe here
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"	SELECT COUNT(DISTINCT h.id)
-					FROM {$wpdb->prefix}simple_history h
-					JOIN {$wpdb->prefix}simple_history_contexts c ON h.id = c.history_id
+				'SELECT COUNT(DISTINCT h.id)
+					FROM %i h
+					JOIN %i c ON h.id = c.history_id
 					WHERE h.logger = %s
-					AND c.key = '_message_key'
-					AND c.value IN ($value_placeholders)
+					AND c.key = "_message_key"
+					AND c.value IN (' . $value_placeholders . ')
 					AND h.date >= FROM_UNIXTIME(%d)
-					AND h.date <= FROM_UNIXTIME(%d)
-				",
+					AND h.date <= FROM_UNIXTIME(%d)',
 				$query_args
 			)
 		);
@@ -103,15 +106,19 @@ class Events_Stats {
 			return false;
 		}
 
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					COUNT(*)
 				FROM 
-					{$wpdb->prefix}simple_history
+					%i
 				WHERE 
 					date >= FROM_UNIXTIME(%d)
-					AND date <= FROM_UNIXTIME(%d)",
+					AND date <= FROM_UNIXTIME(%d)',
+				$events_table,
 				$date_from,
 				$date_to
 			)
@@ -132,18 +139,24 @@ class Events_Stats {
 			return false;
 		}
 
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					COUNT(DISTINCT c.value)
 				FROM 
-					{$wpdb->prefix}simple_history_contexts c
+					%i c
 				JOIN 
-					{$wpdb->prefix}simple_history h ON h.id = c.history_id
+					%i h ON h.id = c.history_id
 				WHERE 
-					c.key = '_user_id'
+					c.key = "_user_id"
 					AND h.date >= FROM_UNIXTIME(%d)
-					AND h.date <= FROM_UNIXTIME(%d)",
+					AND h.date <= FROM_UNIXTIME(%d)',
+				$contexts_table,
+				$events_table,
 				$date_from,
 				$date_to
 			)
@@ -164,25 +177,31 @@ class Events_Stats {
 			return false;
 		}
 
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
 		return $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					h.*,
 					c.value as user_id,
 					u.display_name
 				FROM 
-					{$wpdb->prefix}simple_history h
+					%i h
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c ON h.id = c.history_id
+					%i c ON h.id = c.history_id
 				LEFT JOIN 
-					{$wpdb->users} u ON u.ID = CAST(c.value AS UNSIGNED)
+					' . $wpdb->users . ' u ON u.ID = CAST(c.value AS UNSIGNED)
 				WHERE 
-					c.key = '_user_id'
+					c.key = "_user_id"
 					AND h.date >= FROM_UNIXTIME(%d)
 					AND h.date <= FROM_UNIXTIME(%d)
 				ORDER BY 
 					h.date DESC
-				LIMIT 1",
+				LIMIT 1',
+				$events_table,
+				$contexts_table,
 				$date_from,
 				$date_to
 			)
@@ -196,7 +215,7 @@ class Events_Stats {
 	 * @param int $date_from  Required. Start date as Unix timestamp.
 	 * @param int $date_to    Required. End date as Unix timestamp.
 	 * @param int $limit      Optional. Number of users to return. Default 10.
-	 * @return array|false Array of users with their activity counts, or false if invalid dates.
+	 * @return array<int,array{id:string,display_name:string,avatar:string,count:int}>|false Array of users with their activity counts, or false if invalid dates.
 	 */
 	public function get_top_users( $date_from, $date_to, $limit = 10 ) {
 		global $wpdb;
@@ -205,27 +224,34 @@ class Events_Stats {
 			return false;
 		}
 
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
 		$users = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					c.value as user_id,
 					COUNT(*) as count,
 					u.display_name
 				FROM 
-					{$wpdb->prefix}simple_history_contexts c
+					%i c
 				JOIN 
-					{$wpdb->prefix}simple_history h ON h.id = c.history_id
+					%i h ON h.id = c.history_id
 				LEFT JOIN 
-					{$wpdb->users} u ON u.ID = CAST(c.value AS UNSIGNED)
+					%i u ON u.ID = CAST(c.value AS UNSIGNED)
 				WHERE 
-					c.key = '_user_id'
+					c.key = "_user_id"
 					AND h.date >= FROM_UNIXTIME(%d)
 					AND h.date <= FROM_UNIXTIME(%d)
 				GROUP BY 
 					c.value
 				ORDER BY 
 					count DESC
-				LIMIT %d",
+				LIMIT %d',
+				$contexts_table,
+				$events_table,
+				$wpdb->users,
 				$date_from,
 				$date_to,
 				$limit
@@ -265,21 +291,24 @@ class Events_Stats {
 			return false;
 		}
 
-		// Get the activity data from database.
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					DATE(date) as date,
 					COUNT(*) as count
 				FROM 
-					{$wpdb->prefix}simple_history
+					%i
 				WHERE 
 					date >= FROM_UNIXTIME(%d)
 					AND date <= FROM_UNIXTIME(%d)
 				GROUP BY 
 					DATE(date)
 				ORDER BY 
-					date ASC",
+					date ASC',
+				$events_table,
 				$date_from,
 				$date_to
 			)
@@ -329,20 +358,24 @@ class Events_Stats {
 			return false;
 		}
 
+		$simple_history = Simple_History::get_instance();
+		$events_table = $simple_history->get_events_table_name();
+
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					HOUR(date) as hour,
 					COUNT(*) as count
 				FROM 
-					{$wpdb->prefix}simple_history
+					%i
 				WHERE 
 					date >= FROM_UNIXTIME(%d)
 					AND date <= FROM_UNIXTIME(%d)
 				GROUP BY 
 					HOUR(date)
 				ORDER BY 
-					hour ASC",
+					hour ASC',
+				$events_table,
 				$date_from,
 				$date_to
 			)
@@ -1503,5 +1536,143 @@ class Events_Stats {
 		}
 
 		return $history_results;
+	}
+
+	/**
+	 * Get total count of plugin events (updates, bulk updates, installations, deletions, activations, deactivations).
+	 *
+	 * @param int $date_from Required. Start date as Unix timestamp.
+	 * @param int $date_to   Required. End date as Unix timestamp.
+	 * @return int|false Total count of plugin events, or false if invalid dates.
+	 */
+	public function get_plugin_total_count( $date_from, $date_to ) {
+		$plugin_events = [
+			'plugin_updated',
+			'plugin_bulk_updated',
+			'plugin_installed',
+			'plugin_deleted',
+			'plugin_activated',
+			'plugin_deactivated',
+			'plugin_update_available',
+		];
+
+		// Get counts from both loggers since plugin update available events are logged in AvailableUpdatesLogger.
+		$simple_plugin_logger_count = $this->get_event_count( 'SimplePluginLogger', $plugin_events, $date_from, $date_to );
+		$available_updates_logger_count = $this->get_event_count( 'AvailableUpdatesLogger', [ 'plugin_update_available' ], $date_from, $date_to );
+
+		return $simple_plugin_logger_count + $available_updates_logger_count;
+	}
+
+	/**
+	 * Get total count of user events (logins, failed logins, profile updates, user creation/deletion).
+	 *
+	 * @param int $date_from Required. Start date as Unix timestamp.
+	 * @param int $date_to   Required. End date as Unix timestamp.
+	 * @return int|false Total count of user events, or false if invalid dates.
+	 */
+	public function get_user_total_count( $date_from, $date_to ) {
+		$user_events = [
+			'user_logged_in',
+			'user_unknown_logged_in',
+			'user_login_failed',
+			'user_unknown_login_failed',
+			'user_updated_profile',
+			'user_created',
+			'user_deleted',
+		];
+		return $this->get_event_count( 'SimpleUserLogger', $user_events, $date_from, $date_to );
+	}
+
+	/**
+	 * Get total count of content events (posts/pages created, updated, trashed, deleted).
+	 *
+	 * @param int $date_from Required. Start date as Unix timestamp.
+	 * @param int $date_to   Required. End date as Unix timestamp.
+	 * @return int|false Total count of content events, or false if invalid dates.
+	 */
+	public function get_content_total_count( $date_from, $date_to ) {
+		$content_events = [
+			'post_created',
+			'post_updated',
+			'post_trashed',
+			'post_deleted',
+			'post_restored',
+		];
+		return $this->get_event_count( 'SimplePostLogger', $content_events, $date_from, $date_to );
+	}
+
+	/**
+	 * Get total count of media events (uploads, edits, deletions).
+	 *
+	 * @param int $date_from Required. Start date as Unix timestamp.
+	 * @param int $date_to   Required. End date as Unix timestamp.
+	 * @return int|false Total count of media events, or false if invalid dates.
+	 */
+	public function get_media_total_count( $date_from, $date_to ) {
+		$media_events = [
+			'attachment_created',
+			'attachment_updated',
+			'attachment_deleted',
+		];
+		return $this->get_event_count( 'SimpleMediaLogger', $media_events, $date_from, $date_to );
+	}
+
+	/**
+	 * Get total count of core update events.
+	 *
+	 * @param int $date_from Required. Start date as Unix timestamp.
+	 * @param int $date_to   Required. End date as Unix timestamp.
+	 * @return int|false Total count of core update events, or false if invalid dates.
+	 */
+	public function get_core_total_count( $date_from, $date_to ) {
+		$core_events = [
+			'core_updated',
+			'core_auto_updated',
+			'core_update_available',
+		];
+		return $this->get_event_count( 'SimpleCoreUpdatesLogger', $core_events, $date_from, $date_to );
+	}
+
+	/**
+	 * Get the oldest event.
+	 *
+	 * @return array|false Array of oldest event, or false if no events.
+	 */
+	public function get_oldest_event() {
+		global $wpdb;
+
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}simple_history ORDER BY date ASC LIMIT 1"
+			),
+			ARRAY_A
+		);
+
+		if ( empty( $results ) ) {
+			return false;
+		}
+
+		return $results[0];
+	}
+
+	/**
+	 * Get the number of events today.
+	 * Uses log_query so it respects the user's permissions,
+	 * meaning that the number of events is the number
+	 * of events that the current user is allowed to see.
+	 *
+	 * @return int
+	 */
+	public static function get_num_events_today() {
+		$logQuery = new Log_Query();
+
+		$logResults = $logQuery->query(
+			array(
+				'posts_per_page' => 1,
+				'date_from' => strtotime( 'today' ),
+			)
+		);
+
+		return (int) $logResults['total_row_count'];
 	}
 }

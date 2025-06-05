@@ -30,6 +30,8 @@ class Log_Query {
 	 *      @type string $messages Messages to include. Array or string with commaa separated in format "LoggerSlug:Message", e.g. "SimplePluginLogger:plugin_activated,SimplePluginLogger:plugin_deactivated". Default null = show all messages.
 	 *      @type int $user Single user ID as number. Default null.
 	 *      @type string $users User IDs, comma separated or array. Default null.
+	 *      @type boolean $include_sticky Include sticky events in the result set. Default false.
+	 *      @type boolean $only_sticky Only return sticky events. Default false.
 	 * }
 	 * @return array
 	 * @throws \InvalidArgumentException If invalid query type.
@@ -254,8 +256,7 @@ class Log_Query {
 		 * TODO: Add where for messages. Check that both logger and key are correct.
 		 */
 		$inner_sql_statement_template = '
-			
-		
+
 			## START INNER_SQL_QUERY_STATEMENT
 			SELECT
 				id,
@@ -274,7 +275,6 @@ class Log_Query {
 
 			ORDER BY id DESC
 			## END INNER_SQL_QUERY_STATEMENT
-
 
 		';
 
@@ -301,7 +301,6 @@ class Log_Query {
 		 */
 		$sql_statement_max_ids_and_count_template = '
 
-
 			## START SQL_STATEMENT_MAX_IDS_AND_COUNT_TEMPLATE
 			SELECT 
 				max(h.id) as maxId,
@@ -321,7 +320,6 @@ class Log_Query {
 
 			# Limit
 			%5$s
-
 
 			## END SQL_STATEMENT_MAX_IDS_AND_COUNT_TEMPLATE
 		';
@@ -364,7 +362,6 @@ class Log_Query {
 		 */
 		$sql_statement_log_rows = '
 
-
 			## START SQL_STATEMENT_LOG_ROWS
 			SELECT
 				simple_history_1.id,
@@ -387,7 +384,6 @@ class Log_Query {
 
 			ORDER BY simple_history_1.id DESC
 			## END SQL_STATEMENT_LOG_ROWS
-
 
 		';
 
@@ -469,6 +465,37 @@ class Log_Query {
 		$log_rows_count = count( $result_log_rows );
 		$page_rows_from = ( $args['paged'] * $args['posts_per_page'] ) - $args['posts_per_page'] + 1;
 		$page_rows_to = $page_rows_from + $log_rows_count - 1;
+
+		// Prepend sticky events to the result.
+		// Sticky events are added first in the result set and does not
+		// count towards the total found rows or modify pagination, etc.
+		if ( $args['include_sticky'] ) {
+			$sticky_events = $this->get_sticky_events();
+
+			if ( ! empty( $sticky_events ) ) {
+				$query_sticky_events = $this->query(
+					[
+						'post__in' => $sticky_events,
+					]
+				);
+
+				$sticky_log_rows = $query_sticky_events['log_rows'];
+
+				// Append sticky_appended=true to each event,
+				// so we on client side can differentiate between sticky events and other events.
+				$sticky_log_rows = array_map(
+					function ( $log_row ) {
+						$log_row->sticky_appended = true;
+
+						return $log_row;
+					},
+					$sticky_log_rows
+				);
+
+				// Prepend sticky events to the result, at the top.
+				$result_log_rows = array_merge( $sticky_log_rows, $result_log_rows );
+			}
+		}
 
 		// Create array to return.
 		// Add log rows to sub key 'log_rows' because meta info is also added.
@@ -701,6 +728,12 @@ class Log_Query {
 				// User ids, comma separated or array.
 				'users' => null,
 
+				// Should sticky events be included in the result set.
+				'include_sticky' => false,
+
+				// Only return sticky events.
+				'only_sticky' => false,
+
 			// Can also contain:
 			// logRowID
 			// occasionsCount
@@ -765,21 +798,31 @@ class Log_Query {
 		}
 
 		// "date_from" must be timestamp or string. If string then convert to timestamp.
-		if ( isset( $args['date_from'] ) && ! is_numeric( $args['date_from'] ) ) {
-			$args['date_from'] = strtotime( $args['date_from'] );
-		} elseif ( isset( $args['date_from'] ) && is_numeric( $args['date_from'] ) ) {
+		if ( isset( $args['date_from'] ) && is_numeric( $args['date_from'] ) ) {
 			$args['date_from'] = (int) $args['date_from'];
 		} elseif ( isset( $args['date_from'] ) && is_string( $args['date_from'] ) ) {
-			$args['date_from'] = (int) $args['date_from'];
+			// If value is "2025-03-29" that means the beginning of the day on 2025-03-29.
+			$is_start_of_day_date_format = $this->is_valid_date_format( $args['date_from'], 'Y-m-d' );
+			if ( $is_start_of_day_date_format ) {
+				$args['date_from'] = strtotime( $args['date_from'] . ' 00:00:00' );
+			} else {
+				$args['date_from'] = strtotime( $args['date_from'] );
+			}
 		} elseif ( isset( $args['date_from'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid date_from' );
 		}
 
 		// "date_to" must be timestamp or string. If string then convert to timestamp.
-		if ( isset( $args['date_to'] ) && ! is_numeric( $args['date_to'] ) ) {
-			$args['date_to'] = strtotime( $args['date_to'] );
-		} elseif ( isset( $args['date_to'] ) && is_string( $args['date_to'] ) ) {
+		if ( isset( $args['date_to'] ) && is_numeric( $args['date_to'] ) ) {
 			$args['date_to'] = (int) $args['date_to'];
+		} elseif ( isset( $args['date_to'] ) && is_string( $args['date_to'] ) ) {
+			// If value is "2025-03-29" that means the end of the day on 2025-03-29.
+			$is_start_of_day_date_format = $this->is_valid_date_format( $args['date_to'], 'Y-m-d' );
+			if ( $is_start_of_day_date_format ) {
+				$args['date_to'] = strtotime( $args['date_to'] . ' 23:59:59' );
+			} else {
+				$args['date_to'] = strtotime( $args['date_to'] );
+			}
 		} elseif ( isset( $args['date_to'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid date_to' );
 		}
@@ -1009,12 +1052,12 @@ class Log_Query {
 	 * Swedish examples:
 	 *
 	 * Search phrase "tillägg uppdaterade":
-	 * - Should match logger "SimplePluginLogger", message key "plugin_updated", message "uppdaterade tillägget ”{plugin_name}” till {plugin_version} från {plugin_prev_version}"
-	 * - Should match logger "SimplePluginLogger", message key "plugin_bulk_updated", message "uppdaterade tillägget ”{plugin_name}” till {plugin_version} från {plugin_prev_version}"
+	 * - Should match logger "SimplePluginLogger", message key "plugin_updated", message "uppdaterade tillägget "{plugin_name}" till {plugin_version} från {plugin_prev_version}"
+	 * - Should match logger "SimplePluginLogger", message key "plugin_bulk_updated", message "uppdaterade tillägget "{plugin_name}" till {plugin_version} från {plugin_prev_version}"
 	 *
 	 * Search phrase "misslyckades logga in":
-	 * - Should match logger "SimpleUserLogger", message key "user_login_failed", message "misslyckades att logga in med användarnamnet ”{login}” (felaktigt lösenord angavs)"
-	 * - Should match logger "SimpleUserLogger", message key "user_unknown_login_failed", message "misslyckades att logga in med användarnamnet ”{failed_username}” (användarnamnet finns inte)"
+	 * - Should match logger "SimpleUserLogger", message key "user_login_failed", message "misslyckades att logga in med användarnamnet "{login}" (felaktigt lösenord angavs)"
+	 * - Should match logger "SimpleUserLogger", message key "user_unknown_login_failed", message "misslyckades att logga in med användarnamnet "{failed_username}" (användarnamnet finns inte)"
 	 *
 	 * @param string $searchstring Search string, for example "misslyckades logga in".
 	 * @return array<int,array> Array with logger and message that matched search string.
@@ -1036,7 +1079,9 @@ class Log_Query {
 		$words = preg_split( '/[\s,]+/', $searchstring );
 
 		foreach ( $loggers_user_can_read as $one_logger ) {
-			$one_logger_slug = $one_logger['instance']->slug;
+			/** @var \Simple_History\Loggers\Simple_Logger $logger_instance */
+			$logger_instance = $one_logger['instance'];
+			$one_logger_slug = $logger_instance->get_slug();
 			$one_logger_name = $one_logger['name'];
 
 			/** @var array<string,array> */
@@ -1293,6 +1338,14 @@ class Log_Query {
 			);
 		}
 
+		// If only_sticky is true, only return sticky events.
+		if ( ! empty( $args['only_sticky'] ) ) {
+			$inner_where[] = sprintf(
+				'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = \'_sticky\' )',
+				$contexts_table_name
+			);
+		}
+
 		/**
 		 * Filter the default boxes to output in the sidebar
 		 *
@@ -1452,5 +1505,43 @@ class Log_Query {
 		$inner_where[] = "\n(\n {$str_search_conditions} \n ) ";
 
 		return $inner_where;
+	}
+
+	/**
+	 * Check if a date string is in the specified format.
+	 *
+	 * Example:
+	 * Function returns true for dates like "2024-03-29" and false for dates like "2024/03/29"
+	 * or "29-03-2024".
+	 *
+	 * @param string $date_string The date string to check.
+	 * @param string $format The format to check the date string against. Default is "Y-m-d" (which means for example "2024-03-29").
+	 * @return bool True if the date string is in the specified format, false otherwise.
+	 */
+	protected function is_valid_date_format( $date_string, $format = 'Y-m-d' ) {
+		$d = \DateTime::createFromFormat( $format, $date_string );
+		return $d && $d->format( $format ) === $date_string;
+	}
+
+	/**
+	 * Get all sticky events. Does not take user capability into account.
+	 *
+	 * @return array<int> Array of sticky event IDs.
+	 */
+	protected function get_sticky_events() {
+		global $wpdb;
+
+		$simple_history = Simple_History::get_instance();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
+		$results = $wpdb->get_col(
+			$wpdb->prepare(
+				'SELECT history_id, value FROM %i WHERE `key` = %s',
+				$contexts_table,
+				'_sticky'
+			)
+		);
+
+		return $results;
 	}
 }
