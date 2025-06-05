@@ -371,6 +371,8 @@ function acf_log_invalid_field_notice( $field, $function ) {
 		return;
 	}
 
+	return;
+
 	$error_text = sprintf(
 		/* translators: %1 plugin name, %2 the URL to the documentation on this error */
 		__( '<strong>%1$s</strong> - We\'ve detected one or more calls to retrieve ACF field values before ACF has been initialized. This is not supported and can result in malformed or missing data. <a href="%2$s" target="_blank">Learn how to fix this</a>.', 'acf' ),
