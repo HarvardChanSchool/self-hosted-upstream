@@ -4,7 +4,7 @@ Contributors: eskapism, wpsimplehistory
 Donate link: https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_donate_link
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 6.8
-Stable tag: 5.12.0
+Stable tag: 5.13.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -316,6 +316,25 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
 -   [Sponsor the plugin to keep it free.](https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_sponsor_footer)
 -   [Add a 5-star review so other users know it's good.](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5)
 -   [Get the premium add-on for more features.](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium)
+
+### 5.13.0 (June 2025)
+
+📧 This release introduces weekly email reports for site activity monitoring and adds REST API endpoints for event statistics.
+[Read the release post](https://simple-history.com/2025/simple-history-5-13-0-released/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_release_5_13_0) for more details.
+
+**Added**
+
+-   Weekly email reports. Enabled for users with experimental features enabled, this new feature let you get an weekly email with a brief summary of what's been happening on your site. The emails are opt-in so you need to add your email address to the settings to start receiving them.
+-   REST API Endpoints for Event Statistics.
+
+**Changed**
+
+-   Improvements to the layout of the quick stats box.
+-   Misc internal code improvements.
+
+**Fixed**
+
+-   Fix PHP notice due to `wpdb::prepare()` not using placeholders correctly.
 
 ### 5.12.0 (May 2025)
 

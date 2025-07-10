@@ -5,9 +5,50 @@ namespace Simple_History;
 use WP_Session_Tokens;
 
 /**
- * Class that handles stats functionality for Simple History.
+ * Class that handles stats functionality for Simple History,
+ * i.e. retrieving stats data for the stats page and for the Stats REST API.
  */
 class Events_Stats {
+	/**
+	 * Events table name.
+	 *
+	 * @var string
+	 */
+	private $events_table;
+
+	/**
+	 * Contexts table name.
+	 *
+	 * @var string
+	 */
+	private $contexts_table;
+
+	/**
+	 * Get the events table name, lazy-loading if needed.
+	 *
+	 * @return string
+	 */
+	private function get_events_table_name() {
+		if ( ! $this->events_table ) {
+			$simple_history = Simple_History::get_instance();
+			$this->events_table = $simple_history->get_events_table_name();
+		}
+		return $this->events_table;
+	}
+
+	/**
+	 * Get the contexts table name, lazy-loading if needed.
+	 *
+	 * @return string
+	 */
+	private function get_contexts_table_name() {
+		if ( ! $this->contexts_table ) {
+			$simple_history = Simple_History::get_instance();
+			$this->contexts_table = $simple_history->get_contexts_table_name();
+		}
+		return $this->contexts_table;
+	}
+
 	/**
 	 * Method for getting event counts by logger and message value.
 	 *
@@ -31,9 +72,8 @@ class Events_Stats {
 		// This creates a string like this: "%s,%s,%s".
 		$value_placeholders = implode( ',', array_fill( 0, count( $values ), '%s' ) );
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
-		$contexts_table = $simple_history->get_contexts_table_name();
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
 
 		$query_args = array_merge(
 			[ $events_table, $contexts_table, $logger_slug ],
@@ -41,7 +81,7 @@ class Events_Stats {
 			[ $date_from, $date_to ]
 		);
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- value_placeholders is safe here
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared -- value_placeholders is safe here
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(DISTINCT h.id)
@@ -55,7 +95,7 @@ class Events_Stats {
 				$query_args
 			)
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared,WordPress.DB.PreparedSQL.NotPrepared
 	}
 
 	/**
@@ -106,8 +146,7 @@ class Events_Stats {
 			return false;
 		}
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
+		$events_table = $this->get_events_table_name();
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -139,9 +178,8 @@ class Events_Stats {
 			return false;
 		}
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
-		$contexts_table = $simple_history->get_contexts_table_name();
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
 
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -177,9 +215,8 @@ class Events_Stats {
 			return false;
 		}
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
-		$contexts_table = $simple_history->get_contexts_table_name();
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
 
 		return $wpdb->get_row(
 			$wpdb->prepare(
@@ -224,9 +261,8 @@ class Events_Stats {
 			return false;
 		}
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
-		$contexts_table = $simple_history->get_contexts_table_name();
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
 
 		$users = $wpdb->get_results(
 			$wpdb->prepare(
@@ -291,8 +327,7 @@ class Events_Stats {
 			return false;
 		}
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
+		$events_table = $this->get_events_table_name();
 
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -358,10 +393,9 @@ class Events_Stats {
 			return false;
 		}
 
-		$simple_history = Simple_History::get_instance();
-		$events_table = $simple_history->get_events_table_name();
+		$events_table = $this->get_events_table_name();
 
-		return $wpdb->get_results(
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT 
 					HOUR(date) as hour,
@@ -380,6 +414,14 @@ class Events_Stats {
 				$date_to
 			)
 		);
+
+		// Add human readable time spans to each result.
+		foreach ( $results as $result ) {
+			$hour = (int) $result->hour;
+			$result->time_span = sprintf( '%02d:00-%02d:59', $hour, $hour );
+		}
+
+		return $results;
 	}
 
 	/**
@@ -396,24 +438,47 @@ class Events_Stats {
 			return false;
 		}
 
-		return $wpdb->get_results(
+		$events_table = $this->get_events_table_name();
+
+		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT 
+				'SELECT 
 					DAYOFWEEK(date) - 1 as day,
 					COUNT(*) as count
 				FROM 
-					{$wpdb->prefix}simple_history
+					%i
 				WHERE 
 					date >= FROM_UNIXTIME(%d)
 					AND date <= FROM_UNIXTIME(%d)
 				GROUP BY 
 					DAYOFWEEK(date)
 				ORDER BY 
-					day ASC",
+					day ASC',
+				$events_table,
 				$date_from,
 				$date_to
 			)
 		);
+
+		// Add day names to the results.
+		// No domain for translation because we are reusing the WordPress core translations.
+		// phpcs:disable WordPress.WP.I18n.MissingArgDomain
+		$day_names = array(
+			0 => __( 'Sunday' ),
+			1 => __( 'Monday' ),
+			2 => __( 'Tuesday' ),
+			3 => __( 'Wednesday' ),
+			4 => __( 'Thursday' ),
+			5 => __( 'Friday' ),
+			6 => __( 'Saturday' ),
+		);
+		// phpcs:enable WordPress.WP.I18n.MissingArgDomain
+
+		foreach ( $results as $result ) {
+			$result->day_name = $day_names[ $result->day ];
+		}
+
+		return $results;
 	}
 
 	/**
@@ -541,26 +606,33 @@ class Events_Stats {
 
 		// Prepare the query parts for safe execution.
 		$where_in = implode( ',', array_fill( 0, count( $message_keys ), '%s' ) );
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
+
 		$sql = $wpdb->prepare(
-			"SELECT 
+			'SELECT 
 				h.date,
 				c1.value as plugin_name,
 				c2.value as plugin_version
 			FROM 
-				{$wpdb->prefix}simple_history h
+				%i h
 			JOIN 
-				{$wpdb->prefix}simple_history_contexts c ON h.id = c.history_id
+				%i c ON h.id = c.history_id
 			JOIN 
-				{$wpdb->prefix}simple_history_contexts c1 ON h.id = c1.history_id
+				%i c1 ON h.id = c1.history_id
 			LEFT JOIN 
-				{$wpdb->prefix}simple_history_contexts c2 ON h.id = c2.history_id
+				%i c2 ON h.id = c2.history_id
 			WHERE 
 				h.logger = %s
 				AND c.key = %s
 				AND c1.key = %s
 				AND c2.key = %s
 				AND h.date >= FROM_UNIXTIME(%d)
-				AND h.date <= FROM_UNIXTIME(%d)",
+				AND h.date <= FROM_UNIXTIME(%d)',
+			$events_table,
+			$contexts_table,
+			$contexts_table,
+			$contexts_table,
 			$logger_slug,
 			'_message_key',
 			$name_key,
@@ -684,6 +756,9 @@ class Events_Stats {
 			return false;
 		}
 
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
+
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT 
@@ -691,13 +766,13 @@ class Events_Stats {
 					c3.value as post_id,
 					COUNT(*) as edit_count
 				FROM 
-					{$wpdb->prefix}simple_history h
+					%i h
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c ON h.id = c.history_id
+					%i c ON h.id = c.history_id
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c2 ON h.id = c2.history_id
+					%i c2 ON h.id = c2.history_id
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c3 ON h.id = c3.history_id
+					%i c3 ON h.id = c3.history_id
 				WHERE 
 					h.logger = 'SimplePostLogger'
 					AND c.key = '_message_key'
@@ -711,6 +786,10 @@ class Events_Stats {
 				ORDER BY 
 					edit_count DESC
 				LIMIT %d",
+				$events_table,
+				$contexts_table,
+				$contexts_table,
+				$contexts_table,
 				$date_from,
 				$date_to,
 				$limit
@@ -895,6 +974,9 @@ class Events_Stats {
 	public function get_successful_logins_details( $date_from, $date_to, $limit ) {
 		global $wpdb;
 
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
+
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT 
@@ -904,13 +986,13 @@ class Events_Stats {
 					c3.value as user_email,
 					COUNT(*) as login_count
 				FROM 
-					{$wpdb->prefix}simple_history h
+					%i h
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c ON h.id = c.history_id
+					%i c ON h.id = c.history_id
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c2 ON h.id = c2.history_id
+					%i c2 ON h.id = c2.history_id
 				JOIN 
-					{$wpdb->prefix}simple_history_contexts c3 ON h.id = c3.history_id
+					%i c3 ON h.id = c3.history_id
 				WHERE 
 					h.logger = 'SimpleUserLogger'
 					AND c.key = '_user_id'
@@ -920,7 +1002,7 @@ class Events_Stats {
 					AND h.date <= FROM_UNIXTIME(%d)
 					AND EXISTS (
 						SELECT 1 
-						FROM {$wpdb->prefix}simple_history_contexts c_msg 
+						FROM %i c_msg 
 						WHERE c_msg.history_id = h.id 
 						AND c_msg.key = '_message_key'
 						AND c_msg.value IN ('user_logged_in', 'user_unknown_logged_in')
@@ -930,6 +1012,11 @@ class Events_Stats {
 				ORDER BY 
 					login_count DESC
 				LIMIT %d",
+				$events_table,
+				$contexts_table,
+				$contexts_table,
+				$contexts_table,
+				$contexts_table,
 				$date_from,
 				$date_to,
 				$limit
@@ -1469,15 +1556,18 @@ class Events_Stats {
 			return false;
 		}
 
+		$events_table = $this->get_events_table_name();
+		$contexts_table = $this->get_contexts_table_name();
+
 		// First query: Get matching history entries.
 		$history_results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT DISTINCT 
+				'SELECT DISTINCT 
 						h.*
 					FROM 
-						{$wpdb->prefix}simple_history h
+						%i h
 					JOIN 
-						{$wpdb->prefix}simple_history_contexts c ON h.id = c.history_id
+						%i c ON h.id = c.history_id
 					WHERE 
 						h.logger = %s
 						AND c.key = %s
@@ -1485,7 +1575,9 @@ class Events_Stats {
 						AND h.date >= FROM_UNIXTIME(%d)
 						AND h.date <= FROM_UNIXTIME(%d)
 					ORDER BY 
-						h.date DESC",
+						h.date DESC',
+				$events_table,
+				$contexts_table,
 				$logger_slug,
 				$message_key,
 				$message_value,
@@ -1500,6 +1592,11 @@ class Events_Stats {
 
 		// Get all history IDs.
 		$history_ids = wp_list_pluck( $history_results, 'id' );
+
+		// Generate placeholders for the history IDs.
+		// This will be a string that looks like:
+		// "%d, %d, %d, %d, %d, %d, %d, %d, %d, %d" and so on.
+		// This is used to prepare the SQL query.
 		$history_ids_placeholders = implode( ',', array_fill( 0, count( $history_ids ), '%d' ) );
 
 		// Second query: Get all context data for these history entries.
@@ -1511,10 +1608,10 @@ class Events_Stats {
 						`key`,
 						value
 					FROM 
-						{$wpdb->prefix}simple_history_contexts 
+						%i 
 					WHERE 
 						history_id IN ($history_ids_placeholders)",
-				$history_ids
+				array_merge( [ $contexts_table ], $history_ids )
 			)
 		);
 		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -1641,9 +1738,12 @@ class Events_Stats {
 	public function get_oldest_event() {
 		global $wpdb;
 
+		$events_table = $this->get_events_table_name();
+
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->prefix}simple_history ORDER BY date ASC LIMIT 1"
+				'SELECT * FROM %i ORDER BY date ASC LIMIT 1',
+				$events_table
 			),
 			ARRAY_A
 		);
