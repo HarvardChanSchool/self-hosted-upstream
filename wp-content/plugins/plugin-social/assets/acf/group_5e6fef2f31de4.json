@@ -1,0 +1,98 @@
+{
+    "key": "group_5e6fef2f31de4",
+    "title": "Social Share Buttons",
+    "fields": [
+        {
+            "key": "field_5e8638e8446ca",
+            "label": "Social Media Platforms",
+            "name": "hsph_share_buttons_platforms",
+            "type": "checkbox",
+            "instructions": "Select which share buttons to display on your site. They will only display on the post types selected in the \"WordPress Post Types\" section.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "facebook": "Facebook",
+                "twitter": "Twitter",
+                "linkedin": "LinkedIn",
+                "reddit": "Reddit"
+            },
+            "allow_custom": 0,
+            "default_value": [
+                "facebook",
+                "twitter",
+                "linkedin",
+                "reddit"
+            ],
+            "layout": "vertical",
+            "toggle": 0,
+            "return_format": "value",
+            "save_custom": 0
+        },
+        {
+            "key": "field_5e6fef4730704",
+            "label": "WordPress Post Types",
+            "name": "share_button_post_types",
+            "type": "checkbox",
+            "instructions": "Select the post types that should display share buttons.",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "research": "Research",
+                "people": "People",
+                "post": "Posts",
+                "page": "Pages"
+            },
+            "allow_custom": 0,
+            "default_value": [
+                "post"
+            ],
+            "layout": "vertical",
+            "toggle": 0,
+            "return_format": "value",
+            "save_custom": 0
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "acf-options-social-media"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": [
+        "permalink",
+        "the_content",
+        "excerpt",
+        "discussion",
+        "comments",
+        "revisions",
+        "slug",
+        "author",
+        "format",
+        "page_attributes",
+        "featured_image",
+        "categories",
+        "tags",
+        "send-trackbacks"
+    ],
+    "active": 1,
+    "description": "Plugin social - The available post types are set through a filter in the plugin. This sets up a future change to using a network option to set the available post types.",
+    "modified": 1589479061
+}
