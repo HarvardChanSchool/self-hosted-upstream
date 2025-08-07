@@ -493,6 +493,7 @@ class Simple_History {
 			Loggers\Categories_Logger::class,
 			Loggers\Comments_Logger::class,
 			Loggers\Core_Updates_Logger::class,
+			Loggers\Core_Files_Integrity_Logger::class,
 			Loggers\Export_Logger::class,
 			Loggers\Simple_Logger::class,
 			Loggers\Media_Logger::class,
@@ -1558,6 +1559,26 @@ class Simple_History {
 
 		// Bail if method name is nothing to act on.
 		if ( ! isset( $methods_mapping[ $name ] ) ) {
+			if ( function_exists( 'wp_trigger_error' ) ) {
+				wp_trigger_error(
+					$name,
+					sprintf(
+						'Call to undefined or deprecated method %s::%s(). This indicates a bug in the calling code.',
+						__CLASS__,
+						$name
+					),
+				);
+			} else {
+				// Fallback for WordPress versions before 6.4.0.
+				error_log(
+					sprintf(
+						'Call to undefined or deprecated method %s::%s(). This indicates a bug in the calling code.',
+						__CLASS__,
+						$name
+					)
+				);
+			}
+
 			return false;
 		}
 

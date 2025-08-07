@@ -7,7 +7,9 @@ use WP_Error;
 use WP_REST_Controller;
 use WP_REST_Server;
 use Simple_History\Compat;
+use Simple_History\Event;
 use Simple_History\Helpers;
+use Simple_History\Log_Initiators;
 
 /**
  * REST API controller for events.
@@ -436,6 +438,30 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'default'     => false,
 		);
 
+		$query_params['initiator'] = array(
+			'description'       => __( 'Limit result set to events from specific initiator(s).', 'simple-history' ),
+			'type'              => array( 'string', 'array' ),
+			'items'             => array(
+				'type' => 'string',
+			),
+			'validate_callback' => array( $this, 'validate_initiator_param' ),
+			'sanitize_callback' => array( $this, 'sanitize_initiator_param' ),
+		);
+
+		$query_params['context_filters'] = array(
+			'description' => __( 'Context filters as key-value pairs to filter events by context data.', 'simple-history' ),
+			'type'        => 'object',
+			'additionalProperties' => array(
+				'type' => 'string',
+			),
+		);
+
+		$query_params['ungrouped'] = array(
+			'description' => __( 'Return ungrouped events without occasions grouping.', 'simple-history' ),
+			'type'        => 'boolean',
+			'default'     => false,
+		);
+
 		return $query_params;
 	}
 
@@ -619,6 +645,9 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'messages'                => 'messages',
 			'users'                   => 'users',
 			'user'                    => 'user',
+			'initiator'               => 'initiator',
+			'context_filters'         => 'context_filters',
+			'ungrouped'               => 'ungrouped',
 		);
 
 		/*
@@ -693,6 +722,9 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'user'                    => 'user',
 			'include_sticky'          => 'include_sticky',
 			'only_sticky'             => 'only_sticky',
+			'initiator'               => 'initiator',
+			'context_filters'         => 'context_filters',
+			'ungrouped'               => 'ungrouped',
 		);
 
 		/*
@@ -1002,36 +1034,25 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function stick_event( $request ) {
-		$event_id = $request['id'];
+		$event = new Event( $request['id'] );
 
-		global $wpdb;
-		$table_name = $this->simple_history->get_contexts_table_name();
+		if ( ! $event->exists() ) {
+			return new WP_Error(
+				'rest_event_not_found',
+				__( 'Event not found.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
 
-		// First remove any existing sticky context.
-		$wpdb->delete(
-			$table_name,
-			array(
-				'history_id' => $event_id,
-				'key' => '_sticky',
-			),
-			array( '%d', '%s' )
-		);
+		if ( ! $event->stick() ) {
+			return new WP_Error(
+				'rest_stick_event_failed',
+				__( 'Failed to stick event.', 'simple-history' ),
+				array( 'status' => 500 )
+			);
+		}
 
-		// Add the sticky context.
-		$wpdb->insert(
-			$table_name,
-			array(
-				'history_id' => $event_id,
-				'key' => '_sticky',
-				'value' => '{}',
-			),
-			array( '%d', '%s', '%s' )
-		);
-
-		// Get the updated event.
-		$event = $this->get_single_event( $event_id );
-		$data = $this->prepare_item_for_response( $event, $request );
-
+		$data = $this->prepare_item_for_response( $event->get_data(), $request );
 		return rest_ensure_response( $data );
 	}
 
@@ -1042,25 +1063,88 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
 	 */
 	public function unstick_event( $request ) {
-		$event_id = $request['id'];
+		$event = new Event( $request['id'] );
 
-		global $wpdb;
-		$table_name = $this->simple_history->get_contexts_table_name();
+		if ( ! $event->exists() ) {
+			return new WP_Error(
+				'rest_event_not_found',
+				__( 'Event not found.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
 
-		// Delete the sticky context entry for this event.
-		$wpdb->delete(
-			$table_name,
-			array(
-				'history_id' => $event_id,
-				'key' => '_sticky',
-			),
-			array( '%d', '%s' )
-		);
+		if ( ! $event->unstick() ) {
+			return new WP_Error(
+				'rest_unstick_event_failed',
+				__( 'Failed to unstick event.', 'simple-history' ),
+				array( 'status' => 500 )
+			);
+		}
 
-		// Get the updated event.
-		$event = $this->get_single_event( $event_id );
-		$data = $this->prepare_item_for_response( $event, $request );
-
+		$data = $this->prepare_item_for_response( $event->get_data(), $request );
 		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Validate initiator parameter.
+	 *
+	 * @param mixed           $value   Value of the parameter.
+	 * @param \WP_REST_Request $request REST request object.
+	 * @param string          $param   Parameter name.
+	 * @return bool|WP_Error True if valid, WP_Error otherwise.
+	 */
+	public function validate_initiator_param( $value, $request, $param ) {
+		$valid_initiators = Log_Initiators::get_valid_initiators();
+
+		if ( is_string( $value ) ) {
+			// Single initiator.
+			if ( ! in_array( $value, $valid_initiators, true ) ) {
+				return new WP_Error(
+					'rest_invalid_param',
+					/* translators: %1$s: parameter name, %2$s: list of valid values */
+					sprintf( __( '%1$s is not one of %2$s', 'simple-history' ), $param, implode( ', ', $valid_initiators ) ),
+					array( 'status' => 400 )
+				);
+			}
+		} elseif ( is_array( $value ) ) {
+			// Multiple initiators.
+			foreach ( $value as $initiator ) {
+				if ( ! is_string( $initiator ) || ! in_array( $initiator, $valid_initiators, true ) ) {
+					return new WP_Error(
+						'rest_invalid_param',
+						/* translators: %1$s: parameter name, %2$s: list of valid values */
+						sprintf( __( '%1$s is not one of %2$s', 'simple-history' ), $param, implode( ', ', $valid_initiators ) ),
+						array( 'status' => 400 )
+					);
+				}
+			}
+		} else {
+			return new WP_Error(
+				'rest_invalid_param',
+				/* translators: %s: parameter name */
+				sprintf( __( '%s must be a string or array of strings', 'simple-history' ), $param ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sanitize initiator parameter.
+	 *
+	 * @param mixed           $value   Value of the parameter.
+	 * @param \WP_REST_Request $request REST request object.
+	 * @param string          $param   Parameter name.
+	 * @return string|array Sanitized value.
+	 */
+	public function sanitize_initiator_param( $value, $request, $param ) {
+		if ( is_string( $value ) ) {
+			return sanitize_text_field( $value );
+		} elseif ( is_array( $value ) ) {
+			return array_map( 'sanitize_text_field', $value );
+		}
+
+		return $value;
 	}
 }

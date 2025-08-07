@@ -271,12 +271,19 @@ class Menu_Manager {
 	/**
 	 * Get menu pages that are subpages to a tools, dashboard or options page.
 	 * I.e. the pages that are to be shown as main tabs.
+	 *
+	 * @return array<Menu_Page> Array of main tabs for page with tabs.
 	 */
 	public function get_main_tabs_for_page_with_tabs() {
 		$menu_page_location = Helpers::get_menu_page_location();
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : null;
 
 		$current_menu_page_root = $this->get_page_by_slug( $page );
+
+		// Bail if no menu page found.
+		if ( ! $current_menu_page_root ) {
+			return [];
+		}
 
 		// Skip if menu page object has it's location at top level, i.e. menu_bottom or menu_top.
 		if ( in_array( $current_menu_page_root->get_location(), [ 'menu_top', 'menu_bottom' ], true ) ) {
@@ -293,71 +300,14 @@ class Menu_Manager {
 		// Should this now just be the children of any page? Just as long as it has children.
 		$current_menu_page_root = $this->get_page_by_slug( $page );
 
-		$current_menu_page_root_children = $current_menu_page_root->get_children();
-		return $current_menu_page_root_children;
-
-		// Get the page for this menu.
-		$current_screen = get_current_screen();
-
-		// $current_screen->parent_base = 'tools' for pages inside tools.
-		// $current_screen->parent_base => 'options-general' for pages inside settings.
-		// [base] => tools_page_simple-history-tools-one sometimes too??
-
-		$screen_parent_bases_with_submenus = [ 'tools', 'options-general' ];
-		$screen_parent_base = $current_screen->parent_base;
-
-		// If $screen_parent_base does not contain $screen_parent_bases_with_submenus check for
-		// base that begins with tools_page_ or settings_page_.
-		if ( ! in_array( $screen_parent_base, $screen_parent_bases_with_submenus, true ) ) {
-			$screen_base = $current_screen->base;
-			if ( str_starts_with( $screen_base, 'tools_page_' ) ) {
-				$screen_parent_base = 'tools';
-			} elseif ( str_starts_with( $screen_base, 'settings_page_' ) ) {
-				$screen_parent_base = 'options-general';
-			}
-		}
-
-		$screen_base = $current_screen->base;
-		$can_contain_submenus = in_array( $screen_parent_base, $screen_parent_bases_with_submenus, true );
-
-		if ( ! $can_contain_submenus ) {
+		// Bail if no menu page found after potential page slug change.
+		if ( ! $current_menu_page_root ) {
 			return [];
 		}
 
-		// Find menu_pages that are children of this page.
-		// For settings pages, find pages with slug settings_page_<menu_page_slug>.
-		// For tools pages, find pages with slug tools_page_<menu_page_slug>.
-		$submenu_pages = [];
+		$current_menu_page_root_children = $current_menu_page_root->get_children();
 
-		$submenu_pages = array_filter(
-			$this->get_pages(),
-			function ( $menu_page ) use ( $screen_base, $screen_parent_base ) {
-				$base_prefix = '';
-				if ( $screen_parent_base === 'tools' ) {
-					$base_prefix = 'tools_page_';
-				} elseif ( $screen_parent_base === 'options-general' ) {
-					$base_prefix = 'settings_page_';
-				}
-
-				$page_is_submenu_of_current_base = false;
-				$parent_page = $menu_page->get_parent();
-
-				if ( ! $parent_page ) {
-					return false;
-				}
-
-				// Check for tools_page_<menu_page_slug> or settings_page_<menu_page_slug>.
-				if ( $screen_base === $base_prefix . $parent_page->get_menu_slug() ) {
-					$page_is_submenu_of_current_base = true;
-				}
-
-				if ( $page_is_submenu_of_current_base ) {
-					return true;
-				}
-			}
-		);
-
-		return $submenu_pages;
+		return $current_menu_page_root_children;
 	}
 
 	/**

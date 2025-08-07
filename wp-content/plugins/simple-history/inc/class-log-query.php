@@ -30,6 +30,7 @@ class Log_Query {
 	 *      @type string $messages Messages to include. Array or string with commaa separated in format "LoggerSlug:Message", e.g. "SimplePluginLogger:plugin_activated,SimplePluginLogger:plugin_deactivated". Default null = show all messages.
 	 *      @type int $user Single user ID as number. Default null.
 	 *      @type string $users User IDs, comma separated or array. Default null.
+	 *      @type string $initiator Initiator to filter by. Default null.
 	 *      @type boolean $include_sticky Include sticky events in the result set. Default false.
 	 *      @type boolean $only_sticky Only return sticky events. Default false.
 	 * }
@@ -63,6 +64,11 @@ class Log_Query {
 	 * @throws \ErrorException If invalid DB engine.
 	 */
 	public function query_overview( $args ) {
+		// Force simple query for ungrouped results.
+		if ( ! empty( $args['ungrouped'] ) ) {
+			return $this->query_overview_simple( $args );
+		}
+
 		$db_engine = $this->get_db_engine();
 
 		if ( $db_engine === 'mysql' ) {
@@ -70,22 +76,22 @@ class Log_Query {
 			return $this->query_overview_mysql( $args );
 		} else if ( $db_engine === 'sqlite' ) {
 			// Call sqlite method.
-			return $this->query_overview_sqlite( $args );
+			return $this->query_overview_simple( $args );
 		} else {
 			throw new \ErrorException( 'Invalid DB engine' );
 		}
 	}
 
 	/**
-	 * SQLite compatible version of query_overview_mysql().
-	 * Main difference is that the SQL query is simpler,
-	 * because it does not support occasions.
+	 * Simplified version of query_overview_mysql() that returns ungrouped events.
+	 * This query does not group events by occasions, returning each event individually.
+	 * Originally created for SQLite compatibility but useful for any ungrouped display.
 	 *
 	 * @param string|array|object $args Arguments.
 	 * @return array Log rows.
 	 * @throws \Exception If error when performing query.
 	 */
-	protected function query_overview_sqlite( $args ) {
+	protected function query_overview_simple( $args ) {
 		$args = $this->prepare_args( $args );
 
 		// Create cache key based on args and current user.
@@ -728,11 +734,20 @@ class Log_Query {
 				// User ids, comma separated or array.
 				'users' => null,
 
+				// Initiator to filter by.
+				'initiator' => null,
+
 				// Should sticky events be included in the result set.
 				'include_sticky' => false,
 
 				// Only return sticky events.
 				'only_sticky' => false,
+
+				// Context filters as key-value pairs.
+				'context_filters' => null,
+
+				// Return ungrouped events without occasions grouping.
+				'ungrouped' => false,
 
 			// Can also contain:
 			// logRowID
@@ -919,6 +934,26 @@ class Log_Query {
 		if ( isset( $args['users'] ) ) {
 			$args['users'] = array_map( 'intval', $args['users'] );
 			$args['users'] = array_filter( $args['users'] );
+		}
+
+		// "initiator" must be string or array of strings and contain valid initiator constants.
+		if ( isset( $args['initiator'] ) ) {
+			if ( is_string( $args['initiator'] ) ) {
+				// Single initiator - validate it's a valid constant.
+				if ( ! in_array( $args['initiator'], Log_Initiators::get_valid_initiators(), true ) ) {
+					throw new \InvalidArgumentException( 'Invalid initiator value' );
+				}
+			} elseif ( is_array( $args['initiator'] ) ) {
+				// Multiple initiators - validate each one and filter out empty values.
+				$args['initiator'] = array_filter( $args['initiator'] );
+				foreach ( $args['initiator'] as $initiator ) {
+					if ( ! is_string( $initiator ) || ! in_array( $initiator, Log_Initiators::get_valid_initiators(), true ) ) {
+						throw new \InvalidArgumentException( 'Invalid initiator value: ' . esc_html( $initiator ) );
+					}
+				}
+			} else {
+				throw new \InvalidArgumentException( 'Invalid initiator type' );
+			}
 		}
 
 		return $args;
@@ -1344,6 +1379,36 @@ class Log_Query {
 				'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = \'_sticky\' )',
 				$contexts_table_name
 			);
+		}
+
+		// Add where clause for initiator filter.
+		if ( isset( $args['initiator'] ) ) {
+			if ( is_string( $args['initiator'] ) ) {
+				// Single initiator.
+				$inner_where[] = sprintf(
+					'initiator = \'%s\'',
+					esc_sql( $args['initiator'] )
+				);
+			} elseif ( is_array( $args['initiator'] ) && ! empty( $args['initiator'] ) ) {
+				// Multiple initiators - use IN clause.
+				$escaped_initiators = array_map( 'esc_sql', $args['initiator'] );
+				$inner_where[] = sprintf(
+					'initiator IN (\'%s\')',
+					implode( '\',\'', $escaped_initiators )
+				);
+			}
+		}
+
+		// Add where clause for context filters.
+		if ( ! empty( $args['context_filters'] ) && is_array( $args['context_filters'] ) ) {
+			foreach ( $args['context_filters'] as $context_key => $context_value ) {
+				$inner_where[] = sprintf(
+					'id IN ( SELECT history_id FROM %1$s AS c WHERE c.key = \'%2$s\' AND c.value = \'%3$s\' )',
+					$contexts_table_name,
+					esc_sql( $context_key ),
+					esc_sql( $context_value )
+				);
+			}
 		}
 
 		/**
