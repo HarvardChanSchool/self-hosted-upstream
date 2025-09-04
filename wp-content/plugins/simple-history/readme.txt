@@ -4,7 +4,7 @@ Contributors: eskapism, wpsimplehistory
 Donate link: https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_donate_link
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 6.8
-Stable tag: 5.14.0
+Stable tag: 5.16.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -294,7 +294,7 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
    are of type post and pages and media (i.e. images & other uploads), and only events
    initiated by a specific user.
 
-2. The **Post Quick Diff** feature will make it quick and easy for a user of a site to see what updates other users have done to posts and pages.
+2. The feature will make it quick and easy for a user of a site to see what updates other users have done to posts and pages.
 
 3. When users are created or changed you can see details on what have changed.
 
@@ -309,6 +309,8 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
 
 8. Stats and summaries page that gives you a quick overview summary of your site's activity.
 
+9. Email reports: Get a weekly summary of your site's activity delivered straight to your inbox. Enable and configure this feature in the plugin settings.
+
 ## Changelog
 
 ✨ If you find Simple History useful ✨
@@ -316,6 +318,40 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
 -   [Sponsor the plugin to keep it free.](https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_sponsor_footer)
 -   [Add a 5-star review so other users know it's good.](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5)
 -   [Get the premium add-on for more features.](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium)
+
+### 5.16.0 (August 2025)
+
+**Added**
+
+-   Revision Post ID, if available, is stored in event context for post/page updates.
+-   Stats API responses now include human-readable, localized date formats.
+
+**Changed**
+
+-   The [_Post Activity Panel_](https://simple-history.com/features/post-activity-panel/) feature is now part of the [Simple History Premium](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium) add-on and available for all users of that plugin. It was previously an experimental feature in the main plugin.
+-   The number of days for a month in sidebar stats is now 30 days instead of the previous 28 days, to make it more standard and consistent with common business and reporting cycles.
+-   The scripts for the [_Admin Bar Quick View_](https://simple-history.com/features/admin-bar-quick-view/) is now loaded using `strategy: 'defer'` to improve performance.
+
+**Fixed**
+
+-   Correct query in get_successful_logins_details(), so it will correctly fetch successful logins.
+
+### 5.15.0 (August 2025)
+
+📧 This release enables _Weekly Email Reports_ for all users.
+It also adds a new _Core Files Integrity Logger_ that detects modifications to WordPress core files through daily checksum verification.
+
+[Release post with details and screenshots.](https://simple-history.com/2025/simple-history-5-15-0/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_release_5_15_0)
+
+**Added**
+
+-   📨 _Email reports_ are now available for all users, not just those with experimental features enabled. You can enable email reports in the settings page. Read more about [email reports](https://simple-history.com/features/weekly-email-report/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_email_reports).
+-   New _Core Files Integrity Logger_ that detects modifications to WordPress core files through daily checksum verification. Monitors for modified, missing, or unreadable files. Runs once every night. [#538](https://github.com/bonny/WordPress-Simple-History/issues/538)
+
+**Changed**
+
+-   Change order of the menu items.
+-   Update description of WP CLI command description.
 
 ### 5.14.0 (July 2025)
 
