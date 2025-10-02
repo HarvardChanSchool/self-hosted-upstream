@@ -94,7 +94,7 @@ This is an outline of tasks that should be performed by maintainers during month
 10. Clear cache:
   
   ```
-  terminus env:clear-cache <site>.prod
+  terminus env:clear-cache <site>.live
   ```
 
 11. Verify production site.
