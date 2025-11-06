@@ -4,7 +4,7 @@ This repository should be used as the upstream repository for compliant self-hos
 
 ## Monthly maintenance tasks
 
-[Last updated: 2025-05-01]
+[Last updated: 2025-11-06]
 
 This is an outline of tasks that should be performed by maintainers during monthly maintenance.
 
@@ -92,7 +92,7 @@ This is an outline of tasks that should be performed by maintainers during month
 9. Wait for release action to complete.
 
 10. Clear cache:
-  
+
   ```
   terminus env:clear-cache <site>.live
   ```
@@ -125,7 +125,7 @@ This is an outline of tasks that should be performed by maintainers during month
 
     On this last URL, note that Vimeo will not permit promo-block__video embeds on local domains.
 
-    chromium --incognito --new-window https://chds.hsph.harvard.edu/ http://boone.cool/hsph/center-for-health-decision-science/ https://chds.hsph.harvard.edu/approaches http://boone.cool/hsph/center-for-health-decision-science/approaches/ https://chds.hsph.harvard.edu/approaches/practice-and-policy http://boone.cool/hsph/center-for-health-decision-science/approaches/practice-and-policy/ https://chds.hsph.harvard.edu/media-hub/people-and-perspectives http://boone.cool/hsph/center-for-health-decision-science/media-hub/people-and-perspectives/ https://chds.hsph.harvard.edu/two-doctoral-students-join-chds http://boone.cool/hsph/center-for-health-decision-science/two-doctoral-students-join-chds/
+    chromium --incognito --new-window  https://chds.hsph.harvard.edu/ http://boone.cool/hsph/center-for-health-decision-science/ https://chds.hsph.harvard.edu/approaches http://boone.cool/hsph/center-for-health-decision-science/approaches/ https://chds.hsph.harvard.edu/approaches/practice-and-policy http://boone.cool/hsph/center-for-health-decision-science/approaches/practice-and-policy/ https://chds.hsph.harvard.edu/media-hub/people-and-perspectives http://boone.cool/hsph/center-for-health-decision-science/media-hub/people-and-perspectives/ https://chds.hsph.harvard.edu/two-doctoral-students-join-chds http://boone.cool/hsph/center-for-health-decision-science/two-doctoral-students-join-chds/
 
 2. __Mindfulness__
 
@@ -238,3 +238,30 @@ This is an outline of tasks that should be performed by maintainers during month
     - http://boone.cool/hsph/striped-dietary-supplement-label-explorer/
 
     chromium --incognito --new-window https://striped-dietary-supplement-label-explorer.hsph.harvard.edu/ http://boone.cool/hsph/striped-dietary-supplement-label-explorer/
+
+7. __Case Resources__
+
+    Web: https://caseresources.hsph.harvard.edu/
+
+    GitHub: https://github.com/HarvardChanSchool/case-resources
+
+    Pantheon: https://dashboard.pantheon.io/sites/400ef52c-defc-4868-b057-c31ef7f82c16
+
+    Verification URLs:
+    - https://caseresources.hsph.harvard.edu/
+    - https://caseresources.hsph.harvard.edu/case-library/
+    - https://caseresources.hsph.harvard.edu/publications/happiness-and-health-the-management-philosophy-of-lee-kum-kee-group/
+    - https://caseresources.hsph.harvard.edu/resources/
+    - https://caseresources.hsph.harvard.edu/resource/case-compendium-haas-school-business-university-california/
+    - https://caseresources.hsph.harvard.edu/about/
+
+    boone.cool/hsph/case-resources versions:
+    - http://boone.cool/hsph/case-resources/
+    - http://boone.cool/hsph/case-resources/case-library/
+    - http://boone.cool/hsph/case-resources/publications/happiness-and-health-the-management-philosophy-of-lee-kum-kee-group/
+    - http://boone.cool/hsph/case-resources/resources/
+    - http://boone.cool/hsph/case-resources/resource/case-compendium-haas-school-business-university-california/
+    - http://boone.cool/hsph/case-resources/about/
+
+    chromium --incognito --new-window https://caseresources.hsph.harvard.edu/ http://boone.cool/hsph/case-resources/ https://caseresources.hsph.harvard.edu/case-library/ http://boone.cool/hsph/case-resources/case-library/ https://caseresources.hsph.harvard.edu/publications/happiness-and-health-the-management-philosophy-of-lee-kum-kee-group/ http://boone.cool/hsph/case-resources/publications/happiness-and-health-the-management-philosophy-of-lee-kum-kee-group/ https://caseresources.hsph.harvard.edu/resources/ http://boone.cool/hsph/case-resources/resources/ https://caseresources.hsph.harvard.edu/resource/case-compendium-haas-school-business-university-california/ http://boone.cool/hsph/case-resources/resource/case-compendium-haas-school-business-university-california/ https://caseresources.hsph.harvard.edu/about/ http://boone.cool/hsph/case-resources/about/
+
