@@ -1,0 +1,33 @@
+/* Fixes for issues introduced by wrapping Bootstrap into a .hsph-boostrap no-conflict class */
+.hsph-bootstrap .list-group-item + .list-group-item {
+    border-top-width: 0; }
+    .hsph-bootstrap .list-group-item + .list-group-item.active {
+      margin-top: -1px;
+      border-top-width: 1px; }
+
+      .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1040;
+        width: 100vw;
+        height: 100vh;
+        background-color: #000; }
+        .modal-backdrop.fade {
+          opacity: 0; }
+        .modal-backdrop.show {
+          opacity: 0.5; }
+
+          .was-validated .hsph-bootstrap .form-control:valid{
+            background-position: calc(100% - 0.75em) center;
+            padding-right: 1.75rem;
+        }
+
+        .was-validated .hsph-bootstrap .form-control:invalid{
+            background-position: calc(100% - 0.575em) center;
+            padding-right: 1.75rem;
+        }
+// Adding margin-bottom to .embed-responsive COM-657
+.hsph-bootstrap .embed-responsive {
+    margin-bottom: 1.75rem;
+}
