@@ -43,10 +43,10 @@ class Helpers {
 	 */
 	public static function text_diff( $left_string, $right_string, $args = null ) {
 		$defaults = array(
-			'title' => '',
-			'title_left' => '',
-			'title_right' => '',
-			'leading_context_lines' => 1,
+			'title'                  => '',
+			'title_left'             => '',
+			'title_right'            => '',
+			'leading_context_lines'  => 1,
 			'trailing_context_lines' => 1,
 		);
 
@@ -56,15 +56,15 @@ class Helpers {
 			require ABSPATH . WPINC . '/wp-diff.php';
 		}
 
-		$left_string = normalize_whitespace( $left_string );
+		$left_string  = normalize_whitespace( $left_string );
 		$right_string = normalize_whitespace( $right_string );
 
-		$left_lines = explode( "\n", $left_string );
+		$left_lines  = explode( "\n", $left_string );
 		$right_lines = explode( "\n", $right_string );
-		$text_diff = new \Text_Diff( $left_lines, $right_lines );
+		$text_diff   = new \Text_Diff( $left_lines, $right_lines );
 
-		$renderer = new \WP_Text_Diff_Renderer_Table( $args );
-		$renderer->_leading_context_lines = $args['leading_context_lines'];
+		$renderer                          = new \WP_Text_Diff_Renderer_Table( $args );
+		$renderer->_leading_context_lines  = $args['leading_context_lines'];
 		$renderer->_trailing_context_lines = $args['trailing_context_lines'];
 
 		$diff = $renderer->render( $text_diff );
@@ -201,15 +201,15 @@ class Helpers {
 
 		// No screen found, return object with same properties but with empty values.
 		return (object) array(
-			'action' => null,
-			'base' => null,
-			'id' => null,
-			'is_network' => null,
-			'is_user' => null,
-			'parent_base' => null,
-			'parent_file' => null,
-			'post_type' => null,
-			'taxonomy' => null,
+			'action'          => null,
+			'base'            => null,
+			'id'              => null,
+			'is_network'      => null,
+			'is_user'         => null,
+			'parent_base'     => null,
+			'parent_file'     => null,
+			'post_type'       => null,
+			'taxonomy'        => null,
 			'is_block_editor' => null,
 		);
 	}
@@ -235,6 +235,7 @@ class Helpers {
 	 * @param mixed $value array|object|string|whatever that is json_encode'able.
 	 */
 	public static function json_encode( $value ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- Before switching to wp_json_encode we need to verify that it's safe to use.
 		return json_encode( $value, JSON_PRETTY_PRINT );
 	}
 
@@ -287,7 +288,7 @@ class Helpers {
 	 * @return string Incrementor value, example: `68c1c8545881b`.
 	 */
 	public static function get_cache_incrementor( $refresh = false ) {
-		$incrementor_key = 'simple_history_incrementor';
+		$incrementor_key   = 'simple_history_incrementor';
 		$incrementor_value = wp_cache_get( $incrementor_key );
 
 		// Generate a new incrementor if it doesn't exist or if we want to refresh it.
@@ -332,19 +333,19 @@ class Helpers {
 	 * Function based on code found on stack overflow:
 	 * https://stackoverflow.com/questions/34324576/print-name-or-definition-of-callable-in-php
 	 *
-	 * @param callable $callable The callable thing to check.
+	 * @param callable $callback The callable thing to check.
 	 * @return string Name of callable.
 	 */
-	public static function get_callable_name( $callable ) {
-		if ( is_string( $callable ) ) {
-			return trim( $callable );
-		} elseif ( is_array( $callable ) ) {
-			if ( is_object( $callable[0] ) ) {
-				return sprintf( '%s::%s', get_class( $callable[0] ), trim( $callable[1] ) );
+	public static function get_callable_name( $callback ) {
+		if ( is_string( $callback ) ) {
+			return trim( $callback );
+		} elseif ( is_array( $callback ) ) {
+			if ( is_object( $callback[0] ) ) {
+				return sprintf( '%s::%s', get_class( $callback[0] ), trim( $callback[1] ) );
 			} else {
-				return sprintf( '%s::%s', trim( $callable[0] ), trim( $callable[1] ) );
+				return sprintf( '%s::%s', trim( $callback[0] ), trim( $callback[1] ) );
 			}
-		} elseif ( $callable instanceof \Closure ) {
+		} elseif ( $callback instanceof \Closure ) {
 			return 'closure';
 		} else {
 			return 'unknown';
@@ -378,6 +379,7 @@ class Helpers {
 		$simple_history = Simple_History::get_instance();
 
 		/** @var array $events_table_size_result */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$events_table_size_result = $wpdb->get_row(
 			$wpdb->prepare(
 				'
@@ -391,6 +393,7 @@ class Helpers {
 		);
 
 		/** @var array $contexts_table_size_result */
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$contexts_table_size_result = $wpdb->get_row(
 			$wpdb->prepare(
 				'
@@ -409,7 +412,7 @@ class Helpers {
 		}
 
 		$table_size_result = [
-			'simple_history' => $events_table_size_result,
+			'simple_history'          => $events_table_size_result,
 			'simple_history_contexts' => $contexts_table_size_result,
 		];
 
@@ -430,6 +433,7 @@ class Helpers {
 		$simple_history = Simple_History::get_instance();
 
 		// Get table sizes in mb.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$table_size_result = $wpdb->get_results(
 			$wpdb->prepare(
 				'
@@ -452,7 +456,7 @@ class Helpers {
 		}
 
 		$table_size_result = [
-			'simple_history' => $table_size_result[0],
+			'simple_history'          => $table_size_result[0],
 			'simple_history_contexts' => $table_size_result[1],
 		];
 
@@ -496,12 +500,12 @@ class Helpers {
 	 *
 	 * @param string       $email email address.
 	 * @param string       $size Size of the avatar image.
-	 * @param string       $default URL to a default image to use if no avatar is available.
+	 * @param string       $default_value URL to a default image to use if no avatar is available.
 	 * @param string|false $alt Alternative text to use in image tag. Defaults to blank.
 	 * @param array        $args Avatar arguments.
 	 * @return string The img element for the user's avatar
 	 */
-	public static function get_avatar( $email, $size = '96', $default = '', $alt = false, $args = array() ) {
+	public static function get_avatar( $email, $size = '96', $default_value = '', $alt = false, $args = array() ) {
 		$args = array(
 			'force_display' => false,
 		);
@@ -528,7 +532,7 @@ class Helpers {
 		 */
 		$args['force_display'] = apply_filters( 'simple_history/show_avatars', $args['force_display'] );
 
-		return get_avatar( $email, $size, $default, $alt, $args );
+		return get_avatar( $email, $size, $default_value, $alt, $args );
 	}
 
 	/**
@@ -650,9 +654,9 @@ class Helpers {
 	 * @return array Headers
 	 */
 	public static function get_event_ip_number_headers( $row ) {
-		$ip_header_names_keys = self::get_ip_number_header_names();
+		$ip_header_names_keys            = self::get_ip_number_header_names();
 		$arr_found_additional_ip_headers = array();
-		$context = $row->context;
+		$context                         = $row->context;
 
 		foreach ( $ip_header_names_keys as $one_ip_header_key ) {
 			$one_ip_header_key_lower = strtolower( $one_ip_header_key );
@@ -672,7 +676,7 @@ class Helpers {
 					$arr_found_additional_ip_headers[ $context_key ] = $context_val;
 				}
 			}
-		} // End foreach().
+		}
 
 		return $arr_found_additional_ip_headers;
 	}
@@ -698,11 +702,11 @@ class Helpers {
 	 * Solution from:
 	 * https://stackoverflow.com/a/27457689
 	 *
-	 * @param object $class Class to get short name for.
+	 * @param object $instance Object instance to get short name for.
 	 * @return string
 	 */
-	public static function get_class_short_name( $class ) {
-		return substr( strrchr( get_class( $class ), '\\' ), 1 );
+	public static function get_class_short_name( $instance ) {
+		return substr( strrchr( get_class( $instance ), '\\' ), 1 );
 	}
 
 	/**
@@ -717,18 +721,19 @@ class Helpers {
 
 		$tables = array(
 			[
-				'table_name' => $simple_history_instance->get_events_table_name(),
+				'table_name'   => $simple_history_instance->get_events_table_name(),
 				'table_exists' => null,
 			],
 			[
-				'table_name' => $simple_history_instance->get_contexts_table_name(),
+				'table_name'   => $simple_history_instance->get_contexts_table_name(),
 				'table_exists' => null,
 			],
 		);
 
 		foreach ( $tables as $key => $table ) {
-			$table_exists = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table['table_name'] ) );
-			$tables[ $key ]['table_exists']  = $table_exists;
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$table_exists                   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table['table_name'] ) );
+			$tables[ $key ]['table_exists'] = $table_exists;
 		}
 
 		return $tables;
@@ -798,18 +803,28 @@ class Helpers {
 	 * Wrapper for \add_settings_section with added support for:
 	 * - Icon before title.
 	 * - Wrapper div automatically added.
+	 * - Optional HTML ID attribute.
 	 *
 	 * @param string       $id Slug-name to identify the section. Used in the 'id' attribute of tags.
 	 * @param string|array $title Formatted title of the section. Shown as the heading for the section.
 	 *                     Pass in array instead of string to use as ['Section title', 'icon-slug'].
-	 * @param callable     $callback Function that echos out any content at the top of the section (between heading and fields).
+	 *                     Or pass ['Section title', 'icon-slug', 'html-id'] to include an HTML ID attribute.
+	 * @param callable     $callback_top Function that echos out any content at the top of the section (between heading and fields).
 	 * @param string       $page The slug-name of the settings page on which to show the section. Built-in pages include 'general', 'reading', 'writing', 'discussion', 'media', etc. Create your own using add_options_page().
-	 * @param array        $args Optional. Additional arguments that are passed to the $callback function. Default empty array.
+	 * @param array        $args {
+	 *     Optional. Additional arguments.
+	 *
+	 *     @type callable $callback_last Function that echos out any content at the end of the section (before closing wrapper div).
+	 * }
 	 */
-	public static function add_settings_section( $id, $title, $callback, $page, $args = [] ) {
-		// If title is array then it is [title, icon-slug].
+	public static function add_settings_section( $id, $title, $callback_top, $page, $args = [] ) {
+		// If title is array then it can be [title, icon-slug] or [title, icon-slug, html-id].
+		$html_id = '';
 		if ( is_array( $title ) ) {
-			$title = self::get_settings_section_title_output( $title[0], $title[1] );
+			$title_text = $title[0];
+			$icon_slug  = $title[1] ?? null;
+			$html_id    = $title[2] ?? '';
+			$title      = self::get_settings_section_title_output( $title_text, $icon_slug );
 		} else {
 			$title = self::get_settings_section_title_output( $title );
 		}
@@ -820,12 +835,27 @@ class Helpers {
 		 * https://core.trac.wordpress.org/ticket/62746
 		 * https://core.trac.wordpress.org/changeset/59564
 		 */
+		$id_attribute = '';
+		if ( ! empty( $html_id ) ) {
+			$id_attribute = sprintf( ' id="%s"', esc_attr( $html_id ) );
+		}
+
+		// Build after_section content.
+		$after_section_content = '';
+		$callback_last         = $args['callback_last'] ?? null;
+		if ( is_callable( $callback_last ) ) {
+			ob_start();
+			call_user_func( $callback_last );
+			$after_section_content = ob_get_clean();
+		}
+		$after_section_content .= '</div>';
+
 		$args = [
-			'before_section' => '<div class="sh-SettingsPage-settingsSection-wrap">',
-			'after_section' => '</div>',
+			'before_section' => sprintf( '<div class="sh-SettingsCard sh-SettingsPage-settingsSection-wrap"%s>', $id_attribute ),
+			'after_section'  => $after_section_content,
 		];
 
-		add_settings_section( $id, $title, $callback, $page, $args );
+		add_settings_section( $id, $title, $callback_top, $page, $args );
 	}
 
 	/**
@@ -949,21 +979,21 @@ class Helpers {
 
 		$simple_history = Simple_History::get_instance();
 
-		$simple_history_table = $simple_history->get_events_table_name();
+		$simple_history_table          = $simple_history->get_events_table_name();
 		$simple_history_contexts_table = $simple_history->get_contexts_table_name();
 
 		// Get number of rows before delete.
 		$sql_num_rows = "SELECT count(id) AS num_rows FROM {$simple_history_table}";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$num_rows = $wpdb->get_var( $sql_num_rows, 0 );
 
 		// Use truncate instead of delete because it's much faster (I think, writing this much later).
 		$sql = "TRUNCATE {$simple_history_table}";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $sql );
 
 		$sql = "TRUNCATE {$simple_history_contexts_table}";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $sql );
 
 		self::clear_cache();
@@ -1106,6 +1136,8 @@ class Helpers {
 		// All Simple History admin pages have a ?page=simple_history_... query arg.
 		// where page is the slug of the registered page.
 		$all_menu_pages_slugs = Simple_History::get_instance()->get_menu_manager()->get_all_slugs();
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$page = isset( $_GET['page'] ) ? sanitize_text_field( wp_unslash( $_GET['page'] ) ) : null;
 
 		if ( $page && in_array( $page, $all_menu_pages_slugs, true ) ) {
@@ -1136,7 +1168,7 @@ class Helpers {
 		$table_name = $simple_history->get_events_table_name();
 
 		$sql_data_exists = "SELECT id AS id_exists FROM {$table_name} LIMIT 1";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$data_exists = (bool) $wpdb->get_var( $sql_data_exists, 0 );
 
 		return $data_exists;
@@ -1212,7 +1244,7 @@ class Helpers {
 	 */
 	public static function get_menu_page_location() {
 		$option_slug = 'simple_history_menu_page_location';
-		$setting = get_option( $option_slug );
+		$setting     = get_option( $option_slug );
 
 		// If it does not exist, then default so the option can auto-load.
 		if ( false === $setting ) {
@@ -1295,7 +1327,7 @@ class Helpers {
 	 */
 	public static function get_num_events_last_n_days( $period_days = Date_Helper::DAYS_PER_MONTH ) {
 		global $wpdb;
-		$simple_history = Simple_History::get_instance();
+		$simple_history              = Simple_History::get_instance();
 		$sqlStringLoggersUserCanRead = $simple_history->get_loggers_that_user_can_read( null, 'sql' );
 
 		$sql = sprintf(
@@ -1310,7 +1342,8 @@ class Helpers {
 			$sqlStringLoggersUserCanRead
 		);
 
-		$count = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var( $sql );
 
 		return (int) $count;
 	}
@@ -1325,7 +1358,7 @@ class Helpers {
 	 */
 	public static function get_num_events_today() {
 		global $wpdb;
-		$simple_history = Simple_History::get_instance();
+		$simple_history              = Simple_History::get_instance();
 		$sqlStringLoggersUserCanRead = $simple_history->get_loggers_that_user_can_read( null, 'sql' );
 
 		$sql = sprintf(
@@ -1340,7 +1373,37 @@ class Helpers {
 			$sqlStringLoggersUserCanRead
 		);
 
-		$count = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var( $sql );
+
+		return (int) $count;
+	}
+
+	/**
+	 * Get current number of events in database.
+	 *
+	 * Counts all events currently stored in the database.
+	 * Respects user permissions - only counts events from loggers the current user can view.
+	 *
+	 * @return int Number of events currently in database that user can view.
+	 */
+	public static function get_current_database_events_count() {
+		global $wpdb;
+		$simple_history              = Simple_History::get_instance();
+		$sqlStringLoggersUserCanRead = $simple_history->get_loggers_that_user_can_read( null, 'sql' );
+
+		$sql = sprintf(
+			'
+                SELECT count(*)
+                FROM %1$s
+                WHERE logger IN %2$s
+            ',
+			$simple_history->get_events_table_name(),
+			$sqlStringLoggersUserCanRead
+		);
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$count = $wpdb->get_var( $sql );
 
 		return (int) $count;
 	}
@@ -1358,13 +1421,13 @@ class Helpers {
 		/** @var \wpdb $wpdb */
 		global $wpdb;
 
-		$simple_history = Simple_History::get_instance();
+		$simple_history              = Simple_History::get_instance();
 		$sqlStringLoggersUserCanRead = $simple_history->get_loggers_that_user_can_read( null, 'sql' );
-		$db_engine = Log_Query::get_db_engine();
+		$db_engine                   = Log_Query::get_db_engine();
 
 		// Get WordPress timezone offset for converting dates from GMT to local timezone.
 		// Database stores dates in GMT, but we need to group by dates in WordPress timezone.
-		$wp_timezone = wp_timezone();
+		$wp_timezone       = wp_timezone();
 		$wp_offset_seconds = $wp_timezone->getOffset( new \DateTime( 'now', $wp_timezone ) );
 
 		$sql = null;
@@ -1413,7 +1476,8 @@ class Helpers {
 			);
 		}
 
-		$dates = $wpdb->get_results( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$dates = $wpdb->get_results( $sql );
 
 		return $dates;
 	}
@@ -1428,12 +1492,12 @@ class Helpers {
 		global $wpdb;
 		$simple_history = Simple_History::get_instance();
 
-		$days = (int) $days;
+		$days       = (int) $days;
 		$table_name = $simple_history->get_events_table_name();
-		$cache_key = 'sh_' . md5( __METHOD__ . $days );
-		$numEvents = get_transient( $cache_key );
+		$cache_key  = 'sh_' . md5( __METHOD__ . $days );
+		$numEvents  = get_transient( $cache_key );
 
-		if ( false == $numEvents ) {
+		if ( $numEvents === false ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$sql = $wpdb->prepare(
 				"
@@ -1445,7 +1509,8 @@ class Helpers {
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-			$numEvents = $wpdb->get_var( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$numEvents = $wpdb->get_var( $sql );
 
 			set_transient( $cache_key, $numEvents, HOUR_IN_SECONDS );
 		}
@@ -1477,12 +1542,12 @@ class Helpers {
 		$simple_history = Simple_History::get_instance();
 
 		// Start months filter.
-		$table_name = $simple_history->get_events_table_name();
+		$table_name                   = $simple_history->get_events_table_name();
 		$loggers_user_can_read_sql_in = $simple_history->get_loggers_that_user_can_read( null, 'sql' );
 
 		// Get unique months.
 		$loggers_slugs = $simple_history->get_loggers_that_user_can_read( null, 'slugs' );
-		$cache_key = 'sh_filter_unique_months_' . md5( implode( ',', $loggers_slugs ) );
+		$cache_key     = 'sh_filter_unique_months_' . md5( implode( ',', $loggers_slugs ) );
 		$result_months = get_transient( $cache_key );
 
 		if ( false === $result_months ) {
@@ -1497,7 +1562,8 @@ class Helpers {
 				$loggers_user_can_read_sql_in // 2
 			);
 
-			$result_months = $wpdb->get_results( $sql_dates ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$result_months = $wpdb->get_results( $sql_dates );
 
 			set_transient( $cache_key, $result_months, HOUR_IN_SECONDS );
 		}
@@ -1514,11 +1580,11 @@ class Helpers {
 
 		// Start with the latest day.
 		$numEvents = self::get_unique_events_for_days( $daysToShow );
-		$numPages = $numEvents / self::get_pager_size();
+		$numPages  = $numEvents / self::get_pager_size();
 
 		$arr_days_and_pages[] = array(
 			'daysToShow' => $daysToShow,
-			'numPages' => $numPages,
+			'numPages'   => $numPages,
 		);
 
 		// Example on my server with lots of brute force attacks (causing log to not load)
@@ -1527,34 +1593,34 @@ class Helpers {
 		if ( $numPages < 20 ) {
 			// Not that many things the last day. Let's try to expand to 7 days instead.
 			$daysToShow = 7;
-			$numEvents = self::get_unique_events_for_days( $daysToShow );
-			$numPages = $numEvents / self::get_pager_size();
+			$numEvents  = self::get_unique_events_for_days( $daysToShow );
+			$numPages   = $numEvents / self::get_pager_size();
 
 			$arr_days_and_pages[] = array(
 				'daysToShow' => $daysToShow,
-				'numPages' => $numPages,
+				'numPages'   => $numPages,
 			);
 
 			if ( $numPages < 20 ) {
 				// Not that many things the last 7 days. Let's try to expand to 14 days instead.
 				$daysToShow = 14;
-				$numEvents = self::get_unique_events_for_days( $daysToShow );
-				$numPages = $numEvents / self::get_pager_size();
+				$numEvents  = self::get_unique_events_for_days( $daysToShow );
+				$numPages   = $numEvents / self::get_pager_size();
 
 				$arr_days_and_pages[] = array(
 					'daysToShow' => $daysToShow,
-					'numPages' => $numPages,
+					'numPages'   => $numPages,
 				);
 
 				if ( $numPages < 20 ) {
 					// Not many things the last 14 days either. Let try with 30 days.
 					$daysToShow = 30;
-					$numEvents = self::get_unique_events_for_days( $daysToShow );
-					$numPages = $numEvents / self::get_pager_size();
+					$numEvents  = self::get_unique_events_for_days( $daysToShow );
+					$numPages   = $numEvents / self::get_pager_size();
 
 					$arr_days_and_pages[] = array(
 						'daysToShow' => $daysToShow,
-						'numPages' => $numPages,
+						'numPages'   => $numPages,
 					);
 
 					// If 30 days gives a big amount of pages, go back to 14 days.
@@ -1563,12 +1629,12 @@ class Helpers {
 					}
 				}
 			}
-		}// End if().
+		}
 
 		return [
 			'arr_days_and_pages' => $arr_days_and_pages,
-			'daysToShow' => $daysToShow,
-			'result_months' => $result_months,
+			'daysToShow'         => $daysToShow,
+			'result_months'      => $result_months,
 		];
 	}
 
@@ -1670,17 +1736,85 @@ class Helpers {
 	 * @return bool True if promo boxes should be shown, false otherwise.
 	 */
 	public static function show_promo_boxes() {
+		$show_promo_boxes = true;
+
 		// Hide if Premium add-on is active.
 		if ( self::is_premium_add_on_active() ) {
-			return false;
+			$show_promo_boxes = false;
 		}
 
 		// Hide if Extended Settings is active.
 		if ( self::is_extended_settings_add_on_active() ) {
-			return false;
+			$show_promo_boxes = false;
 		}
 
-		return true;
+		/**
+		 * Filter to determine if promo boxes should be shown.
+		 *
+		 * @param bool $show_promo_boxes True if promo boxes should be shown, false otherwise.
+		 */
+		$show_promo_boxes = apply_filters( 'simple_history/show_promo_boxes', $show_promo_boxes );
+
+		return $show_promo_boxes;
+	}
+
+	/**
+	 * Get HTML for a premium feature teaser box.
+	 *
+	 * Note: When echoing the output, wrap it in wp_kses_post() to satisfy PHPCS:
+	 * echo wp_kses_post( Helpers::get_premium_feature_teaser( ... ) );
+	 *
+	 * @param string       $title The title/heading for the premium feature.
+	 * @param string|array $description The description of the premium feature, or an array of feature strings for a bullet list.
+	 * @param string       $tracking_param The tracking parameter for the "Learn More" link (e.g., 'premium_feeds_settings').
+	 * @param string       $button_text Optional. The text for the button. Default: 'Learn More'.
+	 * @return string HTML for the premium teaser box, or empty string if promo boxes should not be shown.
+	 */
+	public static function get_premium_feature_teaser( $title, $description, $tracking_param, $button_text = '' ) {
+		// Only show premium teaser if premium is not installed.
+		if ( ! self::show_promo_boxes() ) {
+			return '';
+		}
+
+		if ( empty( $button_text ) ) {
+			$button_text = __( 'Learn More', 'simple-history' );
+		}
+
+		$premium_url = self::get_tracking_url( 'https://simple-history.com/add-ons/premium/', $tracking_param );
+
+		ob_start();
+		?>
+		<div class="sh-PremiumFeatureTeaser">
+			<p class="sh-PremiumFeatureTeaser-title">
+				<em class="sh-PremiumFeatureBadge"><?php esc_html_e( 'Premium', 'simple-history' ); ?></em>
+				<strong><?php echo esc_html( $title ); ?></strong>
+			</p>
+
+			<?php if ( is_array( $description ) ) { ?>
+				<ul class="sh-PremiumFeatureTeaser-features">
+					<?php foreach ( $description as $feature ) { ?>
+						<li>
+							<span class="dashicons dashicons-yes"></span>
+							<?php echo esc_html( $feature ); ?>
+						</li>
+					<?php } ?>
+				</ul>
+			<?php } else { ?>
+				<p>
+					<?php echo esc_html( $description ); ?>
+				</p>
+			<?php } ?>
+
+			<p class="sh-PremiumFeatureTeaser-ctaLinkContainer">
+				<a href="<?php echo esc_url( $premium_url ); ?>"
+					target="_blank"
+					class="sh-PremiumFeatureTeaser-ctaLink">
+					<?php echo esc_html( $button_text ); ?>
+				</a>
+			</p>
+		</div>
+		<?php
+		return ob_get_clean();
 	}
 
 	/**
@@ -1769,7 +1903,7 @@ class Helpers {
 	public static function get_settings_page_sub_tab_url( $sub_tab_slug ) {
 		return add_query_arg(
 			[
-				'selected-tab'  => Setup_Settings_Page::SETTINGS_GENERAL_SUBTAB_SLUG,
+				'selected-tab'     => Setup_Settings_Page::SETTINGS_GENERAL_SUBTAB_SLUG,
 				'selected-sub-tab' => $sub_tab_slug,
 			],
 			self::get_settings_page_url()
@@ -1785,9 +1919,10 @@ class Helpers {
 	 */
 	public static function event_exists( $event_id ) {
 		global $wpdb;
-		$simple_history = Simple_History::get_instance();
+		$simple_history    = Simple_History::get_instance();
 		$events_table_name = $simple_history->get_events_table_name();
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (bool) $wpdb->get_var(
 			$wpdb->prepare(
 				'SELECT COUNT(*) FROM %i WHERE id = %d',
@@ -1812,7 +1947,7 @@ class Helpers {
 
 		ob_start();
 		?>
-		<span class="sh-Icon sh-Icon--help sh-TooltipIcon" title="<?php echo esc_html( $tooltip_text ); ?>"></span>
+		<span class="sh-Icon sh-Icon--help sh-TooltipIcon" title="<?php echo esc_attr( $tooltip_text ); ?>"></span>
 		<?php
 		return trim( ob_get_clean() );
 	}
@@ -1828,6 +1963,7 @@ class Helpers {
 		$simple_history = Simple_History::get_instance();
 		$contexts_table = $simple_history->get_contexts_table_name();
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT history_id FROM %i WHERE `key` = %s',
@@ -1880,7 +2016,7 @@ class Helpers {
 				$user = get_userdata( $args['users'] );
 				if ( $user ) {
 					$users_filter[] = [
-						'id' => (string) $user->ID,
+						'id'    => (string) $user->ID,
 						'value' => $user->display_name . ' (' . $user->user_email . ')',
 					];
 				}
@@ -1894,7 +2030,7 @@ class Helpers {
 					}
 
 					$users_filter[] = [
-						'id' => (string) $args['users']['id'],
+						'id'    => (string) $args['users']['id'],
 						'value' => $user_value,
 					];
 				} else {
@@ -1906,7 +2042,7 @@ class Helpers {
 						}
 
 						$users_filter[] = [
-							'id' => (string) $user['id'],
+							'id'    => (string) $user['id'],
 							'value' => $user_value,
 						];
 					}
@@ -1914,7 +2050,7 @@ class Helpers {
 			}
 
 			if ( ! empty( $users_filter ) ) {
-				$users_json = wp_json_encode( $users_filter );
+				$users_json          = wp_json_encode( $users_filter );
 				$query_args['users'] = $users_json;
 			}
 		}
@@ -1949,20 +2085,61 @@ class Helpers {
 			$query_args['context'] = $args['context'];
 		}
 
+		// Handle exclusion/negative filters.
+		if ( ! empty( $args['exclude_search'] ) ) {
+			$query_args['exclude-search'] = $args['exclude_search'];
+		}
+
+		if ( ! empty( $args['exclude_loglevels'] ) && is_array( $args['exclude_loglevels'] ) ) {
+			$query_args['exclude-levels'] = wp_json_encode( $args['exclude_loglevels'] );
+		}
+
+		if ( ! empty( $args['exclude_loggers'] ) && is_array( $args['exclude_loggers'] ) ) {
+			$query_args['exclude-loggers'] = wp_json_encode( $args['exclude_loggers'] );
+		}
+
+		if ( ! empty( $args['exclude_messages'] ) && is_array( $args['exclude_messages'] ) ) {
+			$query_args['exclude-messages'] = wp_json_encode( $args['exclude_messages'] );
+		}
+
+		if ( ! empty( $args['exclude_users'] ) && is_array( $args['exclude_users'] ) ) {
+			$query_args['exclude-users'] = wp_json_encode( $args['exclude_users'] );
+		}
+
+		if ( ! empty( $args['exclude_initiators'] ) && is_array( $args['exclude_initiators'] ) ) {
+			$query_args['exclude-initiator'] = wp_json_encode( $args['exclude_initiators'] );
+		}
+
+		if ( ! empty( $args['exclude_context'] ) ) {
+			$query_args['exclude-context'] = $args['exclude_context'];
+		}
+
 		// Build the URL manually to properly encode JSON parameters.
-		$base_url = admin_url( 'admin.php' );
+		$base_url  = admin_url( 'admin.php' );
 		$url_parts = [];
 
 		foreach ( $query_args as $key => $value ) {
-			// For JSON parameters, use rawurlencode to preserve the structure.
-			if ( in_array( $key, [ 'users', 'loglevels', 'messages', 'initiators' ], true ) ) {
-				$url_parts[] = $key . '=' . rawurlencode( $value );
-			} else {
-				$url_parts[] = $key . '=' . urlencode( $value );
-			}
+			$url_parts[] = $key . '=' . rawurlencode( $value );
 		}
 
 		return $base_url . '?' . implode( '&', $url_parts );
+	}
+
+	/**
+	 * Remove 4-byte UTF-8 characters (emojis and other supplementary plane chars)
+	 * from a string. This is needed because the database tables use utf8 charset
+	 * which only supports 3-byte characters.
+	 *
+	 * @since 5.19.0
+	 * @param mixed $value The value to sanitize.
+	 * @return mixed The value with 4-byte characters removed if string, otherwise unchanged.
+	 */
+	public static function strip_4_byte_chars( $value ) {
+		if ( ! is_string( $value ) ) {
+			return $value;
+		}
+
+		return preg_replace( '/[\x{10000}-\x{10FFFF}]/u', '', $value );
 	}
 
 	/**
@@ -1996,8 +2173,8 @@ class Helpers {
 	 */
 	public static function get_tracking_url( $url, $utm_campaign, $utm_source = 'wpadmin', $utm_medium = 'plugin', $utm_content = '' ) {
 		$params = [
-			'utm_source' => $utm_source,
-			'utm_medium' => $utm_medium,
+			'utm_source'   => $utm_source,
+			'utm_medium'   => $utm_medium,
 			'utm_campaign' => $utm_campaign,
 		];
 

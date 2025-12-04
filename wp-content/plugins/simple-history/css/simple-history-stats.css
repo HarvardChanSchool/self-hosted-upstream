@@ -1,3 +1,11 @@
+/* 
+CSS for the stats dashboard page.
+This is the core stats dashboard page, not the sidebar "History Insights" widget.
+Also the CSS is only for the free version of the plugin, the premium add-on has its own CSS,
+that removes this CSS and replaces it with its own.
+So: this CSS is only used when the premium add-on is *not* active!
+*/
+
 .sh-StatsDashboard {
 	--sh-avatar-size: var(--sh-font-size-xxxlarge);
 }
@@ -419,7 +427,6 @@
 	font-size: var(--sh-font-size-xxxlarge);
 	font-weight: normal;
 	line-height: 1;
-	white-space: nowrap;
 }
 
 .sh-StatsDashboard-stat--small {
@@ -563,29 +570,4 @@
 
 .sh-StatsDashboard-dateRangeControls-description {
 	margin-top: var(--sh-spacing-small);
-}
-
-/* Sidebar Stats aka "History Insights" */
-.sh-SidebarStats-eventsPerDays {
-	display: flex;
-	justify-content: space-between;
-	align-items: flex-end;
-	margin-bottom: var(--sh-spacing-large);
-	margin-left: calc(var(--sh-spacing-small) * -1);
-	margin-right: calc(var(--sh-spacing-small) * -1);
-
-	/* div or a wrapper (depending on if the stat has a URL or not) */
-	.sh-StatsDashboard-stat {
-		border-radius: var(--sh-border-radius);
-		padding: var(--sh-spacing-small);
-	}
-
-	a.sh-StatsDashboard-stat {
-		text-decoration: none;
-	}
-
-	a.sh-StatsDashboard-stat:hover {
-		background: var(--sh-color-item-hover);
-		background: var(--sh-color-gray-4);
-	}
 }

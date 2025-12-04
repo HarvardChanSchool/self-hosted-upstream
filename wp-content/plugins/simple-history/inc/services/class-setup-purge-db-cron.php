@@ -27,7 +27,7 @@ class Setup_Purge_DB_Cron extends Service {
 	 * Setup a wp-cron job that daily checks if the database should be cleared.
 	 */
 	public function setup_cron() {
-		add_filter( 'simple_history/maybe_purge_db', array( $this, 'maybe_purge_db' ) );
+		add_action( 'simple_history/maybe_purge_db', array( $this, 'maybe_purge_db' ) );
 
 		if ( ! wp_next_scheduled( 'simple_history/maybe_purge_db' ) ) {
 			wp_schedule_event( time(), 'daily', 'simple_history/maybe_purge_db' );
@@ -37,7 +37,7 @@ class Setup_Purge_DB_Cron extends Service {
 	/**
 	 * Runs the purge_db() method sometimes.
 	 *
-	 * Fired from filter `simple_history/maybe_purge_db``
+	 * Fired from action `simple_history/maybe_purge_db``
 	 * that is scheduled to run once a day.
 	 *
 	 * The db is purged only on Sundays by default,
@@ -95,11 +95,11 @@ class Setup_Purge_DB_Cron extends Service {
 		$days = Helpers::get_clear_history_interval();
 
 		// Never clear log if days = 0.
-		if ( 0 == $days ) {
+		if ( $days === 0 ) {
 			return;
 		}
 
-		$table_name = $this->simple_history->get_events_table_name();
+		$table_name          = $this->simple_history->get_events_table_name();
 		$table_name_contexts = $this->simple_history->get_contexts_table_name();
 
 		global $wpdb;
@@ -112,7 +112,7 @@ class Setup_Purge_DB_Cron extends Service {
 				$days
 			);
 
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$ids_to_delete = $wpdb->get_col( $sql );
 
 			if ( empty( $ids_to_delete ) ) {
@@ -124,16 +124,17 @@ class Setup_Purge_DB_Cron extends Service {
 
 			// Add number of deleted rows to total_rows option.
 			$prev_total_rows = (int) get_option( 'simple_history_total_rows', 0 );
-			$total_rows = $prev_total_rows + ( is_countable( $ids_to_delete ) ? count( $ids_to_delete ) : 0 );
+			$total_rows      = $prev_total_rows + ( is_countable( $ids_to_delete ) ? count( $ids_to_delete ) : 0 );
 			update_option( 'simple_history_total_rows', $total_rows );
 
 			// Remove rows + contexts.
-			$sql_delete_history = "DELETE FROM {$table_name} WHERE id IN ($sql_ids_in)";
+			$sql_delete_history         = "DELETE FROM {$table_name} WHERE id IN ($sql_ids_in)";
 			$sql_delete_history_context = "DELETE FROM {$table_name_contexts} WHERE history_id IN ($sql_ids_in)";
 
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( $sql_delete_history );
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( $sql_delete_history_context );
 
 			$num_rows_purged = is_countable( $ids_to_delete ) ? count( $ids_to_delete ) : 0;

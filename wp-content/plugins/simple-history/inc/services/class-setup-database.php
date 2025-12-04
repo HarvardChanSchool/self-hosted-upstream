@@ -8,6 +8,7 @@ use Simple_History\Event_Details\Event_Details_Item_RAW_Formatter;
 use Simple_History\Helpers;
 use Simple_History\Loggers\Plugin_Logger;
 use Simple_History\Log_Initiators;
+use Simple_History\Services\Auto_Backfill_Service;
 
 /**
  * Setup database and upgrade it if needed.
@@ -91,10 +92,16 @@ class Setup_Database extends Service {
 
 		// Make sure table is using UTF-8. Early versions did not.
 		$sql = sprintf( 'alter table %1$s charset=utf8;', $table_name );
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $sql );
 
 		$this->update_db_to_version( 1 );
+
+		// Schedule auto-backfill to run shortly after first install.
+		// This populates the history with existing WordPress data (posts, pages, users)
+		// so users don't start with an empty log.
+		Auto_Backfill_Service::schedule_auto_backfill();
 	}
 
 	/**
@@ -114,11 +121,11 @@ class Setup_Database extends Service {
 		// Each option that is missing a value will make a sql call otherwise = unnecessary.
 		$arr_options = array(
 			array(
-				'name' => 'simple_history_show_as_page',
+				'name'          => 'simple_history_show_as_page',
 				'default_value' => 1,
 			),
 			array(
-				'name' => 'simple_history_show_on_dashboard',
+				'name'          => 'simple_history_show_on_dashboard',
 				'default_value' => 1,
 			),
 		);
@@ -150,7 +157,7 @@ class Setup_Database extends Service {
 		}
 
 		global $wpdb;
-		$table_name = $this->simple_history->get_events_table_name();
+		$table_name          = $this->simple_history->get_events_table_name();
 		$table_name_contexts = $this->simple_history->get_contexts_table_name();
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -185,7 +192,7 @@ class Setup_Database extends Service {
 			) CHARSET=utf8;
 		";
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $sql );
 
 		// Update possible old items to use SimpleLogger.
@@ -200,7 +207,7 @@ class Setup_Database extends Service {
 			$table_name
 		);
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->query( $sql );
 
 		$this->update_db_to_version( 3 );
@@ -235,10 +242,10 @@ class Setup_Database extends Service {
 
 		// If old columns exist = this is an old install, then modify the columns so we still can keep them
 		// we want to keep them because user may have logged items that they want to keep.
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-		$db_cools = $wpdb->get_col( "DESCRIBE $table_name" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$db_cols = $wpdb->get_col( "DESCRIBE $table_name" );
 
-		if ( in_array( 'action', $db_cools ) ) {
+		if ( in_array( 'action', $db_cols, true ) ) {
 			$sql = sprintf(
 				'
                         ALTER TABLE %1$s
@@ -251,7 +258,7 @@ class Setup_Database extends Service {
                     ',
 				$table_name
 			);
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$wpdb->query( $sql );
 		}
 
@@ -271,13 +278,13 @@ class Setup_Database extends Service {
 
 		// Set default value for simple_history_detective_mode_enabled and simple_history_experimental_features_enabled.
 		$default_values = [
-			'simple_history_detective_mode_enabled' => 0,
+			'simple_history_detective_mode_enabled'        => 0,
 			'simple_history_experimental_features_enabled' => 0,
 		];
 
 		foreach ( $default_values as $option_name => $default_value ) {
 			$option_existing_value = get_option( $option_name );
-			$option_value_to_set = $default_value;
+			$option_value_to_set   = $default_value;
 
 			if ( $option_existing_value !== false ) {
 				$option_value_to_set = $option_existing_value;
@@ -340,12 +347,12 @@ class Setup_Database extends Service {
 		$plugin_logger->info_message(
 			'plugin_installed',
 			[
-				'plugin_name' => 'Simple History',
+				'plugin_name'        => 'Simple History',
 				'plugin_description' =>
 					'Plugin that logs various things that occur in WordPress and then presents those events in a very nice GUI.',
-				'plugin_url' => 'https://simple-history.com',
-				'plugin_version' => SIMPLE_HISTORY_VERSION,
-				'plugin_author' => 'Pär Thernström',
+				'plugin_url'         => 'https://simple-history.com',
+				'plugin_version'     => SIMPLE_HISTORY_VERSION,
+				'plugin_author'      => 'Pär Thernström',
 			]
 		);
 
@@ -353,8 +360,8 @@ class Setup_Database extends Service {
 		$plugin_logger->info_message(
 			'plugin_activated',
 			[
-				'plugin_slug' => 'simple-history',
-				'plugin_name' => 'Simple History',
+				'plugin_slug'  => 'simple-history',
+				'plugin_name'  => 'Simple History',
 				'plugin_title' => '<a href="https://simple-history.com/">Simple History</a>',
 			]
 		);
@@ -367,7 +374,7 @@ class Setup_Database extends Service {
 		SimpleLogger()->info(
 			$welcome_message_1,
 			array(
-				'_initiator' => Log_Initiators::WORDPRESS,
+				'_initiator'         => Log_Initiators::WORDPRESS,
 				'is_welcome_message' => true,
 			)
 		);
@@ -410,7 +417,7 @@ class Setup_Database extends Service {
 		$message .= sprintf(
 			$row_template,
 			'📝',
-			__( 'As your users work on this site, this feed will contain information about their actions. Page edits, attachment uploads, plugin updates, user logins, site settings changes, and much more will show up in this log.', 'simple-history' )
+			__( 'As your users work on this site, this feed will update to contain information about their actions. Page edits, attachment uploads, plugin updates, user logins, site settings changes, and much more will show up in this log.', 'simple-history' )
 		);
 
 		$message .= sprintf(
@@ -421,14 +428,25 @@ class Setup_Database extends Service {
 
 		$message .= sprintf(
 			$row_template,
+			'⏰',
+			sprintf(
+				/* translators: %s is a link to the add-ons page */
+				__( 'Simple History will automatically backfill your history with events from existing content. Posts, pages, and user registrations will be added to your log, giving you a head start. Want to import even older WordPress posts? <a href="%s" target="_blank">Simple History Premium</a> lets you manually run backfill with custom options.', 'simple-history' ),
+				esc_url( Helpers::get_tracking_url( 'https://simple-history.com/add-ons/', 'premium_welcome_backfill' ) )
+			)
+		);
+
+		$message .= sprintf(
+			$row_template,
 			'🌟',
 			sprintf(
-				/* translators: 1 %s is a link to the add-ons page */
+				/* translators: 1: number of days, 2: link to Premium page */
 				__(
-					'Extend Simple History with more features using <a href="%1$s" target="_blank">add-ons</a>.',
+					'By default, events are automatically cleared after %1$s days to keep your database size in check. Need to keep your history longer? <a href="%2$s" target="_blank">Simple History Premium</a> lets you extend the retention period.',
 					'simple-history'
 				),
-				esc_url( Helpers::get_tracking_url( 'https://simple-history.com/add-ons/', 'premium_welcome_addons' ) )
+				Helpers::get_clear_history_interval(),
+				esc_url( Helpers::get_tracking_url( 'https://simple-history.com/add-ons/', 'premium_welcome_retention' ) )
 			)
 		);
 
