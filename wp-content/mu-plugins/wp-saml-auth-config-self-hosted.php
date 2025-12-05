@@ -1,5 +1,7 @@
 <?php
 
+namespace HSPH\Plugins\WPSAMLAuthConfigSelfHosted;
+
 /**
  * Filter the default wp-saml-auth confifuration option values.
  * Any value set in $defaults will be used instead of the plugin-default.
@@ -171,7 +173,7 @@ function hsph_wp_saml_auth_config( $value, $option_name ) {
 	$value = isset( $defaults[ $option_name ] ) ? $defaults[ $option_name ] : $value;
 	return $value;
 }
-add_filter( 'wp_saml_auth_option', 'hsph_wp_saml_auth_config', 10, 2 );
+add_filter( 'wp_saml_auth_option', __NAMESPACE__ . '\\hsph_wp_saml_auth_config', 10, 2 );
 
 /**
  * Gets the user's SAML attributes indexed by friendly name.
@@ -183,4 +185,4 @@ add_filter( 'wp_saml_auth_option', 'hsph_wp_saml_auth_config', 10, 2 );
 function use_friendly_attrs( $attributes, $provider ) {
 	return $provider->getAttributesWithFriendlyName();
 }
-add_filter( 'wp_saml_auth_attributes', 'use_friendly_attrs', 10, 2 );
+add_filter( 'wp_saml_auth_attributes', __NAMESPACE__ . '\\use_friendly_attrs', 10, 2 );
