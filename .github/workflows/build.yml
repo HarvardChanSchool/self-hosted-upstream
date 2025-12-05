@@ -37,15 +37,11 @@ jobs:
               git add -f "$dir" # Force add the directory
             fi
           done
-          for dir in wp-content/mu-plugins/*; do
-            if [ -d "$dir" ]; then # Check if it's a directory
-              # Only proceed if this looks like a Git checkout (which comes from the composer install)
-              if [ -d "$dir/.git" ]; then
-                rm -rf "$dir/.git" # Remove the .git directory
-                git add -f "$dir" # Force add the directory
-              fi
-            fi
-          done
+          # wp-content/mu-plugins/wp-saml-auth-config is a special case that should also be added
+          if [ -d "wp-content/mu-plugins/wp-saml-auth-config/.git" ]; then
+            rm -rf "wp-content/mu-plugins/wp-saml-auth-config/.git" # Remove the .git directory
+            git add -f "wp-content/mu-plugins/wp-saml-auth-config" # Force add the directory
+          fi
           git commit -m "Add built assets"
       - name: Replace composer.json with composer.json.dist, and rebuild composer.lock
         run: |
