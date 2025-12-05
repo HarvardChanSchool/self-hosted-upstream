@@ -1,0 +1,11 @@
+{
+  "name": "harvardchanschool/plugin-google-analytics-tracking",
+  "type": "wordpress-plugin",
+  "description": "Adds the Google Analytics tracking code to the header of the site.",
+  "homepage": "http://www.hsph.harvard.edu/information-technology/",
+  "authors": [{
+      "name": "HSPH Webteam",
+      "email": "webteam@hsph.harvard.edu",
+      "homepage": "http://www.hsph.harvard.edu/information-technology/"
+  }]
+}

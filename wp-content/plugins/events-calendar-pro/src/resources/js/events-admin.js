@@ -8,7 +8,7 @@ var tribe_events_pro_admin = {
 		// Admin Google Maps Preview
 		// @todo - check if this is still used anywhere, i don't think it is.
 		// this file is only enqueued on admin pages, these divs are not in the admin
-		$( '#event_venue input, #event_venue select' ).change( function() {
+		$( '#event_venue input, #event_venue select' ).on( 'change', function() {
 
 			var selectedOption = $( '#saved_venue option:selected' );
 			if ( selectedOption.val() === 0 ) {
@@ -36,7 +36,7 @@ var tribe_events_pro_admin = {
 
 		} );
 
-		$( '#doaction, #doaction2' ).click( function( e ) {
+		$( '#doaction, #doaction2' ).on( 'click', function( e ) {
 			var n = $( this ).attr( 'id' ).substr( 2 );
 			if (
 				$( 'select[name="' + n + '"]' ).val() === 'edit' &&
@@ -65,7 +65,7 @@ var tribe_events_pro_admin = {
 			tribe_events_pro_admin.recurrence.reset_submit_button();
 		} );
 
-		$( 'input[name="post[]"]' ).click( function() {
+		$( 'input[name="post[]"]' ).on( 'click', function() {
 			var event_id = $( this ).val();
 
 			if ( $( this ).is( ':checked' ) ) {
@@ -90,7 +90,7 @@ var tribe_events_pro_admin = {
 		} );
 
 		/* Fix for deleting multiple events */
-		$( '.wp-admin.events-cal.edit-php #doaction' ).click( function( e ) {
+		$( '.wp-admin.events-cal.edit-php #doaction' ).on( 'click', function( e ) {
 			if ( $( '[name="action"] option:selected' ).val() === 'trash' ) {
 				if (
 					$( '.tribe-recurring-event-parent [name="post[]"]:checked' ).length > 0 &&

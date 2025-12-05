@@ -1,0 +1,53 @@
+.card {
+    box-shadow: $hsph-box-shadow;
+
+    * {
+        font-family: $hsph-font-family-primary;
+    }
+
+    .btn {
+        box-shadow: none;
+    }
+
+    .card-body {
+
+        :last-child{
+            margin-bottom: 0;
+        }
+    }
+}
+
+.grid-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: 1fr;
+    grid-column-gap: $card-spacer-y;
+    grid-row-gap: $card-spacer-x;
+}
+
+.grid-card {
+    display: grid;
+}
+
+.grid-card-content {
+    align-self: center;
+    text-align: center;
+}
+
+@include media-breakpoint-up(md) {
+    .grid-cards{
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@include media-breakpoint-up(lg) {
+    .grid-cards{
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.grid-card.grid-card-hover {
+    transition: $hsph-transition;
+    &:hover {
+        background-color: $light-gray-400;
+    }
+}

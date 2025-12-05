@@ -869,7 +869,7 @@ class Tribe_Events extends Shortcode_Abstract {
 				$month_slug = Month_View::get_view_slug();
 				$manager    = tribe( Views_Manager::class );
 				$views      = $manager->get_publicly_visible_views();
-				$view_slug  = in_array( $month_slug, $views ) ? $month_slug : $manager->get_default_view_slug();
+				$view_slug  = ! empty( $views[ $month_slug ] ) ? $month_slug : $manager->get_default_view_slug();
 
 				$context_args['view']               = $view_slug;
 				$context_args['event_display_mode'] = $view_slug;
@@ -883,8 +883,9 @@ class Tribe_Events extends Shortcode_Abstract {
 		}
 
 		if ( ! empty( $arguments['past'] ) && tribe_is_truthy( $arguments['past'] ) ) {
-			$context_args['past']        = tribe_is_truthy( $arguments['past'] );
-			$context_args['ends_before'] = tribe_end_of_day( current_time( 'mysql' ) );
+			$context_args['past']              = tribe_is_truthy( $arguments['past'] );
+			$context_args['ends_before']       = tribe_end_of_day( current_time( 'mysql' ) );
+			$context_args['latest_event_date'] = tribe_end_of_day( current_time( 'mysql' ) );
 			// Make sure this isn't set to avoid logic conflicts.
 			unset( $context_args['starts_after'] );
 		}

@@ -1,0 +1,23 @@
+{
+  "name": "harvardchanschool/plugin-harvard-key",
+  "type": "wordpress-plugin",
+  "description": "{projectdescription}",
+  "homepage": "http://www.hsph.harvard.edu/information-technology/",
+  "authors": [{
+      "name": "HSPH Webteam",
+      "email": "webteam@hsph.harvard.edu",
+      "homepage": "http://www.hsph.harvard.edu/information-technology/"
+  }],
+  "require": {
+    "composer/installers": "^2.0",
+    "monolog/monolog": "^2.8"
+  },
+  "config": {
+    "platform":{
+        "php":"8.1"
+    },
+    "allow-plugins": {
+      "composer/installers": true
+    }
+  }
+}

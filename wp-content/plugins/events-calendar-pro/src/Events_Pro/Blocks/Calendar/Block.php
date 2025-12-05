@@ -8,6 +8,7 @@ namespace TEC\Events_Pro\Blocks\Calendar;
 use Tribe__Events__Pro__Main;
 use Tribe\Events\Views\V2\Manager;
 use Tribe__Main;
+use TEC\Common\Asset;
 
 /**
  * Class Block
@@ -39,15 +40,13 @@ class Block {
 	 * @since 7.2.0
 	 */
 	public function setup_assets() {
-		$plugin = Tribe__Events__Pro__Main::instance();
-		tribe_asset(
-			$plugin,
+		Asset::add(
 			'tec-events-pro-iframe-content-resizer',
-			'node_modules/@iframe-resizer/child/index.umd.js',
-			[],
-			null,
-			[]
-		);
+			'index.umd.js',
+			Tribe__Events__Pro__Main::VERSION
+		)
+		->add_to_group_path( 'tec-events-pro-vendor' )
+		->register();
 
 		$embed_url = $this->get_embed_url();
 

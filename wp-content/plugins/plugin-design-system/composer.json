@@ -1,0 +1,19 @@
+{
+  "name": "harvardchanschool/plugin-design-system",
+  "type": "wordpress-plugin",
+  "description": "Libraries and resources to implement the HSPH design system.",
+  "homepage": "http://www.hsph.harvard.edu/information-technology/",
+  "authors": [{
+      "name": "HSPH Webteam",
+      "email": "webteam@hsph.harvard.edu",
+      "homepage": "http://www.hsph.harvard.edu/information-technology/"
+  }],
+  "require": {
+    "paquettg/php-html-parser": "^3.0"
+  },
+  "config": {
+    "platform": {
+        "php": "7.4.2"
+    }
+  }
+}

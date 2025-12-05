@@ -1,0 +1,19 @@
+.list-group{
+
+    .list-group-item{
+        h1 {
+            a{
+                border-bottom: none;
+            }
+        }
+        p{
+            font-family: $hsph-font-family-primary;
+            font-weight: $font-weight-normal;
+            font-size: 1rem;
+        }
+
+        :last-child{
+            margin-bottom: 0;
+        }
+    }
+}

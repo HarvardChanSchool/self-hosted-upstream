@@ -1,0 +1,144 @@
+{
+    "key": "group_5ebab9da30cce",
+    "title": "Social Profiles for Sites",
+    "fields": [
+        {
+            "key": "field_5ebac08871cd1",
+            "label": "Display in menu?",
+            "name": "hsph_show_hide_social_icons",
+            "type": "radio",
+            "instructions": "Whether or not to display your social profile icons in the menu. On the main theme they will display under the left side navigation. On the affiliate theme they will display in the utility menu next to the search box. Alternatively social profile icons can be placed in the sidebar using the 'Social Profiles for Sites (HSPH)' widget.",
+            "required": 1,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "choices": {
+                "show": "Show",
+                "hide": "Hide"
+            },
+            "allow_null": 0,
+            "other_choice": 0,
+            "default_value": "hide",
+            "layout": "vertical",
+            "return_format": "value",
+            "save_other_choice": 0
+        },
+        {
+            "key": "field_5ebaba0867c58",
+            "label": "Facebook URL",
+            "name": "hsph_social_network_link_facebook",
+            "type": "url",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "http:\/\/facebook.com\/your-page"
+        },
+        {
+            "key": "field_5ebabb2267c59",
+            "label": "Twitter URL",
+            "name": "hsph_social_network_link_twitter",
+            "type": "url",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "http:\/\/twitter.com\/your-profile"
+        },
+        {
+            "key": "field_5ebabbad67c5a",
+            "label": "LinkedIn URL",
+            "name": "hsph_social_network_link_linkedin",
+            "type": "url",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "http:\/\/linkedin.com\/your-profile"
+        },
+        {
+            "key": "field_5ebabbe167c5b",
+            "label": "Instagram URL",
+            "name": "hsph_social_network_link_instagram",
+            "type": "url",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "http:\/\/instagram.com\/your-profile"
+        },
+        {
+            "key": "field_5ebabc0667c5c",
+            "label": "YouTube URL",
+            "name": "hsph_social_network_link_youtube",
+            "type": "url",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "http:\/\/youtube.com\/your-channel"
+        },
+        {
+            "key": "field_5ebabc2567c5d",
+            "label": "Newsletter URL",
+            "name": "hsph_social_network_link_newsletter",
+            "type": "url",
+            "instructions": "",
+            "required": 0,
+            "conditional_logic": 0,
+            "wrapper": {
+                "width": "",
+                "class": "",
+                "id": ""
+            },
+            "default_value": "",
+            "placeholder": "http:\/\/hsph.harvard.edu\/join-newsletter"
+        }
+    ],
+    "location": [
+        [
+            {
+                "param": "options_page",
+                "operator": "==",
+                "value": "acf-options-social-media"
+            }
+        ]
+    ],
+    "menu_order": 0,
+    "position": "normal",
+    "style": "default",
+    "label_placement": "top",
+    "instruction_placement": "label",
+    "hide_on_screen": "",
+    "active": 1,
+    "description": "Plugin Social - Manage links and display settings for social network icons",
+    "modified": 1589479202
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<ruleset name="HSPH WordPress Coding Standards">
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/assets/*</exclude-pattern>
+    <arg name="extensions" value="php"/>
+    <!-- Include the WordPress ruleset, with exclusions. -->
+    <rule ref="WordPress"></rule>
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array" value="hsph-ui-shortcodes" />
+        </properties>
+    </rule>
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array" value="hsph" />
+        </properties>
+    </rule>
+    <rule ref="WordPress.Files.FileName">
+        <properties>
+            <property name="is_theme" value="false" />
+        </properties>
+    </rule>
+</ruleset>

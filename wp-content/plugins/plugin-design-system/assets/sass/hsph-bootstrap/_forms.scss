@@ -1,0 +1,92 @@
+.was-validated .form-control:valid,
+.form-control.is-valid {
+    background-position: calc(100% - 0.75em) center;
+    padding-right: 1.75rem;
+}
+
+
+.was-validated .form-control:invalid,
+.form-control.is-invalid {
+    background-position: calc(100% - 0.575em) center;
+    padding-right: 1.75rem;
+}
+
+label {
+    font-family: $hsph-font-family-primary;
+    font-size: 1rem;
+    font-weight: initial;
+    margin-bottom: .3rem;
+}
+
+legend{
+    margin-bottom: 0;
+    font-size: 1rem;
+}
+
+.form-control {
+    &:focus {
+        outline: -webkit-focus-ring-color auto 1px;
+      }
+}
+
+.alert {
+    .alert-header,
+    &.alert-dismissible .close {
+        font-weight: $font-weight-bolder;
+    }
+
+    &.alert-light {
+        background-color: $light-gray-400;
+        border: 1px solid $gray-200;
+        color: $gray-500;
+
+        .close {
+            color: $gray-500;
+        }
+    }
+
+    &.alert-warning {
+        background-color: $yellow-000;
+        border: 1px solid $yellow-200;
+        color: #A85516;
+
+        .close {
+            color: #A85516;
+        }
+    }
+
+    &.alert-success{
+        background-color: $green-000;
+        border: 1px solid $green-200;
+        color: $green-900;
+
+        .close {
+            color: $green-900;
+        }
+    }
+
+    &.alert-danger {
+        background-color: $red-000;
+        border: 1px solid $red-200;
+        color: $red-800;
+
+        .close {
+            color: $red-800;
+        }
+    }
+
+    .fa.fa-exclamation-circle {
+        margin-right: 0.5em;
+    }
+
+    .close {
+        opacity: 100%;
+
+        .fa.fa-times {
+            font-size: .75em;
+        }
+    }
+
+}
+
+
