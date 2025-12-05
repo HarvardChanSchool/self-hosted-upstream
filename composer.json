@@ -8,7 +8,7 @@
       "harvardchanschool/plugin-social": "dev-master",
       "harvardchanschool/plugin-ui-shortcodes": "dev-main",
 			"harvardchanschool/wp-saml-auth-config": "dev-main",
-			"the-events-calendar/events-calendar-pro": "^7.3.0",
+			"the-events-calendar/events-calendar-pro": "^7.4.2",
 			"rankmath/seo-by-rank-math-pro": "^3.0.80"
 		},
 		"repositories": [
