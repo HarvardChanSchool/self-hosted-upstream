@@ -40,10 +40,10 @@
 				"type": "package",
 				"package": {
 					"name": "the-events-calendar/events-calendar-pro",
-					"version": "7.3.0",
+					"version": "7.4.2",
 					"type": "wordpress-plugin",
 					"dist": {
-						"url": "https://evnt.is/fetch-ecp?key=a0fb1ee00ac1590ec344fecde11be9fd2b4710fd&version=7.3.0",
+						"url": "https://evnt.is/fetch-ecp?key=a0fb1ee00ac1590ec344fecde11be9fd2b4710fd&version=7.4.2",
 						"type": "zip"
 					}
 				}
