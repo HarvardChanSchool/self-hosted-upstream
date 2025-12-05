@@ -7,6 +7,7 @@
       "harvardchanschool/plugin-harvard-key": "dev-main",
       "harvardchanschool/plugin-social": "dev-master",
       "harvardchanschool/plugin-ui-shortcodes": "dev-main",
+			"harvardchanschool/wp-saml-auth-config": "dev-main",
 			"the-events-calendar/events-calendar-pro": "^7.3.0",
 			"rankmath/seo-by-rank-math-pro": "^3.0.80"
 		},
@@ -30,6 +31,10 @@
 			{
 				"type": "vcs",
 				"url": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes"
+			},
+			{
+				"type": "vcs",
+				"url": "https://github.com/HarvardChanSchool/wp-saml-auth-config"
 			},
 			{
 				"type": "package",
