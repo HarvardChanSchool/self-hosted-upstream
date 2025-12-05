@@ -1,66 +1,8 @@
 {
-    "name": "harvardchanschool/self-hosted-upstream",
+    "name": "harvardchanschool/your-self-hosted-website",
     "type": "project",
-    "require": {
-      "harvardchanschool/plugin-design-system": "dev-main",
-      "harvardchanschool/plugin-google-analytics-tracking": "dev-master",
-      "harvardchanschool/plugin-harvard-key": "dev-main",
-      "harvardchanschool/plugin-social": "dev-master",
-      "harvardchanschool/plugin-ui-shortcodes": "dev-main",
-			"harvardchanschool/wp-saml-auth-config": "dev-main",
-			"the-events-calendar/events-calendar-pro": "^7.4.2",
-			"rankmath/seo-by-rank-math-pro": "^3.0.80"
-		},
-		"repositories": [
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-design-system"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-google-analytics-tracking"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-harvard-key"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-social"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes"
-			},
-			{
-				"type": "vcs",
-				"url": "https://github.com/HarvardChanSchool/wp-saml-auth-config"
-			},
-			{
-				"type": "package",
-				"package": {
-					"name": "the-events-calendar/events-calendar-pro",
-					"version": "7.4.2",
-					"type": "wordpress-plugin",
-					"dist": {
-						"url": "https://evnt.is/fetch-ecp?key=a0fb1ee00ac1590ec344fecde11be9fd2b4710fd&version=7.4.2",
-						"type": "zip"
-					}
-				}
-			},
-			{
-				"type": "package",
-				"package": {
-						"name": "rankmath/seo-by-rank-math-pro",
-						"type": "wordpress-plugin",
-						"version": "3.0.80",
-							"dist": {
-								"type": "zip",
-								"url": "https://rankmath.com/download/510590/?username=deane&api_key=bad0233c27f41b4aa64560a2254ef85f"
-						}
-				}
-			}
-		],
+    "require": {},
+    "repositories": [],
     "config": {
         "allow-plugins": {
             "composer/installers": true
