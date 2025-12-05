@@ -40,8 +40,8 @@ jobs:
           # wp-content/mu-plugins/wp-saml-auth-config is a special case that should also be added
           if [ -d "wp-content/mu-plugins/wp-saml-auth-config/.git" ]; then
             rm -rf "wp-content/mu-plugins/wp-saml-auth-config/.git" # Remove the .git directory
-            git add -f "wp-content/mu-plugins/wp-saml-auth-config" # Force add the directory
-          fi
+					fi
+          git add -f "wp-content/mu-plugins/wp-saml-auth-config" # Force add the directory
           git commit -m "Add built assets"
       - name: Replace composer.json with composer.json.dist, and rebuild composer.lock
         run: |
