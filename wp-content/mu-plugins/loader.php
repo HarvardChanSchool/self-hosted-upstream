@@ -16,6 +16,10 @@ $pantheon_mu_plugins = [
 	'pantheon-mu-plugin/pantheon.php',
 ];
 
+if ( ! defined( 'HSPH_SKIP_SAML' ) || ! HSPH_SKIP_SAML ) {
+	$pantheon_mu_plugins[] = 'wp-saml-auth-config/wp-saml-auth-config.php';
+}
+
 foreach ( $pantheon_mu_plugins as $file ) {
 	require_once WPMU_PLUGIN_DIR . '/' . $file;
 }
