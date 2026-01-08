@@ -4,7 +4,7 @@
 
 namespace TEC\Common\Composer\Autoload;
 
-class ComposerStaticInita04a5f17980117a8db724fd4a3e52d85
+class ComposerStaticInit5899290deebd2b708dc7f2893136e6f7
 {
     public static $prefixLengthsPsr4 = array (
         'T' => 
@@ -584,9 +584,9 @@ class ComposerStaticInita04a5f17980117a8db724fd4a3e52d85
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInita04a5f17980117a8db724fd4a3e52d85::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInita04a5f17980117a8db724fd4a3e52d85::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInita04a5f17980117a8db724fd4a3e52d85::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInit5899290deebd2b708dc7f2893136e6f7::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInit5899290deebd2b708dc7f2893136e6f7::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInit5899290deebd2b708dc7f2893136e6f7::$classMap;
 
         }, null, ClassLoader::class);
     }
