@@ -53,10 +53,10 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 		$this->deactivate_plugin();
 
 		// 2. Drop database tables.
-		$this->drop_tables();
+		$this->do_drop_tables();
 
 		// 3. Delete all options.
-		$this->delete_options();
+		$this->do_delete_options();
 
 		// 4. Clear scheduled cron events.
 		$this->clear_cron_events();
@@ -72,7 +72,7 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 	/**
 	 * Drop Simple History database tables.
 	 */
-	private function drop_tables() {
+	private function do_drop_tables() {
 		global $wpdb;
 
 		$simple_history = Simple_History::get_instance();
@@ -91,7 +91,7 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 	/**
 	 * Delete all Simple History options.
 	 */
-	private function delete_options() {
+	private function do_delete_options() {
 		$options_to_delete = [
 			'simple_history_db_version',
 			'simple_history_pager_size',
@@ -149,10 +149,142 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 	}
 
 	/**
+	 * Drop Simple History database tables only.
+	 *
+	 * Useful for testing table creation on fresh installs or simulating
+	 * site duplication where tables are not copied.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--yes]
+	 * : Skip confirmation prompt.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp simple-history dev drop-tables --yes
+	 *
+	 * @param array $args Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function drop_tables( $args, $assoc_args ) {
+		WP_CLI::confirm(
+			__( 'This will delete all Simple History database tables. Continue?', 'simple-history' ),
+			$assoc_args
+		);
+
+		$this->do_drop_tables();
+		WP_CLI::success( __( 'Database tables dropped.', 'simple-history' ) );
+	}
+
+	/**
+	 * Delete all Simple History options only.
+	 *
+	 * Useful for testing fresh install behavior.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--yes]
+	 * : Skip confirmation prompt.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp simple-history dev delete-options --yes
+	 *
+	 * @param array $args Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function delete_options( $args, $assoc_args ) {
+		WP_CLI::confirm(
+			__( 'This will delete all Simple History options. Continue?', 'simple-history' ),
+			$assoc_args
+		);
+
+		$this->do_delete_options();
+		WP_CLI::success( __( 'Options deleted.', 'simple-history' ) );
+	}
+
+	/**
+	 * Show current Simple History database state.
+	 *
+	 * Displays tables existence, row counts, and option values.
+	 * Useful for debugging table creation issues.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp simple-history dev status
+	 *
+	 * @param array $args Positional arguments.
+	 * @param array $assoc_args Associative arguments.
+	 */
+	public function status( $args, $assoc_args ) {
+		global $wpdb;
+
+		$simple_history = Simple_History::get_instance();
+		$events_table   = $simple_history->get_events_table_name();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
+		WP_CLI::log( '' );
+		WP_CLI::log( WP_CLI::colorize( '%BEnvironment:%n' ) );
+		$dev_mode = defined( 'SIMPLE_HISTORY_DEV' ) && SIMPLE_HISTORY_DEV;
+		WP_CLI::log( sprintf( '  Dev mode: %s', $dev_mode ? WP_CLI::colorize( '%gENABLED%n' ) : WP_CLI::colorize( '%ydisabled%n' ) ) );
+
+		WP_CLI::log( '' );
+		WP_CLI::log( WP_CLI::colorize( '%BDatabase Tables:%n' ) );
+		WP_CLI::log( sprintf( '  Prefix: %s', $wpdb->prefix ) );
+
+		// Check events table.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$events_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$events_table}'" ) === $events_table;
+		if ( $events_exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$events_count = $wpdb->get_var( "SELECT COUNT(*) FROM {$events_table}" );
+			WP_CLI::log( sprintf( '  %s: %s (%s rows)', $events_table, WP_CLI::colorize( '%gEXISTS%n' ), $events_count ) );
+		} else {
+			WP_CLI::log( sprintf( '  %s: %s', $events_table, WP_CLI::colorize( '%rMISSING%n' ) ) );
+		}
+
+		// Check contexts table.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$contexts_exists = $wpdb->get_var( "SHOW TABLES LIKE '{$contexts_table}'" ) === $contexts_table;
+		if ( $contexts_exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$contexts_count = $wpdb->get_var( "SELECT COUNT(*) FROM {$contexts_table}" );
+			WP_CLI::log( sprintf( '  %s: %s (%s rows)', $contexts_table, WP_CLI::colorize( '%gEXISTS%n' ), $contexts_count ) );
+		} else {
+			WP_CLI::log( sprintf( '  %s: %s', $contexts_table, WP_CLI::colorize( '%rMISSING%n' ) ) );
+		}
+
+		WP_CLI::log( '' );
+		WP_CLI::log( WP_CLI::colorize( '%BOptions:%n' ) );
+
+		$options = [
+			'simple_history_db_version',
+			'simple_history_pager_size',
+			'simple_history_show_on_dashboard',
+			'simple_history_show_as_page',
+			'simple_history_detective_mode_enabled',
+			'simple_history_experimental_features_enabled',
+			'simple_history_show_in_admin_bar',
+			'simple_history_install_date_gmt',
+		];
+
+		foreach ( $options as $option ) {
+			$value = get_option( $option, null );
+			if ( $value === null ) {
+				WP_CLI::log( sprintf( '  %s: %s', $option, WP_CLI::colorize( '%ynot set%n' ) ) );
+			} else {
+				WP_CLI::log( sprintf( '  %s: %s', $option, WP_CLI::colorize( '%g' . $value . '%n' ) ) );
+			}
+		}
+
+		WP_CLI::log( '' );
+	}
+
+	/**
 	 * Add a plugin update message to the log for testing the "What's new" feature.
 	 *
-	 * Creates a log entry as if Simple History was updated to the current version,
-	 * allowing you to test and preview the update details message.
+	 * Creates a log entry as if Simple History was updated, allowing you to test
+	 * and preview the update details message.
 	 *
 	 * ## OPTIONS
 	 *
@@ -162,13 +294,22 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 	 * default: 5.18.0
 	 * ---
 	 *
+	 * [--version=<version>]
+	 * : The target version to simulate updating to. Defaults to current installed version.
+	 *
 	 * ## EXAMPLES
 	 *
-	 *     # Add a plugin update message with default previous version
+	 *     # Add a plugin update message with default versions
 	 *     wp simple-history dev add-plugin-update-message
 	 *
 	 *     # Add a plugin update message simulating update from specific version
 	 *     wp simple-history dev add-plugin-update-message --prev-version=5.17.0
+	 *
+	 *     # Add a plugin update message simulating update to specific version
+	 *     wp simple-history dev add-plugin-update-message --version=5.22.0
+	 *
+	 *     # Add a plugin update message with both versions specified
+	 *     wp simple-history dev add-plugin-update-message --prev-version=5.20.0 --version=5.22.0
 	 *
 	 * @param array $args Positional arguments.
 	 * @param array $assoc_args Associative arguments.
@@ -190,6 +331,7 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- WP-CLI command, no nonce needed.
 		$prev_version = $assoc_args['prev-version'] ?? '5.18.0';
+		$version      = $assoc_args['version'] ?? $plugin_data['Version'];
 
 		$context = [
 			'plugin_slug'         => 'simple-history',
@@ -197,7 +339,7 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 			'plugin_title'        => $plugin_data['Title'],
 			'plugin_description'  => $plugin_data['Description'],
 			'plugin_author'       => $plugin_data['Author'],
-			'plugin_version'      => $plugin_data['Version'],
+			'plugin_version'      => $version,
 			'plugin_prev_version' => $prev_version,
 			'plugin_url'          => $plugin_data['PluginURI'],
 		];
@@ -209,7 +351,7 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 				/* translators: 1: previous version, 2: current version */
 				__( 'Added plugin update message: Simple History %1$s → %2$s', 'simple-history' ),
 				$prev_version,
-				$plugin_data['Version']
+				$version
 			)
 		);
 	}

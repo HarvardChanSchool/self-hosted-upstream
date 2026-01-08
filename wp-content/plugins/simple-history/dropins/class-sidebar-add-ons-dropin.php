@@ -52,10 +52,12 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 		?>
 		<div class="postbox sh-PremiumFeaturesPostbox">
 			<div class="inside">
-				<img style="width: 80px; max-width: 100%; margin: 0 auto; display: block; margin-bottom: 1rem;" src="<?php echo esc_url( SIMPLE_HISTORY_DIR_URL . 'assets/images/black-week-2025.svg' ); ?>" alt="Black Week Sale" />
+				<img style="width: 80px; max-width: 100%; margin: 0 auto; display: block; margin-bottom: 1rem;" src="<?php echo esc_url( SIMPLE_HISTORY_DIR_URL . 'assets/images/black-week-2025.svg' ); ?>" alt="" />
 
 				<p style="margin: 0; font-size: 1rem; font-weight: bold;">
-					<?php esc_html_e( 'Black Week Sale: Premium Features at 30% Off', 'simple-history' ); ?>
+					<?php esc_html_e( 'Black Week Sale:', 'simple-history' ); ?>
+					<br />
+					<?php esc_html_e( 'Premium Features at 30% Off', 'simple-history' ); ?>
 				</p>
 
 				<p>Don't lose important history after 60 days. 
@@ -152,7 +154,7 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 		<div class="postbox sh-PremiumFeaturesPostbox">
 			<div class="inside">
 
-				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><em class="sh-PremiumFeatureBadge"><?php esc_html_e( 'Add-on', 'simple-history' ); ?></em></p>
+				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><span class="sh-Badge sh-Badge--premium"><?php esc_html_e( 'Add-on', 'simple-history' ); ?></span></p>
 
 				<h3 class="sh-PremiumFeaturesPostbox-title">
 					<?php esc_html_e( 'Debug & Monitor', 'simple-history' ); ?>
@@ -198,7 +200,7 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 		<div class="postbox sh-PremiumFeaturesPostbox" style="--box-bg-color: var(--sh-color-cream);">
 
 			<div class="inside">
-				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><em class="sh-PremiumFeatureBadge"><?php esc_html_e( 'Premium', 'simple-history' ); ?></em></p>
+				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><span class="sh-Badge sh-Badge--premium"><?php esc_html_e( 'Premium', 'simple-history' ); ?></span></p>
 
 				<h3 class="sh-PremiumFeaturesPostbox-title">
 					<?php echo esc_html__( 'Unlock more features with Simple History Premium!', 'simple-history' ); ?>
@@ -209,9 +211,7 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 					<li class="sh-PremiumFeaturesPostbox-featuresList-item">
 						<?php esc_html_e( 'Sticky events', 'simple-history' ); ?>
 
-						<span class="sh-PremiumFeatureBadge" style="--sh-badge-background-color: var(--sh-color-yellow);">
-							<strong><?php esc_html_e( 'New!', 'simple-history' ); ?></strong>
-						</span>
+						<span class="sh-Badge sh-Badge--premium" style="background-color: var(--sh-color-yellow);"><strong><?php esc_html_e( 'New!', 'simple-history' ); ?></strong></span>
 
 						<em class="sh-PremiumFeaturesPostbox-featuresList-item-discrete">
 							<?php esc_html_e( 'Pin important log entries to the top of the log for easy access.', 'simple-history' ); ?>
@@ -269,7 +269,7 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 		<div class="postbox sh-PremiumFeaturesPostbox">
 			<div class="inside">
 
-				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><em class="sh-PremiumFeatureBadge"><?php esc_html_e( 'Add-on', 'simple-history' ); ?></em></p>
+				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><span class="sh-Badge sh-Badge--premium"><?php esc_html_e( 'Add-on', 'simple-history' ); ?></span></p>
 
 				<h3 class="sh-PremiumFeaturesPostbox-title">
 					<?php esc_html_e( 'WooCommerce Logger', 'simple-history' ); ?>

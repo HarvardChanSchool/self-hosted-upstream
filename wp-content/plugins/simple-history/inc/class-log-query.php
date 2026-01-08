@@ -4,6 +4,7 @@ namespace Simple_History;
 
 use Simple_History\Helpers;
 use Simple_History\Date_Helper;
+use Simple_History\Services;
 
 /**
  * Queries the Simple History Log.
@@ -67,6 +68,18 @@ use Simple_History\Date_Helper;
  * // Result: Only SimplePluginLogger events
  * ```
  *
+ * @example Surrounding events (show events before and after a specific event).
+ * ```php
+ * // Get 5 events before and 5 events after event ID 123 (11 total).
+ * // This is useful for debugging to see what happened around a specific event.
+ * // Note: This bypasses logger permissions and shows raw chronological events.
+ * $results = $log_query->query([
+ *     'surrounding_event_id' => 123,
+ *     'surrounding_count' => 5,
+ * ]);
+ * // Result includes 'center_event_id' in the return array to identify the target event.
+ * ```
+ *
  * @see Documentation: docs/filters-usage-examples.md
  */
 class Log_Query {
@@ -120,23 +133,56 @@ class Log_Query {
 	 *      @type boolean $only_sticky Only return sticky events. Default false.
 	 *      @type array $context_filters Context filters as key-value pairs. Default null.
 	 *      @type boolean $ungrouped Return ungrouped events without occasions grouping. Default false.
+	 *
+	 *    Surrounding Events (Admin Only - bypasses logger permissions).
+	 *
+	 *      @type int $surrounding_event_id The center event ID to get surrounding events for. When set, returns events
+	 *                                       chronologically before and after this event, ignoring all other filters.
+	 *      @type int $surrounding_count Number of events to return before AND after the center event. Default 5.
+	 *                                    Total events returned = surrounding_count * 2 + 1 (before + center + after).
 	 * }
-	 * @return array
+	 * @return array|\WP_Error Query results or WP_Error on database error.
 	 * @throws \InvalidArgumentException If invalid query type.
 	 */
 	public function query( $args = [] ) {
 		$args = wp_parse_args( $args );
 
+		// Check for surrounding events query (special mode that bypasses normal filtering).
+		if ( isset( $args['surrounding_event_id'] ) ) {
+			return $this->query_surrounding_events( $args );
+		}
+
 		// Determine kind of query.
 		$type = $args['type'] ?? 'overview';
 
 		if ( $type === 'overview' || $type === 'single' ) {
-			return $this->query_overview( $args );
+			$result = $this->query_overview( $args );
 		} elseif ( $type === 'occasions' ) {
-			return $this->query_occasions( $args );
+			$result = $this->query_occasions( $args );
 		} else {
 			throw new \InvalidArgumentException( 'Invalid query type' );
 		}
+
+		// Auto-recover from missing tables.
+		if ( is_wp_error( $result ) ) {
+			$db_error = $result->get_error_data( 'simple_history_db_error' )['db_error'] ?? '';
+
+			if ( Services\Setup_Database::is_table_missing_error( $db_error ) ) {
+				// Try to recreate tables.
+				$recreated = Services\Setup_Database::recreate_tables_if_missing();
+
+				if ( $recreated ) {
+					// Retry the query after recreating tables.
+					if ( $type === 'overview' || $type === 'single' ) {
+						$result = $this->query_overview( $args );
+					} elseif ( $type === 'occasions' ) {
+						$result = $this->query_occasions( $args );
+					}
+				}
+			}
+		}
+
+		return $result;
 	}
 
 	/**
@@ -147,7 +193,7 @@ class Log_Query {
 	 * http://stackoverflow.com/questions/13566303/how-to-group-subsequent-rows-based-on-a-criteria-and-then-count-them-mysql/13567320#13567320
 	 *
 	 * @param string|array|object $args Arguments.
-	 * @return array Log rows.
+	 * @return array|\WP_Error Log rows or WP_Error on database error.
 	 * @throws \ErrorException If invalid DB engine.
 	 */
 	public function query_overview( $args ) {
@@ -175,7 +221,7 @@ class Log_Query {
 	 * Originally created for SQLite compatibility but useful for any ungrouped display.
 	 *
 	 * @param string|array|object $args Arguments.
-	 * @return array Log rows.
+	 * @return array|\WP_Error Log rows or WP_Error on database error.
 	 * @throws \Exception If error when performing query.
 	 */
 	protected function query_overview_simple( $args ) {
@@ -241,14 +287,10 @@ class Log_Query {
 		$result_log_rows = $wpdb->get_results( $sql_query_log_rows, OBJECT_K );
 
 		if ( ! empty( $wpdb->last_error ) ) {
-			throw new \Exception(
-				esc_html(
-					sprintf(
-						/* translators: %s: error message */
-						__( 'Error when performing query: %s', 'simple-history' ),
-						$wpdb->last_error
-					)
-				)
+			return new \WP_Error(
+				'simple_history_db_error',
+				__( 'Database query failed.', 'simple-history' ),
+				array( 'db_error' => $wpdb->last_error )
 			);
 		}
 
@@ -318,7 +360,7 @@ class Log_Query {
 
 	/**
 	 * @param string|array|object $args Arguments.
-	 * @return array Log rows.
+	 * @return array|\WP_Error Log rows or WP_Error on database error.
 	 * @throws \Exception If error when performing query.
 	 */
 	protected function query_overview_mysql( $args ) {
@@ -500,14 +542,10 @@ class Log_Query {
 		$result_log_rows = $wpdb->get_results( $sql_query_log_rows, OBJECT_K );
 
 		if ( ! empty( $wpdb->last_error ) ) {
-			throw new \Exception(
-				esc_html(
-					sprintf(
-						/* translators: %s: error message */
-						__( 'Error when performing query: %s', 'simple-history' ),
-						$wpdb->last_error
-					)
-				)
+			return new \WP_Error(
+				'simple_history_db_error',
+				__( 'Database query failed.', 'simple-history' ),
+				array( 'db_error' => $wpdb->last_error )
 			);
 		}
 
@@ -637,7 +675,7 @@ class Log_Query {
 	 * Does not take filters/where into consideration.
 	 *
 	 * @param string|array|object $args Arguments.
-	 * @return array
+	 * @return array|\WP_Error Log rows or WP_Error on database error.
 	 */
 	protected function query_occasions( $args ) {
 		// Create cache key based on args and current user.
@@ -757,6 +795,193 @@ class Log_Query {
 			// Remove id from keys, because they are cumbersome when working with JSON.
 			'log_rows' => array_values( $log_rows ),
 			'sql'      => $sql_query,
+		];
+	}
+
+	/**
+	 * Query for surrounding events around a specific event ID.
+	 *
+	 * This method returns events before and after a specific event in reverse
+	 * chronological order (newest first), matching the main event log display.
+	 * It bypasses logger, user, and other filters for debugging scenarios.
+	 *
+	 * IMPORTANT: This method bypasses normal logger permission checks and returns
+	 * ALL events. Permission checking should be done by the caller (REST API or
+	 * WP-CLI) before calling this method.
+	 *
+	 * @param array $args {
+	 *     Query arguments.
+	 *
+	 *     @type int $surrounding_event_id Required. The center event ID.
+	 *     @type int $surrounding_count    Optional. Number of events before AND after. Default 5.
+	 * }
+	 * @return array|\WP_Error {
+	 *     Query results array or WP_Error on failure.
+	 *
+	 *     @type array  $log_rows         Array of event objects (after + center + before, newest first).
+	 *     @type int    $center_event_id  The ID of the center event.
+	 *     @type int    $total_row_count  Total number of events returned.
+	 *     @type int    $events_before    Count of events before center.
+	 *     @type int    $events_after     Count of events after center.
+	 *     @type int    $max_id           Highest event ID in results.
+	 *     @type int    $min_id           Lowest event ID in results.
+	 *     @type string $max_date         Date of most recent event.
+	 * }
+	 */
+	protected function query_surrounding_events( $args ) {
+		global $wpdb;
+
+		$simple_history    = Simple_History::get_instance();
+		$events_table_name = $simple_history->get_events_table_name();
+
+		// Parse arguments with defaults.
+		$args = wp_parse_args(
+			$args,
+			[
+				'surrounding_event_id' => null,
+				'surrounding_count'    => 5,
+			]
+		);
+
+		// Validate surrounding_event_id.
+		if ( ! isset( $args['surrounding_event_id'] ) || ! is_numeric( $args['surrounding_event_id'] ) ) {
+			return new \WP_Error(
+				'invalid_surrounding_event_id',
+				__( 'Invalid surrounding_event_id parameter.', 'simple-history' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$center_event_id = (int) $args['surrounding_event_id'];
+
+		// Validate surrounding_count (must be positive integer, max 50).
+		$surrounding_count = (int) $args['surrounding_count'];
+		if ( $surrounding_count < 1 ) {
+			$surrounding_count = 5;
+		}
+		if ( $surrounding_count > 50 ) {
+			$surrounding_count = 50;
+		}
+
+		// First, verify the center event exists and get its data.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$center_event = $wpdb->get_row(
+			$wpdb->prepare(
+				'SELECT id, date FROM %i WHERE id = %d',
+				$events_table_name,
+				$center_event_id
+			)
+		);
+
+		if ( ! $center_event ) {
+			return new \WP_Error(
+				'event_not_found',
+				__( 'The specified event was not found.', 'simple-history' ),
+				[ 'status' => 404 ]
+			);
+		}
+
+		// Get events AFTER the center event (newer, higher IDs).
+		// Order by id ASC to get the events closest to center first (lowest IDs above center),
+		// then reverse so newest is first for display (matching the main event log order).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$events_after = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT
+					id, logger, level, date, message, initiator, occasionsID,
+					1 AS repeatCount, 1 AS subsequentOccasions
+				FROM %i
+				WHERE id > %d
+				ORDER BY id ASC
+				LIMIT %d',
+				$events_table_name,
+				$center_event_id,
+				$surrounding_count
+			),
+			OBJECT_K
+		);
+
+		// Reverse to get newest first (DESC order) for consistent display with main log.
+		// Example: Query returns [2976, 2977, 2978] (ASC), reverse to [2978, 2977, 2976] (DESC).
+		$events_after = array_reverse( $events_after, true );
+
+		// Get the center event with full data.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$center_event_full = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT
+					id, logger, level, date, message, initiator, occasionsID,
+					1 AS repeatCount, 1 AS subsequentOccasions
+				FROM %i
+				WHERE id = %d',
+				$events_table_name,
+				$center_event_id
+			),
+			OBJECT_K
+		);
+
+		// Get events BEFORE the center event (older, lower IDs).
+		// Order by id DESC to get newest (closest to center) first.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$events_before = $wpdb->get_results(
+			$wpdb->prepare(
+				'SELECT
+					id, logger, level, date, message, initiator, occasionsID,
+					1 AS repeatCount, 1 AS subsequentOccasions
+				FROM %i
+				WHERE id < %d
+				ORDER BY id DESC
+				LIMIT %d',
+				$events_table_name,
+				$center_event_id,
+				$surrounding_count
+			),
+			OBJECT_K
+		);
+
+		// Combine all events: after + center + before (reverse chronological order, newest first).
+		$all_events = $events_after + $center_event_full + $events_before;
+
+		// Add context data to all events.
+		$all_events = $this->add_contexts_to_log_rows( $all_events );
+
+		// Convert to indexed array.
+		$log_rows = array_values( $all_events );
+
+		// Calculate metadata.
+		$events_before_count = count( $events_before );
+		$events_after_count  = count( $events_after );
+		$total_count         = count( $log_rows );
+
+		// Get max/min IDs and max date.
+		$max_id   = null;
+		$min_id   = null;
+		$max_date = null;
+
+		if ( $total_count > 0 ) {
+			// Events are in reverse chronological order (newest first), so:
+			// - max_id is the first event (newest, highest ID).
+			// - min_id is the last event (oldest, lowest ID).
+			$max_id   = (int) $log_rows[0]->id;
+			$min_id   = (int) $log_rows[ $total_count - 1 ]->id;
+			$max_date = $log_rows[0]->date;
+		}
+
+		return [
+			'log_rows'        => $log_rows,
+			'center_event_id' => $center_event_id,
+			'total_row_count' => $total_count,
+			'events_before'   => $events_before_count,
+			'events_after'    => $events_after_count,
+			'max_id'          => $max_id,
+			'min_id'          => $min_id,
+			'max_date'        => $max_date,
+			'log_rows_count'  => $total_count,
+			// Standard pagination fields (not really applicable but included for consistency).
+			'pages_count'     => 1,
+			'page_current'    => 1,
+			'page_rows_from'  => 1,
+			'page_rows_to'    => $total_count,
 		];
 	}
 

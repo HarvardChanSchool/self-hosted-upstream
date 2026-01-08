@@ -4,7 +4,6 @@ namespace Simple_History;
 
 use Simple_History\Services\Admin_Pages;
 use Simple_History\Services\Stealth_Mode;
-use Simple_History\Compat;
 
 defined( 'ABSPATH' ) || die();
 
@@ -107,8 +106,13 @@ echo Admin_Pages::header_output();
 		echo '</td></tr>';
 	} else {
 		foreach ( $args['table_size_result'] as $one_table ) {
-			/* translators: %s size in mb. */
-			$size = sprintf( _x( '%s MB', 'debug dropin', 'simple-history' ), $one_table['size_in_mb'] );
+			// Handle N/A for SQLite environments without dbstat extension.
+			if ( $one_table['size_in_mb'] === 'N/A' ) {
+				$size = _x( 'N/A', 'debug dropin', 'simple-history' );
+			} else {
+				/* translators: %s size in mb. */
+				$size = sprintf( _x( '%s MB', 'debug dropin', 'simple-history' ), $one_table['size_in_mb'] );
+			}
 
 			/* translators: %s number of rows. */
 			$rows = sprintf( _x( '%s rows', 'debug dropin', 'simple-history' ), number_format_i18n( $one_table['num_rows'], 0 ) );
@@ -133,16 +137,24 @@ echo Admin_Pages::header_output();
 	 */
 	$rows = ( new Log_Query() )->query( [ 'posts_per_page' => 1 ] );
 
-	// This is the number of rows with occasions taken into consideration.
-	$total_accassions_rows_count = $rows['total_row_count'];
+	// Handle database errors gracefully.
+	if ( is_wp_error( $rows ) ) {
+		echo '<p>';
+		echo '<strong>' . esc_html_x( 'Error:', 'debug dropin', 'simple-history' ) . '</strong> ';
+		echo esc_html( $rows->get_error_message() );
+		echo '</p>';
+	} else {
+		// This is the number of rows with occasions taken into consideration.
+		$total_accassions_rows_count = $rows['total_row_count'];
 
-	echo '<p>';
-	printf(
-		/* translators: %d number of rows. */
-		esc_html_x( 'Total %s rows, when grouped by occasion id.', 'debug dropin', 'simple-history' ),
-		esc_html( $total_accassions_rows_count )
-	);
-	echo '</p>';
+		echo '<p>';
+		printf(
+			/* translators: %d number of rows. */
+			esc_html_x( 'Total %s rows, when grouped by occasion id.', 'debug dropin', 'simple-history' ),
+			esc_html( $total_accassions_rows_count )
+		);
+		echo '</p>';
+	}
 
 	// Total number of logged events,
 	// since installing the plugin or since the feature was added.
@@ -154,7 +166,7 @@ echo Admin_Pages::header_output();
 		echo '</p>';
 	} else {
 		$total_logged_events_count = Helpers::get_total_logged_events_count();
-		$plugin_install_date_local = Compat::wp_date( 'Y-m-d H:i:s', strtotime( $plugin_install_date ) );
+		$plugin_install_date_local = wp_date( 'Y-m-d H:i:s', strtotime( $plugin_install_date ) );
 		echo '<p>';
 		printf(
 			/* translators: %d number of logged events. */

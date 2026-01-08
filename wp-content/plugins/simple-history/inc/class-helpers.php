@@ -371,56 +371,81 @@ class Helpers {
 	/**
 	 * Get number of rows and the size of each Simple History table in the database.
 	 *
-	 * @return array<string, object{table_name: string, size_in_mb: float, num_rows: int}>
+	 * Uses sqlite_master to check if tables exist (always available),
+	 * then tries dbstat for size info (may not be available in wp-playground).
+	 *
+	 * @return array<string, array{table_name: string, size_in_mb: float|string, num_rows: int}>
 	 */
 	public static function get_db_table_stats_sqlite() {
 		/** @var \wpdb $wpdb */
 		global $wpdb;
 		$simple_history = Simple_History::get_instance();
 
-		/** @var array $events_table_size_result */
+		$events_table   = $simple_history->get_events_table_name();
+		$contexts_table = $simple_history->get_contexts_table_name();
+
+		// Check if tables exist using sqlite_master (always available).
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$events_table_size_result = $wpdb->get_row(
+		$events_exists = $wpdb->get_var(
 			$wpdb->prepare(
-				'
-					SELECT dbstat.name as table_name , SUM(dbstat.pgsize) / 1024 as size_in_mb FROM sqlite_master 
-					INNER JOIN dbstat ON dbstat.name = sqlite_master.name 
-					WHERE sqlite_master.tbl_name = "%1$s"
-				',
-				$simple_history->get_events_table_name()
-			),
-			ARRAY_A
+				"SELECT name FROM sqlite_master WHERE type='table' AND name=%s",
+				$events_table
+			)
 		);
 
-		/** @var array $contexts_table_size_result */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$contexts_table_size_result = $wpdb->get_row(
+		$contexts_exists = $wpdb->get_var(
 			$wpdb->prepare(
-				'
-					SELECT dbstat.name as table_name , SUM(dbstat.pgsize) / 1024 as size_in_mb FROM sqlite_master 
-					INNER JOIN dbstat ON dbstat.name = sqlite_master.name 
-					WHERE sqlite_master.tbl_name = "%1$s"
-				',
-				$simple_history->get_contexts_table_name()
-			),
-			ARRAY_A
+				"SELECT name FROM sqlite_master WHERE type='table' AND name=%s",
+				$contexts_table
+			)
 		);
 
 		// Bail if any of the tables are missing.
-		if ( empty( $events_table_size_result['table_name'] ) || empty( $contexts_table_size_result['table_name'] ) ) {
+		if ( ! $events_exists || ! $contexts_exists ) {
 			return [];
 		}
 
-		$table_size_result = [
-			'simple_history'          => $events_table_size_result,
-			'simple_history_contexts' => $contexts_table_size_result,
+		// Try to get sizes using dbstat (may not be available in wp-playground).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$events_size_result = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT SUM(pgsize) / 1024.0 / 1024.0 FROM dbstat WHERE name = %s',
+				$events_table
+			)
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$contexts_size_result = $wpdb->get_var(
+			$wpdb->prepare(
+				'SELECT SUM(pgsize) / 1024.0 / 1024.0 FROM dbstat WHERE name = %s',
+				$contexts_table
+			)
+		);
+
+		// Use results if available, otherwise show N/A.
+		$events_size   = $events_size_result !== null ? round( (float) $events_size_result, 2 ) : 'N/A';
+		$contexts_size = $contexts_size_result !== null ? round( (float) $contexts_size_result, 2 ) : 'N/A';
+
+		// Get row counts (always works).
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$events_rows = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$events_table}" );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$contexts_rows = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$contexts_table}" );
+
+		return [
+			'simple_history'          => [
+				'table_name' => $events_table,
+				'size_in_mb' => $events_size,
+				'num_rows'   => $events_rows,
+			],
+			'simple_history_contexts' => [
+				'table_name' => $contexts_table,
+				'size_in_mb' => $contexts_size,
+				'num_rows'   => $contexts_rows,
+			],
 		];
-
-		// Get num of rows for each table.
-		$table_size_result['simple_history']['num_rows'] = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_events_table_name()}" ); // phpcs:ignore
-		$table_size_result['simple_history_contexts']['num_rows'] = (int) $wpdb->get_var( "select count(*) FROM {$simple_history->get_contexts_table_name()}" ); // phpcs:ignore
-
-		return $table_size_result;
 	}
 
 	/**
@@ -745,9 +770,10 @@ class Helpers {
 	 *
 	 * @param string  $title Title.
 	 * @param ?string $icon_class_suffix Icon class suffix.
+	 * @param ?string $title_suffix Optional HTML suffix (e.g., a premium badge). Must be pre-escaped.
 	 * @return string
 	 */
-	public static function get_settings_section_title_output( $title, $icon_class_suffix = null ) {
+	public static function get_settings_section_title_output( $title, $icon_class_suffix = null, $title_suffix = null ) {
 		$icon_output = '';
 
 		if ( ! is_null( $icon_class_suffix ) ) {
@@ -757,15 +783,22 @@ class Helpers {
 			);
 		}
 
+		$suffix_output = '';
+		if ( ! is_null( $title_suffix ) ) {
+			// Suffix is expected to be pre-escaped HTML (e.g., a premium badge).
+			$suffix_output = ' ' . $title_suffix;
+		}
+
 		return sprintf(
 			'
 			<span class="sh-SettingsPage-settingsSection-title">
 				%2$s
-				%1$s
+				%1$s%3$s
 			</span>
 			',
 			esc_html( $title ),
-			$icon_output
+			$icon_output,
+			$suffix_output
 		);
 	}
 
@@ -775,9 +808,11 @@ class Helpers {
 	 *
 	 * @param string  $title Title.
 	 * @param ?string $icon_class_suffix Icon class suffix.
+	 * @param ?string $label_for Optional. The id of the input element to associate the label with.
+	 *                           When provided, the title becomes a clickable label.
 	 * @return string
 	 */
-	public static function get_settings_field_title_output( $title, $icon_class_suffix = null ) {
+	public static function get_settings_field_title_output( $title, $icon_class_suffix = null, $label_for = null ) {
 		$icon_output = '';
 
 		if ( ! is_null( $icon_class_suffix ) ) {
@@ -787,6 +822,17 @@ class Helpers {
 			);
 		}
 
+		// If $label_for is provided, wrap title in a label element.
+		if ( ! is_null( $label_for ) ) {
+			$title_output = sprintf(
+				'<label for="%1$s">%2$s</label>',
+				esc_attr( $label_for ),
+				esc_html( $title )
+			);
+		} else {
+			$title_output = esc_html( $title );
+		}
+
 		return sprintf(
 			'
 			<span class="sh-SettingsPage-settingsField">
@@ -794,7 +840,7 @@ class Helpers {
 				%1$s
 			</span>
 			',
-			esc_html( $title ),
+			$title_output,
 			$icon_output
 		);
 	}
@@ -804,11 +850,13 @@ class Helpers {
 	 * - Icon before title.
 	 * - Wrapper div automatically added.
 	 * - Optional HTML ID attribute.
+	 * - Optional HTML suffix (e.g., a premium badge).
 	 *
 	 * @param string       $id Slug-name to identify the section. Used in the 'id' attribute of tags.
 	 * @param string|array $title Formatted title of the section. Shown as the heading for the section.
 	 *                     Pass in array instead of string to use as ['Section title', 'icon-slug'].
 	 *                     Or pass ['Section title', 'icon-slug', 'html-id'] to include an HTML ID attribute.
+	 *                     Or pass ['Section title', 'icon-slug', 'html-id', 'suffix'] to include a suffix (e.g., premium badge).
 	 * @param callable     $callback_top Function that echos out any content at the top of the section (between heading and fields).
 	 * @param string       $page The slug-name of the settings page on which to show the section. Built-in pages include 'general', 'reading', 'writing', 'discussion', 'media', etc. Create your own using add_options_page().
 	 * @param array        $args {
@@ -818,13 +866,14 @@ class Helpers {
 	 * }
 	 */
 	public static function add_settings_section( $id, $title, $callback_top, $page, $args = [] ) {
-		// If title is array then it can be [title, icon-slug] or [title, icon-slug, html-id].
+		// If title is array then it can be [title, icon-slug, html-id, suffix].
 		$html_id = '';
 		if ( is_array( $title ) ) {
-			$title_text = $title[0];
-			$icon_slug  = $title[1] ?? null;
-			$html_id    = $title[2] ?? '';
-			$title      = self::get_settings_section_title_output( $title_text, $icon_slug );
+			$title_text   = $title[0];
+			$icon_slug    = $title[1] ?? null;
+			$html_id      = $title[2] ?? '';
+			$title_suffix = $title[3] ?? null;
+			$title        = self::get_settings_section_title_output( $title_text, $icon_slug, $title_suffix );
 		} else {
 			$title = self::get_settings_section_title_output( $title );
 		}
@@ -905,7 +954,8 @@ class Helpers {
 		 */
 		$pager_size = apply_filters( 'simple_history/page_pager_size', $pager_size );
 
-		return $pager_size;
+		// Ensure we return a positive int to prevent type errors and division by zero.
+		return max( 1, (int) $pager_size );
 	}
 
 	/**
@@ -1486,7 +1536,7 @@ class Helpers {
 	 * Get number of unique events the last n days.
 	 *
 	 * @param int $days Number of days to get events for.
-	 * @return int Number of days.
+	 * @return int Number of unique events.
 	 */
 	public static function get_unique_events_for_days( $days = 7 ) {
 		global $wpdb;
@@ -1512,10 +1562,14 @@ class Helpers {
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$numEvents = $wpdb->get_var( $sql );
 
-			set_transient( $cache_key, $numEvents, HOUR_IN_SECONDS );
+			// Don't cache failed queries (null result when table doesn't exist).
+			if ( $numEvents !== null ) {
+				set_transient( $cache_key, $numEvents, HOUR_IN_SECONDS );
+			}
 		}
 
-		return $numEvents;
+		// Always return int to prevent type errors in arithmetic operations.
+		return (int) $numEvents;
 	}
 
 	/**
@@ -1777,7 +1831,7 @@ class Helpers {
 		}
 
 		if ( empty( $button_text ) ) {
-			$button_text = __( 'Learn More', 'simple-history' );
+			$button_text = __( 'Get Premium', 'simple-history' );
 		}
 
 		$premium_url = self::get_tracking_url( 'https://simple-history.com/add-ons/premium/', $tracking_param );
@@ -1786,7 +1840,7 @@ class Helpers {
 		?>
 		<div class="sh-PremiumFeatureTeaser">
 			<p class="sh-PremiumFeatureTeaser-title">
-				<em class="sh-PremiumFeatureBadge"><?php esc_html_e( 'Premium', 'simple-history' ); ?></em>
+				<span class="sh-Badge sh-Badge--premium"><?php esc_html_e( 'Premium', 'simple-history' ); ?></span>
 				<strong><?php echo esc_html( $title ); ?></strong>
 			</p>
 
@@ -1930,6 +1984,56 @@ class Helpers {
 				$event_id
 			)
 		);
+	}
+
+	/**
+	 * Count events in the database.
+	 *
+	 * Returns a raw count of events, without any permission checks.
+	 * Useful for tests and internal statistics.
+	 *
+	 * @since 5.21.0
+	 *
+	 * @param array $args {
+	 *     Optional. Arguments to filter the count.
+	 *
+	 *     @type string $logger Only count events from this logger.
+	 *     @type string $level  Only count events with this level.
+	 * }
+	 * @return int Number of events matching the criteria.
+	 */
+	public static function count_events( $args = [] ) {
+		global $wpdb;
+		$simple_history    = Simple_History::get_instance();
+		$events_table_name = $simple_history->get_events_table_name();
+
+		$where_clauses = [];
+		$where_values  = [];
+
+		if ( ! empty( $args['logger'] ) ) {
+			$where_clauses[] = 'logger = %s';
+			$where_values[]  = $args['logger'];
+		}
+
+		if ( ! empty( $args['level'] ) ) {
+			$where_clauses[] = 'level = %s';
+			$where_values[]  = $args['level'];
+		}
+
+		$where_sql = '';
+		if ( ! empty( $where_clauses ) ) {
+			$where_sql = 'WHERE ' . implode( ' AND ', $where_clauses );
+		}
+
+		$sql = "SELECT COUNT(*) FROM {$events_table_name} {$where_sql}";
+
+		if ( ! empty( $where_values ) ) {
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$sql = $wpdb->prepare( $sql, $where_values );
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return (int) $wpdb->get_var( $sql );
 	}
 
 	/**

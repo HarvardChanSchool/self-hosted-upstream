@@ -6,7 +6,6 @@ use Simple_History\Helpers;
 use Simple_History\Simple_History;
 use Simple_History\Log_Query;
 use Simple_History\Log_Levels;
-use Simple_History\Compat;
 
 /**
  * Dropin Name: Global RSS Feed
@@ -183,9 +182,14 @@ class RSS_Dropin extends Dropin {
 		// Show premium teaser for JSON feed below the enable checkbox.
 		echo wp_kses_post(
 			Helpers::get_premium_feature_teaser(
-				__( 'JSON Feed Available', 'simple-history' ),
-				__( 'Integrate with modern tools and services using the structured JSON feed format. Perfect for automation, monitoring systems, and custom integrations.', 'simple-history' ),
-				'premium_feeds_settings'
+				__( 'JSON Feed for Automation', 'simple-history' ),
+				[
+					__( 'Structured data format for easy parsing', 'simple-history' ),
+					__( 'Connect to Zapier, Make, n8n, or custom scripts', 'simple-history' ),
+					__( 'Real-time monitoring and alerting', 'simple-history' ),
+				],
+				'premium_feeds_settings',
+				__( 'Enable JSON Feed', 'simple-history' )
 			)
 		);
 	}
@@ -262,10 +266,8 @@ class RSS_Dropin extends Dropin {
 			?>
 			<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 				<channel>
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<title><?php echo Compat::esc_xml( $title ); ?></title>
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<description><?php echo Compat::esc_xml( $description ); ?></description> 
+					<title><?php echo esc_xml( $title ); ?></title>
+					<description><?php echo esc_xml( $description ); ?></description>
 					<link><?php echo esc_url( get_bloginfo( 'url' ) ); ?></link>
 					<atom:link href="<?php echo esc_url( $self_link ); ?>" rel="self" type="application/atom+xml" />
 					<?php
@@ -322,6 +324,10 @@ class RSS_Dropin extends Dropin {
 
 					// Remove capability override after query is done
 					// remove_action( $action_tag, '__return_true', 10 );.
+					if ( is_wp_error( $queryResults ) ) {
+						$queryResults = array( 'log_rows' => array() );
+					}
+
 					foreach ( $queryResults['log_rows'] as $row ) {
 						$header_output  = $this->simple_history->get_log_row_header_output( $row );
 						$text_output    = $this->simple_history->get_log_row_plain_text_output( $row );
@@ -398,8 +404,7 @@ class RSS_Dropin extends Dropin {
 						);
 						?>
 						<item>
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-							<title><?php echo Compat::esc_xml( $item_title ); ?></title>
+						<title><?php echo esc_xml( $item_title ); ?></title>
 							<description><![CDATA[
 								<p><?php echo wp_kses( $header_output, $wp_kses_attrs ); ?></p>
 								<p><?php echo wp_kses( $text_output, $wp_kses_attrs ); ?></p>
@@ -426,10 +431,8 @@ class RSS_Dropin extends Dropin {
 							// author must be email to validate, but the field is optional, so we skip it.
 							/* <author><?php echo $row->initiator ?></author> */
 							?>
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-							<pubDate><?php echo Compat::esc_xml( gmdate( 'D, d M Y H:i:s', strtotime( $row->date ) ) ); ?> GMT</pubDate>
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-							<guid isPermaLink="false"><![CDATA[<?php echo Compat::esc_xml( $item_guid ); ?>]]></guid>
+							<pubDate><?php echo esc_xml( gmdate( 'D, d M Y H:i:s', strtotime( $row->date ) ) ); ?> GMT</pubDate>
+							<guid isPermaLink="false"><![CDATA[<?php echo esc_xml( $item_guid ); ?>]]></guid>
 							<link><![CDATA[<?php echo esc_url( $item_link ); ?>]]></link>
 						</item>
 						<?php
@@ -445,20 +448,14 @@ class RSS_Dropin extends Dropin {
 			?>
 			<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
 				<channel>
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<title><?php echo Compat::esc_xml( $title ); ?></title>
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-					<description><?php echo Compat::esc_xml( $description ); ?></description>
+					<title><?php echo esc_xml( $title ); ?></title>
+					<description><?php echo esc_xml( $description ); ?></description>
 					<link><?php echo esc_url( home_url() ); ?></link>
 					<atom:link href="<?php echo esc_url( $self_link ); ?>" rel="self" type="application/atom+xml" />
 					<item>
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<title><?php echo Compat::esc_xml( __( 'Wrong RSS secret', 'simple-history' ) ); ?></title>
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<description><?php echo Compat::esc_xml( __( 'Your RSS secret for Simple History RSS feed is wrong. Please see WordPress settings for current link to the RSS feed.', 'simple-history' ) ); ?></description>
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-						<pubDate><?php echo Compat::esc_xml( gmdate( 'D, d M Y H:i:s', time() ) ); ?> GMT</pubDate>
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+						<title><?php echo esc_xml( __( 'Wrong RSS secret', 'simple-history' ) ); ?></title>
+						<description><?php echo esc_xml( __( 'Your RSS secret for Simple History RSS feed is wrong. Please see WordPress settings for current link to the RSS feed.', 'simple-history' ) ); ?></description>
+						<pubDate><?php echo esc_xml( gmdate( 'D, d M Y H:i:s', time() ) ); ?> GMT</pubDate>
 						<guid><?php echo esc_url( add_query_arg( 'SimpleHistoryGuid', 'wrong-secret', home_url() ) ); ?></guid>
 					</item>
 				</channel>
@@ -614,14 +611,26 @@ class RSS_Dropin extends Dropin {
 		$messages       = isset( $args['messages'] ) ? sanitize_text_field( $args['messages'] ) : null;
 		$loglevels      = isset( $args['loglevels'] ) ? sanitize_text_field( $args['loglevels'] ) : null;
 
+		// Exclusion filters - useful for subscribing to events excluding your own actions.
+		$exclude_loggers   = isset( $args['exclude_loggers'] ) ? sanitize_text_field( $args['exclude_loggers'] ) : null;
+		$exclude_messages  = isset( $args['exclude_messages'] ) ? sanitize_text_field( $args['exclude_messages'] ) : null;
+		$exclude_loglevels = isset( $args['exclude_loglevels'] ) ? sanitize_text_field( $args['exclude_loglevels'] ) : null;
+		$exclude_user      = isset( $args['exclude_user'] ) ? (int) $args['exclude_user'] : null;
+		$exclude_users     = isset( $args['exclude_users'] ) ? sanitize_text_field( $args['exclude_users'] ) : null;
+
 		return [
-			'posts_per_page' => $posts_per_page,
-			'paged'          => $paged,
-			'date_from'      => $date_from,
-			'date_to'        => $date_to,
-			'loggers'        => $loggers,
-			'messages'       => $messages,
-			'loglevels'      => $loglevels,
+			'posts_per_page'    => $posts_per_page,
+			'paged'             => $paged,
+			'date_from'         => $date_from,
+			'date_to'           => $date_to,
+			'loggers'           => $loggers,
+			'messages'          => $messages,
+			'loglevels'         => $loglevels,
+			'exclude_loggers'   => $exclude_loggers,
+			'exclude_messages'  => $exclude_messages,
+			'exclude_loglevels' => $exclude_loglevels,
+			'exclude_user'      => $exclude_user,
+			'exclude_users'     => $exclude_users,
 		];
 	}
 }

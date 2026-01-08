@@ -47,9 +47,13 @@ class Import_Dropin extends Dropin {
 			$tools_parent = Tools_Menu_Dropin::MENU_SLUG;
 		}
 
+		// Build menu title with New badge.
+		$menu_title = _x( 'Backfill', 'backfill subtab name', 'simple-history' )
+			. ' <span class="sh-Badge sh-Badge--new">' . esc_html__( 'New', 'simple-history' ) . '</span>';
+
 		( new Menu_Page() )
 			->set_page_title( _x( 'Backfill History', 'backfill subtab title', 'simple-history' ) )
-			->set_menu_title( _x( 'Backfill', 'backfill subtab name', 'simple-history' ) )
+			->set_menu_title( $menu_title )
 			->set_menu_slug( self::MENU_SLUG )
 			->set_callback( [ $this, 'output_backfill_page' ] )
 			->set_order( 3 )
@@ -299,17 +303,16 @@ class Import_Dropin extends Dropin {
 						Helpers::get_premium_feature_teaser(
 							sprintf(
 								/* translators: %s: Number of items */
-								__( 'Backfill up to %s items', 'simple-history' ),
+								__( 'Import %s Missing Events', 'simple-history' ),
 								number_format_i18n( $total_items_count )
 							),
 							[
-								__( 'Backfill anytime, not just on first install', 'simple-history' ),
-								__( 'Select which content types to include (posts, pages, users, attachments, and public custom post types)', 'simple-history' ),
-								__( 'Go beyond the limit of the automatic backfill and import your entire history', 'simple-history' ),
-								__( 'For old sites this can be years of content!', 'simple-history' ),
+								__( 'Import anytime, not just on first install', 'simple-history' ),
+								__( 'Choose content types: posts, pages, users, attachments', 'simple-history' ),
+								__( 'No item limits – recover your complete history', 'simple-history' ),
 							],
 							'premium_backfill_tools',
-							__( 'Get Premium', 'simple-history' )
+							__( 'Import Full History', 'simple-history' )
 						)
 					);
 				}
