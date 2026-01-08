@@ -64,6 +64,10 @@ Thumbs.db
 ###################################################################
 .htaccess
 
+# Is loaded from Composer.                                        #
+###################################################################
+/wp-content/mu-plugins/wp-saml-auth-config
+
 # By default, WordPress plugin and theme directories are ignored. #
 ###################################################################
 /wp-content/plugins/*
