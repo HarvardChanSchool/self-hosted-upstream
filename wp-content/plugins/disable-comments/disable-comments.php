@@ -4,7 +4,7 @@
  * Plugin Name: Disable Comments
  * Plugin URI: https://wordpress.org/plugins/disable-comments/
  * Description: Allows administrators to globally disable comments on their site. Comments can be disabled according to post type. You could bulk delete comments using Tools.
- * Version: 2.6.1
+ * Version: 2.6.2
  * Author: WPDeveloper
  * Author URI: https://wpdeveloper.com
  * License: GPL-3.0+
@@ -38,7 +38,7 @@ class Disable_Comments {
 	}
 
 	function __construct() {
-		define('DC_VERSION', '2.6.1');
+		define('DC_VERSION', '2.6.2');
 		define('DC_PLUGIN_SLUG', 'disable_comments_settings');
 		define('DC_PLUGIN_ROOT_PATH', dirname(__FILE__));
 		define('DC_PLUGIN_VIEWS_PATH', DC_PLUGIN_ROOT_PATH . '/views/');
@@ -640,6 +640,21 @@ class Disable_Comments {
 				$comment_id = $request->get_param('id');
 				if ($comment_id) {
 					$comment = get_comment($comment_id);
+					if ($comment && isset($comment->comment_type)) {
+						$comment_type = $comment->comment_type;
+					}
+				}
+			}
+
+			// For DELETE requests, extract comment ID from the route path
+			// The comment ID is only in the URL (e.g., /wp/v2/comments/123), not in request params
+			if (!$comment_type && $request->is_method('DELETE')) {
+				$route_parts = explode('/', $request->get_route());
+				$comment_id = end($route_parts);
+
+				// Ensure we have a numeric comment ID
+				if (is_numeric($comment_id)) {
+					$comment = get_comment((int) $comment_id);
 					if ($comment && isset($comment->comment_type)) {
 						$comment_type = $comment->comment_type;
 					}
