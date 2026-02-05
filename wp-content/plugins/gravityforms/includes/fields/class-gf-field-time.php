@@ -358,24 +358,24 @@ class GF_Field_Time extends GF_Field {
 			$markup = "{$clear_multi_div_open}
                         <div class='gfield_time_hour ginput_container ginput_container_time gform-grid-col' id='{$field_id}'>
                             <label class='gform-field-label gform-field-label--type-sub hour_label{$hour_label_class}' for='{$field_id}_1'>{$hour_label}</label>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
                         </div>
                         {$new_markup_colon}
                         <div class='gfield_time_minute ginput_container ginput_container_time gform-grid-col'>
                             <label class='gform-field-label gform-field-label--type-sub minute_label{$minute_label_class}' for='{$field_id}_2'>{$minute_label}</label>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
                         </div>
                         {$ampm_field}
                     {$clear_multi_div_close}";
 		} else {
 			$markup = "{$clear_multi_div_open}
                         <div class='gfield_time_hour ginput_container ginput_container_time gform-grid-col' id='{$field_id}'>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_1' value='{$hour}' {$hour_tabindex} {$hour_html5_attributes} {$disabled_text} {$hour_placeholder_attribute} {$hour_aria_attributes} {$aria_describedby}/> {$legacy_markup_colon}
                             <label class='gform-field-label gform-field-label--type-sub hour_label{$hour_label_class}' for='{$field_id}_1'>{$hour_label}</label>
                         </div>
                         {$new_markup_colon}
                         <div class='gfield_time_minute ginput_container ginput_container_time gform-grid-col'>
-                            <input type='{$input_type}' maxlength='2' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
+                            <input type='{$input_type}' name='input_{$id}[]' id='{$field_id}_2' value='{$minute}' {$minute_tabindex} {$minute_html5_attributes} {$disabled_text} {$minute_placeholder_attribute} {$minute_aria_attributes}/>
                             <label class='gform-field-label gform-field-label--type-sub minute_label{$minute_label_class}' for='{$field_id}_2'>{$minute_label}</label>
                         </div>
                         {$ampm_field}
@@ -473,15 +473,22 @@ class GF_Field_Time extends GF_Field {
 		}
 
 		if ( ! is_array( $value ) && ! empty( $value ) ) {
-			preg_match( '/^(\d*):(\d*) ?(.*)$/', $value, $matches );
-			$value    = array();
-			$value[0] = $matches[1];
-			$value[1] = $matches[2];
-			$value[2] = rgar( $matches, 3 );
+			if ( $this->is_administrative() && str_starts_with( $value, '{' ) ) {
+				$value = json_decode( $value, true );
+				if ( empty( $value ) ) {
+					return '';
+				}
+				$value = array_values( $value );
+			} else {
+				preg_match( '/^(\d*):(\d*) ?(.*)$/', $value, $matches );
+				$value    = array();
+				$value[0] = rgar( $matches, 1 );
+				$value[1] = rgar( $matches, 2 );
+				$value[2] = rgar( $matches, 3 );
+			}
 		}
-
-		$hour   = wp_strip_all_tags( $value[0] );
-		$minute = wp_strip_all_tags( $value[1] );
+		$hour   = wp_strip_all_tags( rgar( $value, 0 ) );
+		$minute = wp_strip_all_tags( rgar( $value, 1 ) );
 		$ampm   = wp_strip_all_tags( rgar( $value, 2 ) );
 		if ( ! empty( $ampm ) ) {
 			$ampm = " $ampm";

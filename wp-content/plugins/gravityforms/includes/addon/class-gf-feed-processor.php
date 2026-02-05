@@ -1,11 +1,13 @@
 <?php
 
+use Gravity_Forms\Gravity_Forms\Async\GF_Background_Process;
+
 if ( ! class_exists( 'GFForms' ) ) {
 	die();
 }
 
-if ( ! class_exists( 'GF_Background_Process' ) ) {
-	require_once GF_PLUGIN_DIR_PATH . 'includes/libraries/gf-background-process.php';
+if ( ! class_exists( 'Gravity_Forms\Gravity_Forms\Async\GF_Background_Process' ) ) {
+	require_once GF_PLUGIN_DIR_PATH . 'includes/async/class-gf-background-process.php';
 }
 
 /**
@@ -16,13 +18,14 @@ if ( ! class_exists( 'GF_Background_Process' ) ) {
 class GF_Feed_Processor extends GF_Background_Process {
 
 	/**
-	 * Contains an instance of this class, if available.
+	 * Contains instances of this class, if available.
 	 *
 	 * @since  2.2
-	 * @access private
-	 * @var    object $_instance If available, contains an instance of this class.
+	 * @since  next Changed to an array.
+	 *
+	 * @var   self[] $_instances If available, contains instances of this class.
 	 */
-	private static $_instance = null;
+	private static $_instances = array();
 
 	/**
 	 * The action name.
@@ -34,22 +37,76 @@ class GF_Feed_Processor extends GF_Background_Process {
 	protected $action = 'gf_feed_processor';
 
 	/**
+	 * Indicates if the task uses an array that supports the attempts key.
+	 *
+	 * @since 2.9.9
+	 *
+	 * @var bool
+	 */
+	protected $supports_attempts = true;
+
+	/**
+	 * Null or the add-on instance.
+	 *
+	 * @since next
+	 *
+	 * @var null|GFFeedAddOn
+	 */
+	protected $add_on = null;
+
+	/**
+	 * Instantiates the class.
+	 *
+	 * @since next
+	 *
+	 * @param bool|array       $allowed_batch_data_classes Optional. Array of class names that can be unserialized. Default true (any class).
+	 * @param null|GFFeedAddOn $add_on                     Optional. The add-on instance.
+	 */
+	public function __construct( $allowed_batch_data_classes = true, $add_on = null ) {
+		if ( $add_on instanceof GFFeedAddOn ) {
+			$this->action = str_replace( 'gf', 'gf_' . $add_on->get_short_slug(), $this->action );
+			$this->add_on = $add_on;
+		}
+		parent::__construct( $allowed_batch_data_classes );
+	}
+
+	/**
 	 * Get instance of this class.
 	 *
 	 * @since  2.2
-	 * @access public
-	 * @static
+	 * @since  next Added the $add_on param.
+	 *
+	 * @param null|GFFeedAddOn $add_on Optional. The add-on instance.
 	 *
 	 * @return GF_Feed_Processor
 	 */
-	public static function get_instance() {
+	public static function get_instance( $add_on = null ) {
+		$key = $add_on instanceof GFFeedAddOn ? $add_on->get_slug() : 0;
 
-		if ( null === self::$_instance ) {
-			self::$_instance = new self;
+		if ( empty( self::$_instances[ $key ] ) ) {
+			self::$_instances[ $key ] = new self( true, $add_on );
 		}
 
-		return self::$_instance;
+		return self::$_instances[ $key ];
+	}
 
+	/**
+	 * Push to queue
+	 *
+	 * @since next
+	 * @remove-in 3.0
+	 *
+	 * @param mixed $data Data.
+	 *
+	 * @return $this
+	 */
+	public function push_to_queue( $data ) {
+		if ( ! is_string( rgar( $data, 'addon' ) ) ) {
+			_doing_it_wrong( __METHOD__, "Support for passing an add-on instance to `\$data['addon']` is deprecated since v2.7.15 and will be removed in v3.0. Please pass the add-on’s fully qualified class name (including its namespace) instead.", '' );
+			$data['addon'] = get_class( $data['addon'] );
+		}
+
+		return parent::push_to_queue( $data );
 	}
 
 	/**
@@ -73,23 +130,36 @@ class GF_Feed_Processor extends GF_Background_Process {
 	 * @return bool|array
 	 */
 	protected function task( $item ) {
-
-		$addon     = $item['addon'];
 		$feed      = $item['feed'];
-		$feed_name = rgars( $feed, 'meta/feed_name' ) ? $feed['meta']['feed_name'] : rgars( $feed, 'meta/feedName' );
+		$feed_name = GFAPI::get_feed_name( $feed );
+		$feed_id   = (int) rgar( $feed, 'id' );
+		$entry_id  = (int) rgar( $item, 'entry_id' );
 
-		$callable = array( is_string( $addon ) ? $addon : get_class( $addon ), 'get_instance' );
-		if ( is_callable( $callable ) ) {
-			$addon = call_user_func( $callable );
-		}
+		if ( $this->add_on instanceof GFFeedAddOn ) {
+			$addon     = $this->add_on;
+			$feed_slug = rgar( $feed, 'addon_slug' );
+			if ( $feed_slug !== $addon->get_slug() ) {
+				$this->log_error( __METHOD__ . "(): Aborting. Feed (#{$feed_id} - {$feed_name}) for entry #{$entry_id} belongs to a different add-on ({$feed_slug})." );
 
-		$feed_id  = (int) rgar( $feed, 'id' );
-		$entry_id = (int) rgar( $item, 'entry_id' );
+				return false;
+			}
+		} else {
+			/**
+			 * Passing an instance of the add-on.
+			 * @deprecated 2.7.15
+			 * @remove-in  3.0
+			 */
+			$addon    = $item['addon'];
+			$callable = array( is_string( $addon ) ? $addon : get_class( $addon ), 'get_instance' );
+			if ( is_callable( $callable ) ) {
+				$addon = call_user_func( $callable );
+			}
 
-		if ( ! $addon instanceof GFFeedAddOn ) {
-			GFCommon::log_error( __METHOD__ . "(): Aborting. Add-on ({$feed['addon_slug']}) not found for feed (#{$feed_id} - {$feed_name}) and entry #{$entry_id}." );
+			if ( ! $addon instanceof GFFeedAddOn ) {
+				GFCommon::log_error( __METHOD__ . "(): Aborting. Add-on ({$feed['addon_slug']}) not found for feed (#{$feed_id} - {$feed_name}) and entry #{$entry_id}." );
 
-			return false;
+				return false;
+			}
 		}
 
 		$addon->log_debug( __METHOD__ . "(): Preparing to process feed (#{$feed_id} - {$feed_name}) for entry #{$entry_id}." );
@@ -111,8 +181,6 @@ class GF_Feed_Processor extends GF_Background_Process {
 		if ( ! $this->can_process_feed( $feed, $entry, $form, $addon ) ) {
 			return false;
 		}
-
-		$item = $this->increment_attempts( $item );
 
 		$max_attempts = 1;
 
@@ -139,32 +207,21 @@ class GF_Feed_Processor extends GF_Background_Process {
 			return false;
 		}
 
-		$addon->log_debug( __METHOD__ . "(): Starting to process feed (#{$feed_id} - {$feed_name}) for entry #{$entry_id}. Attempt number: " . $item['attempts'] );
+		$addon->log_debug( __METHOD__ . "(): Starting to process feed (#{$feed_id} - {$feed_name}) for entry #{$entry_id}. Attempt number: {$item['attempts']}." );
 
+		// Keeping the try catch in case any third-party add-ons still throw exceptions.
 		try {
 
-			// Maybe convert PHP errors to exceptions so that they get caught.
-			// This will catch some fatal errors, but not all.
-			// Errors that are not caught will halt execution of subsequent feeds, but those will be
-			// executed during the next cron cycles, which happens every 5 minutes
-			set_error_handler( array( $this, 'custom_error_handler' ) );
-
-			// Process feed.
 			$result = $addon->process_feed( $feed, $entry, $form );
 
-			// Back to built-in error handler.
-			restore_error_handler();
-
 		} catch ( Exception $e ) {
-
-			// Back to built-in error handler.
-			restore_error_handler();
 
 			$addon->save_entry_feed_status( $e, $entry_id, $feed_id, $form_id );
 			$addon->log_error( __METHOD__ . "(): Aborting. Error occurred during processing of feed (#{$feed_id} - {$feed_name}) for entry #{$entry_id}: {$e->getMessage()}" );
 
-			// Return the item for another attempt
-			return $item;
+			$error = new WP_Error( $e->getCode(), $e->getMessage() );
+
+			return $addon->is_feed_error_retryable( true, $error, $feed, $entry, $form ) ? $item : false;
 		}
 
 		$addon->save_entry_feed_status( $result, $entry_id, $feed_id, $form_id );
@@ -173,8 +230,7 @@ class GF_Feed_Processor extends GF_Background_Process {
 			/** @var WP_Error $result */
 			$addon->log_error( __METHOD__ . "(): Aborting. Error occurred during processing of feed (#{$feed_id} - {$feed_name}) for entry #{$entry_id}: {$result->get_error_message()}" );
 
-			// Return the item for another attempt
-			return $item;
+			return $addon->is_feed_error_retryable( true, $result, $feed, $entry, $form ) ? $item : false;
 		}
 
 
@@ -203,6 +259,23 @@ class GF_Feed_Processor extends GF_Background_Process {
 	}
 
 	/**
+	 * Determines if the task can be processed based on its attempts property.
+	 *
+	 * Overridden, returning true, so the existing feed-specific filters are used instead during task().
+	 *
+	 * @since 2.9.9
+	 *
+	 * @param mixed  $task     The task about to be processed.
+	 * @param object $batch    The batch currently being processed.
+	 * @param int    $task_num The number that identifies the task in the logs.
+	 *
+	 * @return bool
+	 */
+	protected function can_process_task( $task, $batch, $task_num ) {
+		return true;
+	}
+
+	/**
 	 * Determines if the feed can be processed based on the contents of the processed feeds entry meta.
 	 *
 	 * @since 2.9.2
@@ -215,86 +288,48 @@ class GF_Feed_Processor extends GF_Background_Process {
 	 * @return bool
 	 */
 	public function can_process_feed( $feed, $entry, $form, $addon ) {
-		$entry_id          = (int) rgar( $entry, 'id' );
-		$processed_feeds   = GFAPI::get_processed_feeds_meta( $entry_id, $addon->get_slug() );
-		$already_processed = ! empty( $processed_feeds ) && in_array( (int) rgar( $feed, 'id' ), $processed_feeds );
-
-		if ( ! $already_processed ) {
-			return true;
-		}
-
-		$feed_name = rgars( $feed, 'meta/feed_name' ) ? $feed['meta']['feed_name'] : rgars( $feed, 'meta/feedName' );
-
-		if ( ! $addon->is_reprocessing_supported( $feed, $entry, $form ) ) {
-			$addon->log_debug( __METHOD__ . sprintf( "(): Feed (#%d - %s) has already been processed for entry #%d. Reprocessing is NOT supported.", rgar( $feed, 'id' ), $feed_name, $entry_id ) );
-
-			return false;
-		}
-
-		/**
-		 * Allows reprocessing of the feed to be enabled.
-		 *
-		 * @since 2.9.2
-		 *
-		 * @param bool        $allow_reprocessing Indicates if the feed can be reprocessed. Default is false.
-		 * @param array       $feed               The feed queued for processing.
-		 * @param array       $entry              The entry being processed.
-		 * @param array       $form               The form the entry belongs to.
-		 * @param GFFeedAddOn $addon              The current instance of the add-on the feed belongs to.
-		 * @param array       $processed_feeds    An array of feed IDs that have already been processed for the given entry.
-		 */
-		$allow_reprocessing = apply_filters( 'gform_allow_async_feed_reprocessing', false, $feed, $entry, $form, $addon, $processed_feeds );
-
-		if ( ! $allow_reprocessing ) {
-			$addon->log_debug( __METHOD__ . sprintf( "(): Feed (#%d - %s) has already been processed for entry #%d. Reprocessing is NOT allowed.", rgar( $feed, 'id' ), $feed_name, $entry_id ) );
-
-			return false;
-		}
-
-		$addon->log_debug( __METHOD__ . sprintf( "(): Feed (#%d - %s) has already been processed for entry #%d. Reprocessing IS allowed.", rgar( $feed, 'id' ), $feed_name, $entry_id ) );
-
-		return true;
+		return $addon->can_process_feed( $feed, $entry, $form );
 	}
 
 	/**
-	 * Custom error handler to convert any errors to an exception.
+	 * Logs the error that occurred during feed processing.
 	 *
-	 * @since  2.2
-	 * @since  2.6.5 Removed the $context param.
-	 * @access public
+	 * @since 2.9.8
 	 *
-	 * @param int    $number  The level of error raised.
-	 * @param string $string  The error message, as a string.
-	 * @param string $file    The filename the error was raised in.
-	 * @param int    $line    The line number the error was raised at.
-	 * @param array  $context An array that points to the active symbol table at the point the error occurred.
+	 * @param array $error The error returned by error_get_last().
 	 *
-	 * @throws ErrorException
-	 *
-	 * @return false
+	 * @return void
 	 */
-	public function custom_error_handler( $number, $string, $file, $line ) {
+	protected function handle_error( $error ) {
+		parent::handle_error( $error );
 
-		// Determine if this error is one of the enabled ones in php config (php.ini, .htaccess, etc).
-		$error_is_enabled = (bool) ( $number & ini_get( 'error_reporting' ) );
-
-		// Throw an Error Exception, to be handled by whatever Exception handling logic is available in this context.
-		if ( in_array( $number, array( E_USER_ERROR, E_RECOVERABLE_ERROR ) ) && $error_is_enabled ) {
-
-			throw new ErrorException( $string, 0, $number, $file, $line );
-
-		} elseif ( $error_is_enabled ) {
-
-			// Log the error if it's enabled. Otherwise, just ignore it.
-			error_log( $string, 0 );
-
-			// Make sure this ends up in $php_errormsg, if appropriate.
-			return false;
+		$task = $this->get_current_task();
+		if ( empty( $task ) ) {
+			return;
 		}
+
+		if ( $this->add_on ) {
+			$addon = $this->add_on;
+		} else {
+			$callable = array( $task['addon'], 'get_instance' );
+			if ( ! is_callable( $callable ) ) {
+				return;
+			}
+			$addon = call_user_func( $callable );
+		}
+
+		$feed     = $task['feed'];
+		$feed_id  = (int) rgar( $feed, 'id' );
+		$entry_id = (int) rgar( $task, 'entry_id' );
+		$addon->log_error( __METHOD__ . "(): Aborting. Error occurred during processing of feed (#{$feed_id} - {$addon->get_feed_name( $feed )}) for entry #{$entry_id}: {$error['message']}" );
+		$addon->save_entry_feed_status( new WP_Error( $error['type'], $error['message'] ), $entry_id, $feed_id, (int) rgar( $task, 'form_id' ) );
 	}
 
 	/**
 	 * Increments the item attempts property and updates the batch in the database.
+	 *
+	 * @depecated 2.9.9
+	 * @remove-in 4.0
 	 *
 	 * @since 2.4
 	 * @since 2.9.4 Updated to use get_current_branch() instead of making a db request to get the batch.
@@ -331,14 +366,64 @@ class GF_Feed_Processor extends GF_Background_Process {
 
 		return $item;
 	}
+
+	/**
+	 * Writes a message to the add-on or core log.
+	 *
+	 * @since next
+	 *
+	 * @param string $message The message to be logged.
+	 *
+	 * @return void
+	 */
+	public function log_debug( $message ) {
+		if ( $this->add_on ) {
+			$this->add_on->log_debug( $message );
+		} else {
+			parent::log_debug( $message );
+		}
+	}
+
+	/**
+	 * Writes an error message to the add-on or core log.
+	 *
+	 * @since next
+	 *
+	 * @param string $message The message to be logged.
+	 *
+	 * @return void
+	 */
+	public function log_error( $message ) {
+		if ( $this->add_on ) {
+			$this->add_on->log_error( $message );
+		} else {
+			parent::log_error( $message );
+		}
+	}
+
+	/**
+	 * Returns the action portion of logging statements.
+	 *
+	 * @since next
+	 *
+	 * @return string
+	 */
+	protected function get_action_for_log() {
+		return $this->add_on ? '' : parent::get_action_for_log();
+	}
+
 }
 
 /**
  * Returns an instance of the GF_Feed_Processor class
  *
- * @see    GF_Feed_Processor::get_instance()
+ * @since 2.2
+ * @since next Added the $add_on param.
+ *
+ * @param null|GFFeedAddOn $add_on Optional. The add-on instance.
+ *
  * @return GF_Feed_Processor
  */
-function gf_feed_processor() {
-	return GF_Feed_Processor::get_instance();
+function gf_feed_processor( $add_on = null ) {
+	return GF_Feed_Processor::get_instance( $add_on );
 }

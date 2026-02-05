@@ -239,7 +239,7 @@ class Base implements ArrayAccess {
 	 *
 	 * @var string
 	 */
-	protected $placeholder;
+	public $placeholder;
 
 	/**
 	 * Checkbox input attributes
@@ -417,6 +417,7 @@ class Base implements ArrayAccess {
 		$default_atts = array(
 			'class'         => '',
 			'default_value' => '', // Default value that should be selected or entered for the field.
+			'placeholder'   => $this->placeholder,
 		);
 
 		// Add additional default attributes.

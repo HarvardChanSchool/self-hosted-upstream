@@ -706,7 +706,9 @@ function gformDeleteUploadedFile(formId, fieldId, deleteButton){
 
     var fileIndex = jQuery(deleteButton).parent().index();
 
-    parent.find(".ginput_preview").eq(fileIndex).remove();
+    var filePreview = jQuery( deleteButton ).closest( '.ginput_preview' )[0];
+    var fileId = filePreview.id;
+    filePreview.remove();
 
     //displaying single file upload field
     parent.find('input[type="file"],.validation_message,#extensions_message_' + formId + '_' + fieldId).removeClass("gform_hidden");
@@ -728,10 +730,16 @@ function gformDeleteUploadedFile(formId, fieldId, deleteButton){
             if( $multfile.length > 0 ) {
                 files[inputName].splice(fileIndex, 1);
                 var settings = $multfile.data('settings');
-                var max = settings.gf_vars.max_files;
-                jQuery("#" + settings.gf_vars.message_id).html('');
-                if(files[inputName].length < max)
-                    gfMultiFileUploader.toggleDisabled(settings, false);
+                var count = files[ inputName ].length;
+                if ( count === 0 ) {
+                    jQuery( '#' + settings.gf_vars.message_id ).html('');
+                    gfMultiFileUploader.toggleDisabled( settings, false );
+                } else {
+                    jQuery( '#error_' + fileId ).remove(); // Removing the file-specific validation message.
+                    var max = settings.gf_vars.max_files;
+                    if ( count < max )
+                        gfMultiFileUploader.toggleDisabled( settings, false );
+                }
 
             } else {
                 files[inputName] = null;
@@ -1277,7 +1285,7 @@ function gformToggleCheckboxes( toggleElement ) {
 	var checked,
         $toggleElement        = jQuery( toggleElement ),
         toggleElementCheckbox = $toggleElement.is( 'input[type="checkbox"]' ),
-        $toggle               = toggleElementCheckbox ? $toggleElement.parent() : $toggleElement.prev(),
+        $toggle               = $toggleElement.parent(),
 	    $toggleLabel          = $toggle.find( 'label' ),
 	    $checkboxes           = $toggle.parent().find( '.gchoice:not( .gchoice_select_all )' ),
 	    formId         = gf_get_form_id_by_html_id( $toggle.parents( '.gfield' ).attr( 'id' ) ),
@@ -1421,9 +1429,15 @@ function gformAddListItem( addButton, max ) {
 
 function gformDeleteListItem( deleteButton, max ) {
 
-    var $deleteButton = jQuery( deleteButton ),
-        $group        = $deleteButton.parents( '.gfield_list_group' ),
-        $container    = $group.parents( '.gfield_list_container' );
+	var $deleteButton = jQuery( deleteButton );
+	if ( $deleteButton.prop( 'disabled' ) ) {
+		return;
+	} else {
+		$deleteButton.prop( 'disabled', true );
+	}
+
+	var $group     = $deleteButton.parents( '.gfield_list_group' ),
+		$container = $group.parents( '.gfield_list_container' );
 
     $group.remove();
 
@@ -1479,7 +1493,11 @@ function gformToggleIcons( $container, max ) {
         $addButtons = $container.find( '.add_list_item' ),
         isLegacy    =  typeof gf_legacy !== 'undefined' && gf_legacy.is_legacy;
 
-    $container.find( '.delete_list_item' ).css( 'visibility', groupCount == 1 ? 'hidden' : 'visible' );
+	if ( groupCount === 1 ) {
+		$container.find( '.delete_list_item' ).prop( 'disabled', true ).css( 'visibility', 'hidden' );
+	} else {
+		$container.find( '.delete_list_item' ).prop( 'disabled', false ).css( 'visibility', 'visible' );
+	}
 
     if ( max > 0 && groupCount >= max ) {
 
@@ -1833,139 +1851,36 @@ function gformInitCurrencyFormatFields(fieldList){
 //------ JS MERGE TAGS -------------------
 //----------------------------------------
 
+/**
+ * @var {Object} GFMergeTag Handles MergeTag Operations.
+ * @remove-in 4.0
+ * @deprecated Use gform.mergeTags instead.
+ */
 var GFMergeTag = function() {
-
 	/**
      * Gets the merge tag value for the specified input Id
 	 * @param formId  The current form Id
 	 * @param inputId The input Id to get the merge tag from. This could be a field id (i.e. 1) or a specific input Id for multi-input fields (i.e. 1.2)
 	 * @param modifier The merge tag modifier to be used. i.e. value, currency, price, etc...
 	 * @returns       Returns a string containing the merge tag value for the specified input Id
+     * @remove-in 4.0
+	 * @deprecated Use gform.mergeTags.getFieldValue() instead.
 	 */
 	GFMergeTag.getMergeTagValue = function( formId, inputId, modifier ) {
 
-		if ( modifier === undefined ) {
-			modifier = '';
-		}
-		modifier = modifier.replace(":", "");
+		const mergeTagInfo = gform.mergeTags.getMergeTagInfo( formId, inputId, modifier );
 
-		var fieldId = parseInt(inputId,10);
-
-		// Check address field's copy value checkbox and reset fieldID to source field if checked
-		var isCopyPreviousAddressChecked = jQuery( '#input_' + formId + '_' + fieldId + '_copy_values_activated:checked' ).length > 0;
-		if ( isCopyPreviousAddressChecked ) {
-			var sourceFieldId = jQuery( '#input_' + formId + '_' + fieldId + '_copy_values_activated' ).data('source_field_id');
-			inputId = inputId == fieldId ? sourceFieldId : inputId.toString().replace( fieldId + '.', sourceFieldId + '.' );
-			fieldId = sourceFieldId;
-		}
-
-		var field = jQuery('#field_' + formId + '_' + fieldId);
-
-		var inputSelector = fieldId == inputId ? 'input[name^="input_' + fieldId + '"]' : 'input[name="input_' + inputId + '"]';
-		var input = field.find( inputSelector + ', select[name^="input_' + inputId + '"], textarea[name="input_' + inputId + '"]');
-
-		// checking conditional logic
-		var isVisible = window['gf_check_field_rule'] ? gf_check_field_rule( formId, fieldId, true, '' ) == 'show' : true,
-			val;
-
-		if ( ! isVisible ) {
+		if ( ! mergeTagInfo.isVisible ) {
 			return '';
 		}
 
-		// Filtering out the email field confirmation input to prevent the values from both inputs being returned.
-		if ( field.find( '.ginput_container_email' ).hasClass( 'ginput_complex' ) ) {
-			input = input.first();
-		}
-
-		//If value has been filtered, use it. Otherwise use default logic
-		var value = gform.applyFilters( 'gform_value_merge_tag_' + formId + '_' + fieldId, false, input, modifier );
-		if ( value !== false ){
+		const inputForFilter = jQuery( mergeTagInfo.input );
+		let value = window.gform.applyFilters( 'gform_value_merge_tag_' + formId + '_' + mergeTagInfo.fieldId, false, inputForFilter, mergeTagInfo.modifier );
+		if ( value !== false ) {
 			return value;
 		}
 
-		value = ''; //Reset value to blank
-
-		switch ( modifier ) {
-			case 'label':
-				// Remove screen reader text from product field label.
-				var label = field.find('.gfield_label');
-				label.find( '.screen-reader-text' ).remove();
-				var labelText = label.text();
-				return labelText;
-			    break;
-			case 'qty':
-				if ( field.hasClass('gfield_price') ){
-					val = gformGetProductQuantity( formId, fieldId );
-					return val === false || val === '' ? 0 : val;
-				}
-				break;
-
-		}
-
-
-
-		// Filter out unselected checkboxes and radio buttons
-		if ( input.prop('type') === 'checkbox' || input.prop('type') === 'radio' ) {
-			input = input.filter(':checked');
-		}
-
-		if ( input.length === 1 ) {
-			if ( ( input.is('select') || input.prop('type') === 'radio' || input.prop('type') === 'checkbox' ) && modifier === '' ) {
-
-				if ( input.is( 'select' ) ) {
-					val = input.find( 'option:selected' );
-				} else if ( input.prop( 'type' ) === 'radio' && input.parent().hasClass( 'gchoice_button' ) ) {
-					val = input.parent().siblings( '.gchoice_label' ).find( 'label' ).clone();
-				} else {
-					val = input.next('label').clone();
-				}
-				val.find('span').remove();
-
-				if ( val.length === 1 ) {
-					val = val.text();
-				} else {
-					var option = [];
-					for(var i=0; i<val.length; i++) {
-						option[i] = jQuery(val[i]).text();
-					}
-
-					val = option;
-				}
-			} else if ( val === undefined ) {
-				val = input.val();
-			}
-
-			if ( jQuery.isArray( val ) ) {
-				// multiple select
-				value = val.join(', ');
-			} else if ( typeof val === 'string' ) {
-
-			    value = GFMergeTag.formatValue( val, modifier );
-
-			} else {
-				// empty multiple select returns null, set it to ''
-				value = '';
-            }
-		} else if ( input.length > 1 ) {
-			val = [];
-			for(var i=0; i<input.length; i++) {
-				if( ( input.prop('type') === 'checkbox' ) && modifier === '' ) {
-
-				    var clone = jQuery(input[i]).next('label').clone();
-					clone.find('span').remove()
-					val[i] = GFMergeTag.formatValue( clone.text(), modifier );
-
-					clone.remove();
-
-				} else {
-					val[i] = GFMergeTag.formatValue( jQuery(input[i]).val(), modifier );
-				}
-			}
-
-			value = val.join(', ');
-		}
-
-		return value;
+		return gform.mergeTags.getFieldValue( formId, inputId, modifier, mergeTagInfo );
 	}
 
 	/**
@@ -1973,62 +1888,19 @@ var GFMergeTag = function() {
 	 * @param formId    The current form Id
 	 * @param text      The text containing merge tags
 	 * @returns         Retuns the original "text" strings with all merge tags replaced with the appropriate merge tag values
+     * @remove-in 4.0
+	 * @deprecated Use gform.mergeTags.replaceMergeTags() instead.
 	 */
 	GFMergeTag.replaceMergeTags = function( formId, text ) {
-
-		var mergeTags = GFMergeTag.parseMergeTags( text );
-
-		for(i in mergeTags) {
-
-			if(! mergeTags.hasOwnProperty(i)) {
-				continue;
-			}
-
-			var inputId = mergeTags[i][1];
-			var fieldId = parseInt(inputId,10);
-			var modifier = mergeTags[i][3] == undefined ? '' : mergeTags[i][3].replace(":", "");
-
-			var value = GFMergeTag.getMergeTagValue( formId, inputId, modifier );
-
-			text = text.replace( mergeTags[i][0], value );
-		}
-
-		return text;
+		return gform.mergeTags.replaceMergeTags( formId, text );
 	}
 
+	/**
+	 * @deprecated Use gform.mergeTags.formatValue() instead.
+     * @remove-in 4.0
+	 */
 	GFMergeTag.formatValue = function( value, modifier ) {
-
-		value = value.split( '|' );
-		var val = '';
-		if( value.length > 1 ) {
-			val = modifier === 'price' || modifier === 'currency' ? gformToNumber( value[1] ) : value[0];
-		} else {
-			val = value[0];
-		}
-
-		switch ( modifier ) {
-
-			case 'price':
-				val = gformToNumber( val );
-				val = val === false ? '' : val;
-				break;
-
-			case 'currency':
-				val = gformFormatMoney( val, false );
-				val = val === false ? '' : val;
-				break;
-
-			case 'numeric':
-				val = gformToNumber( val );
-				return val === false ? 0 : val;
-				break;
-
-			default:
-				val = val.trim();
-				break;
-		}
-
-		return val;
+		return gform.mergeTags.formatValue( value, modifier );
 	}
 
 	/**
@@ -2038,22 +1910,11 @@ var GFMergeTag = function() {
 	 * @param regEx The regular expression to be used to parse for merge tags.
 	 *
 	 * @returns Returns an array with all the merge tags that were matched in the original text
+	 * @deprecated Use gform.mergeTags.parseMergeTags() instead.
+     * @remove-in 4.0
 	 */
 	GFMergeTag.parseMergeTags = function( text, regEx ) {
-
-		if( typeof regEx === 'undefined' ) {
-			regEx = /{[^{]*?:(\d+(\.\d+)?)(:(.*?))?}/i;
-		}
-
-		var matches = [];
-
-		while( regEx.test( text ) ) {
-			var i = matches.length;
-			matches[i] = regEx.exec( text );
-			text = text.replace( '' + matches[i][0], '' );
-		}
-
-		return matches;
+		return gform.mergeTags.parseMergeTags( text, regEx );
 	}
 }
 
@@ -2395,9 +2256,13 @@ gform.recaptcha = {
 		jQuery( '.ginput_recaptcha:not(.gform-initialized)' ).each( function() {
 			let $elem      = jQuery( this ),
 				parameters = {
-					'sitekey':  $elem.data( 'sitekey' ),
-					'theme':    $elem.data( 'theme' ),
-					'tabindex': $elem.data( 'tabindex' )
+					'sitekey':        $elem.data( 'sitekey' ),
+					'theme':          $elem.data( 'theme' ),
+					'tabindex':       $elem.data( 'tabindex' ),
+					'error-callback': () => {
+						console.error( 'Gravity Forms: There was an error initializing reCAPTCHA v2. Please ensure your reCAPTCHA API keys are valid.' );
+						$elem.attr( 'data-recaptcha-error', '1' );
+					}
 				};
 
 			if ( $elem.data( 'stoken' ) ) {
@@ -2493,6 +2358,12 @@ gform.recaptcha = {
 	 * @returns {Promise<string>} Returns the recaptcha response when it becomes available in the .g-recaptcha-response
 	 */
 	executeRecaptcha: async function( widgetId, form ) {
+
+		// If there was an error loading recaptcha, just abort and let the submission fail validation.
+		const recaptcha = gform.utils.getNode( '.ginput_recaptcha', form, true );
+		if ( recaptcha.getAttribute( 'data-recaptcha-error' ) === '1' ) {
+			return;
+		}
 
 		// Executes recaptcha.
 		window.grecaptcha.execute( widgetId );
@@ -2917,14 +2788,16 @@ function gformValidateFileSize( field, max_file_size ) {
             } else if (err.code === plupload.FILE_SIZE_ERROR) {
                 addMessage(up.settings.gf_vars.message_id, err.file.name + " - " + strings.file_exceeds_limit);
             } else {
-                var m = "Error: " + err.code +
-                    ", Message: " + err.message +
-                    (err.file ? ", File: " + err.file.name : "");
+                const errorResponse = JSON.parse( err.response );
+                const errorCode = errorResponse?.error?.code || err.code;
+                const errorMessage = errorResponse?.error?.message || err.message;
+                const filePart = err.file?.name ? `${ err.file.name } - ` : '';
+                const m = `${ filePart }${ strings.error }: ${ errorCode }, ${ strings.message }: ${ errorMessage }`;
 
                 addMessage(up.settings.gf_vars.message_id, m);
             }
             $('#' + err.file.id ).html('');
-
+            up.removeFile( err.file );
             up.refresh(); // Reposition Flash
         });
 
@@ -2993,6 +2866,7 @@ function gformValidateFileSize( field, max_file_size ) {
 
 			if (file.percent == 100) {
 				if (response.status && response.status == 'ok') {
+					response.data.id = file.id;
 					addFile(fieldId, response.data);
 				} else {
 					addMessage(up.settings.gf_vars.message_id, strings.unknown_error + ': ' + file.name);

@@ -107,12 +107,11 @@ class GF_Field_Post_Image extends GF_Field_Fileupload {
 		$is_sub_label_above        = $field_sub_label_placement == 'above' || ( empty( $field_sub_label_placement ) && $form_sub_label_placement == 'above' );
 
 		// Prepare accepted extensions message.
-		$allowed_extensions    = join( ',', GFCommon::clean_extensions( explode( ',', strtolower( $this->allowedExtensions ) ) ) );
 		$extensions_message_id = 'extensions_message_' . $form_id . '_' . $id;
 		$extensions_message    = sprintf(
 			"<span id='%s' class='gfield_description gform_fileupload_rules'>%s</span>",
 			$extensions_message_id,
-			esc_attr( sprintf( __( 'Accepted file types: %s.', 'gravityforms' ), str_replace( ',', ', ', $allowed_extensions ) ) )
+			esc_attr( sprintf( __( 'Accepted file types: %s.', 'gravityforms' ), implode( ', ', $this->get_clean_allowed_extensions() ) ) )
 		);
 
 		// Aria attributes.
@@ -121,8 +120,9 @@ class GF_Field_Post_Image extends GF_Field_Fileupload {
 		$aria_describedby   = $this->get_aria_describedby( array( $extensions_message_id ) );
 
 		$hidden_class = $preview = '';
-		$file_info    = RGFormsModel::get_temp_filename( $form_id, "input_{$id}" );
-		if ( $file_info ) {
+		$file_info    = rgar( $this->get_submission_files_for_preview(), 0 );
+
+		if ( ! empty( $file_info ) ) {
 			$hidden_class     = ' gform_hidden';
 			$file_label_style = $hidden_style;
 			$preview          = "<span class='ginput_preview'><strong>" . esc_html( $file_info['uploaded_filename'] ) . "</strong> | <a href='javascript:;' onclick='gformDeleteUploadedFile({$form_id}, {$id});' onkeypress='gformDeleteUploadedFile({$form_id}, {$id});'>" . __( 'delete', 'gravityforms' ) . '</a></span>';
@@ -188,10 +188,10 @@ class GF_Field_Post_Image extends GF_Field_Fileupload {
 			return '';
 		}
 
-		$image_alt         = isset( $_POST["{$input_name}_2"] ) ? wp_strip_all_tags( $_POST["{$input_name}_2"] ) : '';
-		$image_title       = isset( $_POST["{$input_name}_1"] ) ? wp_strip_all_tags( $_POST["{$input_name}_1"] ) : '';
-		$image_caption     = isset( $_POST["{$input_name}_4"] ) ? wp_strip_all_tags( $_POST["{$input_name}_4"] ) : '';
-		$image_description = isset( $_POST["{$input_name}_7"] ) ? wp_strip_all_tags( $_POST["{$input_name}_7"] ) : '';
+		$image_alt         = isset( $_POST["{$input_name}_2"] ) ? wp_strip_all_tags( $_POST["{$input_name}_2"] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+		$image_title       = isset( $_POST["{$input_name}_1"] ) ? wp_strip_all_tags( $_POST["{$input_name}_1"] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+		$image_caption     = isset( $_POST["{$input_name}_4"] ) ? wp_strip_all_tags( $_POST["{$input_name}_4"] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
+		$image_description = isset( $_POST["{$input_name}_7"] ) ? wp_strip_all_tags( $_POST["{$input_name}_7"] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.MissingUnslash
 
 		return $url . '|:|' . $image_title . '|:|' . $image_caption . '|:|' . $image_description . '|:|' . $image_alt;
 	}
@@ -203,7 +203,18 @@ class GF_Field_Post_Image extends GF_Field_Fileupload {
 		}
 
 		// Displaying thumbnail (if file is an image) or an icon based on the extension.
-		return sprintf( '<a href="%s" target="_blank" aria-label="%s"><img src="%s" alt="%s"></a>', esc_url( $url ), esc_attr__( 'View the image', 'gravityforms' ), esc_url( GFEntryList::get_icon_url( $url ) ), esc_attr( $alt ) );
+		return sprintf(
+			'<a href="%s" target="_blank">'
+			.'<span class="screen-reader-text">%s</span>'
+			.'<span class="screen-reader-text">%s</span>'
+			.'<img src="%s" alt="%s">'
+			.'</a>',
+			esc_url( $url ),
+			esc_html__( 'View the image', 'gravityforms' ),
+			esc_html__( '(opens in a new tab)', 'gravityforms' ),
+			esc_url( GFEntryList::get_icon_url( $url ) ),
+			esc_attr( $alt )
+		);
 	}
 
 	public function get_value_entry_detail( $value, $currency = '', $use_text = false, $format = 'html', $media = 'screen' ) {
@@ -227,7 +238,7 @@ class GF_Field_Post_Image extends GF_Field_Fileupload {
 					break;
 
 				default :
-					$value  = sprintf( '<a href="%1$s" target="_blank" aria-label="%2$s"><img src="%1$s" width="100" alt="%3$s"></a>', esc_url( $url ), esc_attr__( 'View the image', 'gravityforms' ), esc_attr( $alt ) );
+					$value  = sprintf( '<a href="%1$s" target="_blank" aria-label="%2$s"><img src="%1$s" width="100" alt="%3$s"></a>', esc_url( $url ), esc_attr__( 'View the image (opens in a new tab)', 'gravityforms' ), esc_attr( $alt ) );
 					$format = '<div>%s: %s</div>';
 					$value  .= ! empty( $alt ) ? sprintf( $format, esc_html__( 'Alternative Text', 'gravityforms' ), esc_html( $alt ) ) : '';
 					$value  .= ! empty( $title ) ? sprintf( $format, esc_html__( 'Title', 'gravityforms' ), esc_html( $title ) ) : '';

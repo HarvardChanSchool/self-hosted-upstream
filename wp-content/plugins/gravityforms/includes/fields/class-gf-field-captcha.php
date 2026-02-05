@@ -159,7 +159,11 @@ class GF_Field_CAPTCHA extends GF_Field {
                     '%s<div class="gform-spacing gform-spacing--top-1">%s</div>',
                     __( 'Configuration Required', 'gravityforms' ),
                     // Translators: 1. Opening <a> tag with link to the Forms > Settings > reCAPTCHA page. 2. closing <a> tag.
-                    sprintf( __( 'To use the reCAPTCHA field, please configure your %1$sreCAPTCHA settings%2$s.', 'gravityforms' ), '<a href="?page=gf_settings&subview=recaptcha" target="_blank">', '</a>' )
+				sprintf(
+					esc_html__( 'To use the reCAPTCHA field, please configure your %1$sreCAPTCHA settings.%2$s', 'gravityforms' ),
+					'<a href="?page=gf_settings&subview=recaptcha" target="_blank">',
+					'<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>'
+				)
 			),
 			'icon_helper_text' => __( 'This field requires additional configuration', 'gravityforms' ),
 		);
@@ -205,7 +209,7 @@ class GF_Field_CAPTCHA extends GF_Field {
 		switch ( $this->captchaType ) {
 			case 'simple_captcha' :
 				if ( class_exists( 'ReallySimpleCaptcha' ) ) {
-					$prefix      = $_POST[ "input_captcha_prefix_{$this->id}" ];
+					$prefix      = rgpost( "input_captcha_prefix_{$this->id}" ); 
 					$captcha_obj = $this->get_simple_captcha();
 
 					if ( ! $captcha_obj->check( $prefix, str_replace( ' ', '', $value ) ) ) {
@@ -218,7 +222,7 @@ class GF_Field_CAPTCHA extends GF_Field {
 				break;
 
 			case 'math' :
-				$prefixes    = explode( ',', $_POST[ "input_captcha_prefix_{$this->id}" ] );
+				$prefixes    = explode( ',', rgpost( "input_captcha_prefix_{$this->id}" ) );
 				$captcha_obj = $this->get_simple_captcha();
 
 				//finding first number
@@ -277,7 +281,7 @@ class GF_Field_CAPTCHA extends GF_Field {
 	public function validate_recaptcha( $form ) {
 		if ( rgpost( 'gform_conversational_form' ) ) {
 			$hash = md5( $form['title'] . $form['id'] );
-			if ( $hash === $_POST['gform_conversational_form'] && is_plugin_active( 'gravityformsconversationalforms/conversationalforms.php' ) ) {
+			if ( $hash === rgpost( 'gform_conversational_form' ) && is_plugin_active( 'gravityformsconversationalforms/conversationalforms.php' ) ) {
 				// This is a conversational form, and recaptcha v2 isn't supported
 				return true;
 			}
@@ -472,11 +476,11 @@ class GF_Field_CAPTCHA extends GF_Field {
 									<div class="gform-alert__message">
 										'. __( 'Configuration Required', 'gravityforms' ) .'
 										<div class="gform-spacing gform-spacing--top-1">'. sprintf(
-									'%s %s%s%s.',
+									'%s %s%s.%s',
 									__( 'To use the reCAPTCHA field, please configure your', 'gravityforms' ),
 											'<a href="?page=gf_settings&subview=recaptcha" target="_blank">',
 											__( 'reCAPTCHA settings', 'gravityforms' ),
-											'</a>'
+											'<span class="screen-reader-text">' . esc_html__('(opens in a new tab)', 'gravityforms') . '</span>&nbsp;<span class="gform-icon gform-icon--external-link" aria-hidden="true"></span></a>'
 										) .'</div>
 									</div>
 								</div>
@@ -653,12 +657,8 @@ class GF_Field_CAPTCHA extends GF_Field {
 		$word     = $captcha->generate_random_word();
 		$prefix   = mt_rand();
 		$filename = $captcha->generate_image( $prefix, $word );
-		$url      = RGFormsModel::get_upload_url( 'captcha' ) . '/' . $filename;
+		$url      = $this->get_image_url( $filename );
 		$path     = $captcha->tmp_dir . $filename;
-
-		if ( GFCommon::is_ssl() && strpos( $url, 'http:' ) !== false ) {
-			$url = str_replace( 'http:', 'https:', $url );
-		}
 
 		return array( 'path' => $path, 'url' => $url, 'height' => $captcha->img_size[1], 'width' => $captcha->img_size[0], 'prefix' => $prefix );
 	}
@@ -723,12 +723,8 @@ class GF_Field_CAPTCHA extends GF_Field {
 		$word     = $captcha->generate_random_word();
 		$prefix   = mt_rand();
 		$filename = $captcha->generate_image( $prefix, $word );
-		$url      = RGFormsModel::get_upload_url( 'captcha' ) . '/' . $filename;
+		$url      = $this->get_image_url( $filename );
 		$path     = $captcha->tmp_dir . $filename;
-
-		if ( GFCommon::is_ssl() && strpos( $url, 'http:' ) !== false ) {
-			$url = str_replace( 'http:', 'https:', $url );
-		}
 
 		return array( 'path' => $path, 'url' => $url, 'height' => $captcha->img_size[1], 'width' => $captcha->img_size[0], 'prefix' => $prefix );
 	}
@@ -780,7 +776,7 @@ class GF_Field_CAPTCHA extends GF_Field {
 		$padded = $plaintext . str_repeat( chr( $pad ), $pad );
 
 		//encrypt as 128
-		$encrypted = GFCommon::openssl_encrypt( $padded, $secret_key, MCRYPT_RIJNDAEL_128 );
+		$encrypted = GFCommon::openssl_encrypt( $padded, $secret_key, MCRYPT_RIJNDAEL_128 ); // gitleaks:allow
 
 		$token = str_replace( array( '+', '/', '=' ), array( '-', '_', '' ), $encrypted );
 		GFCommon::log_debug( ' token being used is: ' . $token );
@@ -791,6 +787,27 @@ class GF_Field_CAPTCHA extends GF_Field {
 	public function use_stoken() {
 		// 'gform_recaptcha_keys_status' will be set to true if new keys have been entered
 		return ! get_option( 'gform_recaptcha_keys_status', false );
+	}
+
+	/**
+	 * Returns the gf-download URL for the given image filename.
+	 *
+	 * @since 2.9.21
+	 *
+	 * @param string $filename The filename.
+	 *
+	 * @return string The gf-download URL.
+	 */
+	private function get_image_url( $filename ) {
+		return add_query_arg(
+			array(
+				'gf-download' => urlencode( $filename ),
+				'form-id'     => 'captcha',
+				'field-id'    => $this->id,
+				'hash'        => GFCommon::generate_download_hash( 'captcha', $this->id, $filename ),
+			),
+			site_url( 'index.php', GFCommon::is_ssl() ? 'https' : 'http' )
+		);
 	}
 
 }

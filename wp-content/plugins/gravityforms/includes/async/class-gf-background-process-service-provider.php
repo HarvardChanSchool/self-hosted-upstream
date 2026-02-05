@@ -11,7 +11,6 @@ use Gravity_Forms\Gravity_Forms\GF_Service_Container;
 use Gravity_Forms\Gravity_Forms\GF_Service_Provider;
 use Gravity_Forms\Gravity_Forms\Telemetry\GF_Telemetry_Processor;
 use GFForms;
-use GF_Background_Process;
 use GF_Background_Upgrader;
 use GF_Feed_Processor;
 
@@ -72,29 +71,6 @@ class GF_Background_Process_Service_Provider extends GF_Service_Provider {
 				return new $class();
 			} );
 		}
-	}
-
-	/**
-	 * Initializing hooks.
-	 *
-	 * @since 2.6.9
-	 *
-	 * @param GF_Service_Container $container
-	 */
-	public function init( GF_Service_Container $container ) {
-		$processors = array_keys( $this->processors );
-
-		add_action( 'gform_uninstalling', function () use ( $processors, $container ) {
-			foreach ( $processors as $name ) {
-				/**
-				 * @var GF_Background_Process $processor
-				 */
-				$processor = $container->get( $name );
-				$processor->clear_scheduled_events();
-				$processor->clear_queue( true );
-				$processor->unlock_process();
-			}
-		} );
 	}
 
 }
