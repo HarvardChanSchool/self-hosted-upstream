@@ -27,8 +27,6 @@ on:
   release:
     types:
       - published
-    branches:
-      - main
 
 jobs:
   Push-Deploy-Pantheon:
