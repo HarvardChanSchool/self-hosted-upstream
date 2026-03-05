@@ -654,6 +654,7 @@ class Controller {
 	 * This will filter the WP redirect location if we have an occurrence ID that was adjusted.
 	 *
 	 * @since 6.0.2
+	 * @since 7.3.2 Check if edit post link is available before using it.
 	 *
 	 * @param string $location The URL to redirect to.
 	 * @param int    $post_id  The post ID.
@@ -663,7 +664,8 @@ class Controller {
 	public function classic_redirect_post_location( string $location, int $post_id ): string {
 		$redirect = tribe( Transient_Occurrence_Redirector::class )->get_redirect_data( self::get_id( $this->original_request ) );
 		if ( isset( $redirect['redirect_id'] ) ) {
-			return get_edit_post_link( $redirect['redirect_id'], 'internal' );
+			$edit_post_link = get_edit_post_link( $redirect['redirect_id'], 'internal' );
+			$location       = $edit_post_link ? $edit_post_link : $location;
 		}
 
 		return $location;

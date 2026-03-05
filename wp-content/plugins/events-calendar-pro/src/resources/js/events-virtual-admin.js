@@ -201,7 +201,7 @@ tribe.events.virtualAdmin = tribe.events.virtualAdmin || {};
 	 */
 	obj.handleVideoPreviewOnLoad = function( ) {
 		const $videoPreview = $( obj.selectors.autoDetectPreview );
-		if ( 0 === $.trim( $videoPreview.html() ).length ) {
+		if ( 0 === $videoPreview.length || 0 === $videoPreview.html().trim().length ) {
 			return;
 		}
 

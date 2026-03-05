@@ -12,6 +12,7 @@ use Tribe\Events\Pro\Views\V2\Views\Week_View;
 use Tribe\Events\Views\V2\Views\Day_View;
 use Tribe\Events\Views\V2\Views\List_View;
 use Tribe\Events\Views\V2\Views\Month_View;
+use TEC\Common\StellarWP\Assets\Config;
 
 // phpcs:disable PEAR.NamingConventions.ValidClassName.Invalid, StellarWP.Classes.ValidClassName.NotSnakeCase, WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- legacy naming conventions
 
@@ -93,7 +94,7 @@ if ( ! class_exists( 'Tribe__Events__Pro__Main' ) ) {
 		/**
 		 * The Events Calendar Pro Version
 		 */
-		const VERSION = '7.3.0';
+		const VERSION = '7.4.2';
 
 		/**
 		 * The Events Calendar Required Version
@@ -479,6 +480,8 @@ if ( ! class_exists( 'Tribe__Events__Pro__Main' ) ) {
 			$this->plural_event_label             = tribe_get_event_label_plural();
 			$this->singular_event_label_lowercase = tribe_get_event_label_singular_lowercase();
 			$this->plural_event_label_lowercase   = tribe_get_event_label_plural_lowercase();
+
+			Config::add_group_path( 'tec-events-pro-vendor', $this->pluginPath . 'src/resources/', 'includes/' );
 
 			// if enabled views have never been set then set those to all PRO views.
 			if ( false === tribe_get_option( 'tribeEnableViews', false ) ) {
@@ -1845,6 +1848,9 @@ if ( ! class_exists( 'Tribe__Events__Pro__Main' ) ) {
 
 			// Set up Admin Provider.
 			tribe_register_provider( Admin_Controller::class );
+
+			// Set up SEO Headers.
+			tribe_register_provider( TEC\Events_Pro\SEO\Headers\Controller::class );
 
 			// Set up Site Health.
 			tribe_register_provider( TEC\Events_Pro\Site_Health\Provider::class );

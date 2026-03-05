@@ -1748,8 +1748,6 @@ abstract class Taxonomy_Abstract extends Controller implements Taxonomy_Interfac
 		);
 		// Bail when not the correct column.
 		if ( $column_name !== $this->get_wp_slug() ) {
-			echo $no_terms_html;
-
 			return;
 		}
 		$terms = wp_get_object_terms( $post_id, $this->get_wp_slug() );
