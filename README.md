@@ -82,10 +82,10 @@ This is an outline of tasks that should be performed by maintainers during month
 
 7. Make sure everything is pushed to GitHub, and wait for the build Action to run.
 
-8. Create release. Use naming convention vx.y.z, where:
-  - x is only bumped for major changes
-  - y is bumped for monthly maintenance releases
-  - z is bumped for unscheduled bugfixes
+8. Create release. Use naming convention {YYYY}.{MM}.x, where:
+  - YYYY is the 4-digit year, e.g. 2024
+  - MM is the 2-digit month, e.g. 09
+  - x is a number that increments with secondary releases on the same day, e.g. 2024.09.1
 
   Use 'September 2024 maintenance release' format for release description.
 
