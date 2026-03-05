@@ -265,3 +265,67 @@ This is an outline of tasks that should be performed by maintainers during month
 
     chromium --incognito --new-window https://caseresources.hsph.harvard.edu/ http://boone.cool/hsph/case-resources/ https://caseresources.hsph.harvard.edu/case-library/ http://boone.cool/hsph/case-resources/case-library/ https://caseresources.hsph.harvard.edu/publications/happiness-and-health-the-management-philosophy-of-lee-kum-kee-group/ http://boone.cool/hsph/case-resources/publications/happiness-and-health-the-management-philosophy-of-lee-kum-kee-group/ https://caseresources.hsph.harvard.edu/resources/ http://boone.cool/hsph/case-resources/resources/ https://caseresources.hsph.harvard.edu/resource/case-compendium-haas-school-business-university-california/ http://boone.cool/hsph/case-resources/resource/case-compendium-haas-school-business-university-california/ https://caseresources.hsph.harvard.edu/about/ http://boone.cool/hsph/case-resources/about/
 
+
+8. __FXB Center__
+
+    Web: https://fxb.harvard.edu
+         https://www.hhrjournal.org
+
+    GitHub: https://github.com/HarvardChanSchool/fxb-center/
+
+    Pantheon: https://dashboard.pantheon.io/workspace/1008eed6-3a1c-45c4-8b11-00a9f67a1c8f/cms-site/73f7af13-07c6-4301-93bb-0d7c93cbdc92/environment/dev/code
+
+    Verification URLs:
+    - https://fxb.harvard.edu/
+    - https://fxb.harvard.edu/events-calendar/
+    - https://fxb.harvard.edu/blog/calendar_event/war-and-the-publics-health/
+    - https://fxb.harvard.edu/press/
+    - https://fxb.harvard.edu/research-index/
+    - https://fxb.harvard.edu/child-protection-pedagogy/
+    - https://www.hhrjournal.org/
+    - https://www.hhrjournal.org/volume-27-issue-2-december-2025/
+    - https://www.hhrjournal.org/2025/12/08/accountability-from-below/
+    - https://www.hhrjournal.org/health-and-human-rights-news/
+    - https://www.hhrjournal.org/category/blog/
+    - https://www.hhrjournal.org/2025/12/19/us-funding-plan-for-homeless-people-threatens-rights/
+
+    boone.cool/hsph/fxb-center versions:
+    - http://boone.cool/hsph/fxb-center/
+    - http://boone.cool/hsph/fxb-center/events-calendar/
+    - http://boone.cool/hsph/fxb-center/blog/calendar_event/war-and-the-publics-health/
+    - http://boone.cool/hsph/fxb-center/press/
+    - http://boone.cool/hsph/fxb-center/research-index/
+    - http://boone.cool/hsph/fxb-center/child-protection-pedagogy/
+    - http://boone.cool/hsph/fxb-center/hhrjournal/
+    - http://boone.cool/hsph/fxb-center/hhrjournal/volume-27-issue-2-december-2025/
+    - http://boone.cool/hsph/fxb-center/hhrjournal/2025/12/08/accountability-from-below/
+    - http://boone.cool/hsph/fxb-center/hhrjournal/health-and-human-rights-news/
+    - http://boone.cool/hsph/fxb-center/hhrjournal/category/blog/
+    - http://boone.cool/hsph/fxb-center/hhrjournal/2025/12/19/us-funding-plan-for-homeless-people-threatens-rights/
+
+    chromium --incognito --new-window \
+      https://fxb.harvard.edu/ \
+      http://boone.cool/hsph/fxb-center/ \
+      https://fxb.harvard.edu/events-calendar/ \
+      http://boone.cool/hsph/fxb-center/events-calendar/ \
+      https://fxb.harvard.edu/blog/calendar_event/war-and-the-publics-health/ \
+      http://boone.cool/hsph/fxb-center/blog/calendar_event/war-and-the-publics-health/ \
+      https://fxb.harvard.edu/press/ \
+      http://boone.cool/hsph/fxb-center/press/ \
+      https://fxb.harvard.edu/research-index/ \
+      http://boone.cool/hsph/fxb-center/research-index/ \
+      https://fxb.harvard.edu/child-protection-pedagogy/ \
+      http://boone.cool/hsph/fxb-center/child-protection-pedagogy/ \
+      https://www.hhrjournal.org/ \
+      http://boone.cool/hsph/fxb-center/hhrjournal/ \
+      https://www.hhrjournal.org/volume-27-issue-2-december-2025/ \
+      http://boone.cool/hsph/fxb-center/hhrjournal/volume-27-issue-2-december-2025/ \
+      https://www.hhrjournal.org/2025/12/08/accountability-from-below/ \
+      http://boone.cool/hsph/fxb-center/hhrjournal/2025/12/08/accountability-from-below/ \
+      https://www.hhrjournal.org/health-and-human-rights-news/ \
+      http://boone.cool/hsph/fxb-center/hhrjournal/health-and-human-rights-news/ \
+      https://www.hhrjournal.org/category/blog/ \
+      http://boone.cool/hsph/fxb-center/hhrjournal/category/blog/ \
+      https://www.hhrjournal.org/2025/12/19/us-funding-plan-for-homeless-people-threatens-rights/ \
+      http://boone.cool/hsph/fxb-center/hhrjournal/2025/12/19/us-funding-plan-for-homeless-people-threatens-rights/
+
