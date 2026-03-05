@@ -60,11 +60,23 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 					<?php esc_html_e( 'Premium Features at 30% Off', 'simple-history' ); ?>
 				</p>
 
-				<p>Don't lose important history after 60 days. 
-					<strong>Simple History Premium</strong> keeps your logs as long as you need, plus adds exports, custom events, and more. 
+				<p>
+					<?php
+					printf(
+						/* translators: %s: Simple History Premium (bold text). */
+						esc_html__( "Don't lose important history after 60 days. %s keeps your logs as long as you need, plus adds exports, custom events, and more.", 'simple-history' ),
+						'<strong>' . esc_html__( 'Simple History Premium', 'simple-history' ) . '</strong>'
+					);
+					?>
 				</p>
 				<p>
-					Save 30% with code <strong>BLACKWEEK30</strong> (ends December 1 2025.)
+					<?php
+					printf(
+						/* translators: %s: discount code BLACKWEEK30 (bold text). */
+						esc_html__( 'Save 30%% with code %s (ends December 1 2025).', 'simple-history' ),
+						'<strong>BLACKWEEK30</strong>'
+					);
+					?>
 				</p>
 
 				<p>
@@ -144,7 +156,7 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 	public static function get_debug_and_monitor_features_postbox_html() {
 		// Hide if Premium is installed, because one feature of premium is hiding promos.
 		if ( ! Helpers::show_promo_boxes() ) {
-			return;
+			return '';
 		}
 
 		$debug_and_monitor_url = Helpers::get_tracking_url( 'https://simple-history.com/add-ons/debug-and-monitor/', 'premium_debug_sidebar' );
@@ -290,6 +302,41 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 						<?php esc_html_e( 'Buy WooCommerce Logger', 'simple-history' ); ?>
 					</a>
 				</p>
+			</div>
+		</div>
+		<?php
+
+		return ob_get_clean();
+	}
+
+	/**
+	 * Get HTML for hosting sponsor acknowledgment.
+	 *
+	 * @return string HTML
+	 */
+	public static function get_hosting_sponsor_postbox_html() {
+		ob_start();
+		?>
+		<div class="postbox sh-PremiumFeaturesPostbox sh-HelpPage-sponsor">
+			<div class="inside" style="margin-bottom: 0;">
+				<div class="sh-HelpPage-sponsor-content">
+					<a href="https://www.oderland.com" target="_blank" rel="noopener noreferrer" class="sh-HelpPage-sponsor-logo">
+						<img
+							src="<?php echo esc_url( plugins_url( 'assets/images/oderland-logo.svg', SIMPLE_HISTORY_BASENAME ) ); ?>"
+							alt="Oderland"
+						>
+					</a>
+					<p class="sh-HelpPage-sponsor-text">
+						<?php
+						printf(
+							/* translators: 1: Link to Simple History website, 2: Link to Oderland. */
+							wp_kses_post( __( 'The <a href="%1$s" target="_blank" rel="noopener noreferrer">Simple History website</a> is proudly hosted by <a href="%2$s" target="_blank" rel="noopener noreferrer">Oderland</a>, a Swedish web hosting provider.', 'simple-history' ) ),
+							'https://simple-history.com',
+							'https://www.oderland.com'
+						);
+						?>
+					</p>
+				</div>
 			</div>
 		</div>
 		<?php

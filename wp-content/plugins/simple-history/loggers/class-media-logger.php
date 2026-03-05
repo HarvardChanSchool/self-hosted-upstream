@@ -3,7 +3,6 @@
 namespace Simple_History\Loggers;
 
 use Simple_History\Helpers;
-use Simple_History\Event_Details\Event_Details_Simple_Container;
 use Simple_History\Event_Details\Event_Details_Container_Interface;
 use Simple_History\Event_Details\Event_Details_Group;
 use Simple_History\Event_Details\Event_Details_Item;
@@ -25,7 +24,7 @@ class Media_Logger extends Logger {
 	 */
 	public function get_info() {
 
-		$arr_info = array(
+		return array(
 			'name'        => __( 'Media/Attachments Logger', 'simple-history' ),
 			'description' => __( 'Logs media uploads and edits', 'simple-history' ),
 			'capability'  => 'edit_pages',
@@ -52,8 +51,6 @@ class Media_Logger extends Logger {
 				),
 			),
 		);
-
-		return $arr_info;
 	}
 
 	/**
@@ -73,7 +70,7 @@ class Media_Logger extends Logger {
 	 * Fired when loading admin page post.php.
 	 */
 	public function on_load_post_store_attachment_alt_text() {
-		if ( 'POST' !== $_SERVER['REQUEST_METHOD'] ?? '' ) {
+		if ( ! isset( $_SERVER['REQUEST_METHOD'] ) || $_SERVER['REQUEST_METHOD'] !== 'POST' ) {
 			return;
 		}
 
@@ -83,7 +80,7 @@ class Media_Logger extends Logger {
 		$action    = $_POST['action'] ?? null;
 		// phpcs:enable WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.NonceVerification.Missing
 
-		if ( ! $post_id || 'attachment' !== $post_type || 'editpost' !== $action ) {
+		if ( ! $post_id || $post_type !== 'attachment' || $action !== 'editpost' ) {
 			return;
 		}
 
@@ -140,9 +137,9 @@ class Media_Logger extends Logger {
 
 		// Only link to attachment if attachment post is still available.
 		if ( $attachment_is_available ) {
-			if ( 'attachment_updated' === $message_key ) {
+			if ( $message_key === 'attachment_updated' ) {
 				$message = __( 'Edited attachment <a href="{edit_link}">"{attachment_title}"</a>', 'simple-history' );
-			} elseif ( 'attachment_created' === $message_key ) {
+			} elseif ( $message_key === 'attachment_created' ) {
 
 				if ( isset( $context['attachment_parent_id'] ) ) {
 					// Attachment was uploaded to a post. Link to it, if still available.
@@ -321,9 +318,11 @@ class Media_Logger extends Logger {
 	public function get_log_row_details_output( $row ) {
 		$message_key = $row->context['_message_key'];
 
-		if ( 'attachment_created' === $message_key ) {
+		if ( $message_key === 'attachment_created' ) {
 			return $this->get_details_output_for_created_attachment( $row );
-		} elseif ( 'attachment_updated' === $message_key ) {
+		}
+
+		if ( $message_key === 'attachment_updated' ) {
 			return $this->get_details_output_for_updated_attachment( $row );
 		}
 

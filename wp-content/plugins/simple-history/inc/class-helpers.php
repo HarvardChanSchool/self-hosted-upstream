@@ -292,7 +292,7 @@ class Helpers {
 		$incrementor_value = wp_cache_get( $incrementor_key );
 
 		// Generate a new incrementor if it doesn't exist or if we want to refresh it.
-		if ( false === $incrementor_value || $refresh ) {
+		if ( $incrementor_value === false || $refresh ) {
 			$incrementor_value = uniqid();
 			wp_cache_set( $incrementor_key, $incrementor_value );
 		}
@@ -339,17 +339,21 @@ class Helpers {
 	public static function get_callable_name( $callback ) {
 		if ( is_string( $callback ) ) {
 			return trim( $callback );
-		} elseif ( is_array( $callback ) ) {
+		}
+
+		if ( is_array( $callback ) ) {
 			if ( is_object( $callback[0] ) ) {
 				return sprintf( '%s::%s', get_class( $callback[0] ), trim( $callback[1] ) );
-			} else {
-				return sprintf( '%s::%s', trim( $callback[0] ), trim( $callback[1] ) );
 			}
-		} elseif ( $callback instanceof \Closure ) {
-			return 'closure';
-		} else {
-			return 'unknown';
+
+			return sprintf( '%s::%s', trim( $callback[0] ), trim( $callback[1] ) );
 		}
+
+		if ( $callback instanceof \Closure ) {
+			return 'closure';
+		}
+
+		return 'unknown';
 	}
 
 	/**
@@ -612,7 +616,7 @@ class Helpers {
 			true
 		);
 
-		$is_ipv4 = ( 3 === substr_count( $ip_address, '.' ) );
+		$is_ipv4 = ( substr_count( $ip_address, '.' ) === 3 );
 		if ( $add_char && $is_ipv4 ) {
 			$ip_address = preg_replace( '/\.0$/', '.x', $ip_address );
 		}
@@ -697,9 +701,11 @@ class Helpers {
 					$matches
 				);
 
-				if ( $match ) {
-					$arr_found_additional_ip_headers[ $context_key ] = $context_val;
+				if ( ! $match ) {
+					continue;
 				}
+
+				$arr_found_additional_ip_headers[ $context_key ] = $context_val;
 			}
 		}
 
@@ -715,7 +721,7 @@ class Helpers {
 	 * @return string "1" if enabled, "0" if disabled.
 	 */
 	public static function sanitize_checkbox_input( $field ) {
-		return ( $field === '1' ) ? '1' : '0';
+		return $field === '1' ? '1' : '0';
 	}
 
 	/**
@@ -863,6 +869,7 @@ class Helpers {
 	 *     Optional. Additional arguments.
 	 *
 	 *     @type callable $callback_last Function that echos out any content at the end of the section (before closing wrapper div).
+	 *     @type bool     $no_card       If true, removes the card styling (sh-SettingsCard class). Default false.
 	 * }
 	 */
 	public static function add_settings_section( $id, $title, $callback_top, $page, $args = [] ) {
@@ -899,12 +906,16 @@ class Helpers {
 		}
 		$after_section_content .= '</div>';
 
-		$args = [
-			'before_section' => sprintf( '<div class="sh-SettingsCard sh-SettingsPage-settingsSection-wrap"%s>', $id_attribute ),
+		// Build wrapper class - optionally exclude card styling.
+		$no_card       = $args['no_card'] ?? false;
+		$wrapper_class = $no_card ? 'sh-SettingsPage-settingsSection-wrap' : 'sh-SettingsCard sh-SettingsPage-settingsSection-wrap';
+
+		$section_args = [
+			'before_section' => sprintf( '<div class="%s"%s>', esc_attr( $wrapper_class ), $id_attribute ),
 			'after_section'  => $after_section_content,
 		];
 
-		add_settings_section( $id, $title, $callback_top, $page, $args );
+		add_settings_section( $id, $title, $callback_top, $page, $section_args );
 	}
 
 	/**
@@ -1197,11 +1208,7 @@ class Helpers {
 		$current_screen = self::get_current_screen();
 
 		// We are on a Simple History page if we are on dashboard and the setting is set to show on dashboard.
-		if ( $current_screen->base === 'dashboard' && self::setting_show_on_dashboard() ) {
-			return true;
-		}
-
-		return false;
+		return $current_screen->base === 'dashboard' && self::setting_show_on_dashboard();
 	}
 
 	/**
@@ -1219,9 +1226,7 @@ class Helpers {
 
 		$sql_data_exists = "SELECT id AS id_exists FROM {$table_name} LIMIT 1";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$data_exists = (bool) $wpdb->get_var( $sql_data_exists, 0 );
-
-		return $data_exists;
+		return (bool) $wpdb->get_var( $sql_data_exists, 0 );
 	}
 
 	/**
@@ -1297,7 +1302,7 @@ class Helpers {
 		$setting     = get_option( $option_slug );
 
 		// If it does not exist, then default so the option can auto-load.
-		if ( false === $setting ) {
+		if ( $setting === false ) {
 			$setting = 'top';
 			update_option( $option_slug, $setting, true );
 		}
@@ -1384,7 +1389,7 @@ class Helpers {
 			'
                 SELECT count(*)
                 FROM %1$s
-                WHERE UNIX_TIMESTAMP(date) >= %2$d
+                WHERE date >= FROM_UNIXTIME(%2$d)
                 AND logger IN %3$s
             ',
 			$simple_history->get_events_table_name(),
@@ -1415,7 +1420,7 @@ class Helpers {
 			'
                 SELECT count(*)
                 FROM %1$s
-                WHERE UNIX_TIMESTAMP(date) >= %2$d
+                WHERE date >= FROM_UNIXTIME(%2$d)
                 AND logger IN %3$s
             ',
 			$simple_history->get_events_table_name(),
@@ -1494,7 +1499,7 @@ class Helpers {
 					FROM
 						%1$s
 					WHERE
-						UNIX_TIMESTAMP(date) >= %2$d
+						date >= FROM_UNIXTIME(%2$d)
 						AND logger IN %3$s
 					GROUP BY yearDate
 					ORDER BY yearDate ASC
@@ -1527,9 +1532,7 @@ class Helpers {
 		}
 
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$dates = $wpdb->get_results( $sql );
-
-		return $dates;
+		return $wpdb->get_results( $sql );
 	}
 
 	/**
@@ -1604,7 +1607,7 @@ class Helpers {
 		$cache_key     = 'sh_filter_unique_months_' . md5( implode( ',', $loggers_slugs ) );
 		$result_months = get_transient( $cache_key );
 
-		if ( false === $result_months ) {
+		if ( $result_months === false ) {
 			$sql_dates = sprintf(
 				'
 				SELECT DISTINCT ( date_format(DATE, "%%Y-%%m") ) AS yearMonth
@@ -1844,20 +1847,30 @@ class Helpers {
 				<strong><?php echo esc_html( $title ); ?></strong>
 			</p>
 
-			<?php if ( is_array( $description ) ) { ?>
+			<?php
+			if ( is_array( $description ) ) {
+				?>
 				<ul class="sh-PremiumFeatureTeaser-features">
-					<?php foreach ( $description as $feature ) { ?>
+					<?php
+					foreach ( $description as $feature ) {
+						?>
 						<li>
 							<span class="dashicons dashicons-yes"></span>
 							<?php echo esc_html( $feature ); ?>
 						</li>
-					<?php } ?>
+						<?php
+					}
+					?>
 				</ul>
-			<?php } else { ?>
+				<?php
+			} else {
+				?>
 				<p>
 					<?php echo esc_html( $description ); ?>
 				</p>
-			<?php } ?>
+				<?php
+			}
+			?>
 
 			<p class="sh-PremiumFeatureTeaser-ctaLinkContainer">
 				<a href="<?php echo esc_url( $premium_url ); ?>"
@@ -1902,14 +1915,18 @@ class Helpers {
 
 		if ( in_array( $history_page_location, array( 'top', 'bottom' ), true ) ) {
 			return admin_url( 'admin.php?page=' . Simple_History::MENU_PAGE_SLUG );
-		} elseif ( 'inside_tools' === $history_page_location ) {
-			return admin_url( 'tools.php?page=' . Simple_History::MENU_PAGE_SLUG );
-		} elseif ( 'inside_dashboard' === $history_page_location ) {
-			return admin_url( 'index.php?page=' . Simple_History::MENU_PAGE_SLUG );
-		} else {
-			// Fallback if no match found.
-			return admin_url( 'admin.php?page=' . Simple_History::MENU_PAGE_SLUG );
 		}
+
+		if ( $history_page_location === 'inside_tools' ) {
+			return admin_url( 'tools.php?page=' . Simple_History::MENU_PAGE_SLUG );
+		}
+
+		if ( $history_page_location === 'inside_dashboard' ) {
+			return admin_url( 'index.php?page=' . Simple_History::MENU_PAGE_SLUG );
+		}
+
+		// Fallback if no match found.
+		return admin_url( 'admin.php?page=' . Simple_History::MENU_PAGE_SLUG );
 	}
 
 	/**
@@ -1924,12 +1941,14 @@ class Helpers {
 
 		if ( in_array( $history_page_location, array( 'top', 'bottom' ), true ) ) {
 			return admin_url( 'admin.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
-		} elseif ( in_array( $history_page_location, array( 'inside_tools', 'inside_dashboard' ), true ) ) {
-			return admin_url( 'options-general.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
-		} else {
-			// Fallback if no match found.
-			return admin_url( 'admin.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
 		}
+
+		if ( in_array( $history_page_location, array( 'inside_tools', 'inside_dashboard' ), true ) ) {
+			return admin_url( 'options-general.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
+		}
+
+		// Fallback if no match found.
+		return admin_url( 'admin.php?page=' . Simple_History::SETTINGS_MENU_PAGE_SLUG );
 	}
 
 
@@ -2288,5 +2307,70 @@ class Helpers {
 		}
 
 		return add_query_arg( $params, $url );
+	}
+
+	/**
+	 * Sanitize an error message for storage and display.
+	 *
+	 * Strips HTML tags, decodes HTML entities, normalizes whitespace,
+	 * and truncates to a reasonable length. Useful for cleaning up
+	 * error messages that may contain HTML (like WordPress database errors).
+	 *
+	 * @since 5.6.0
+	 * @param string $message    The raw error message.
+	 * @param int    $max_length Maximum length before truncation. Default 500.
+	 * @return string The sanitized error message.
+	 */
+	public static function sanitize_error_message( $message, $max_length = 500 ) {
+		// Strip HTML tags.
+		$clean = wp_strip_all_tags( $message );
+
+		// Decode HTML entities.
+		$clean = html_entity_decode( $clean, ENT_QUOTES, 'UTF-8' );
+
+		// Normalize whitespace (collapse multiple spaces/newlines to single space).
+		$clean = preg_replace( '/\s+/', ' ', $clean );
+
+		// Trim whitespace.
+		$clean = trim( $clean );
+
+		// Truncate to reasonable length.
+		if ( strlen( $clean ) > $max_length ) {
+			$clean = substr( $clean, 0, $max_length - 3 ) . '...';
+		}
+
+		return $clean;
+	}
+
+	/**
+	 * Get the primary role of a user.
+	 *
+	 * WordPress allows multiple roles per user. This function returns
+	 * the first valid role, following the pattern used in user-edit.php.
+	 *
+	 * @since 5.6.0
+	 * @param int|\WP_User|null $user User ID, WP_User object, or null for current user.
+	 * @return string The primary role slug, or empty string if no valid role found.
+	 */
+	public static function get_user_primary_role( $user = null ) {
+		if ( $user === null ) {
+			$user = wp_get_current_user();
+		} elseif ( is_numeric( $user ) ) {
+			$user = get_user_by( 'id', $user );
+		}
+
+		if ( ! $user instanceof \WP_User || empty( $user->roles ) ) {
+			return '';
+		}
+
+		// Validate roles against registered roles (as done in user-edit.php).
+		$wp_roles    = wp_roles();
+		$valid_roles = array_intersect(
+			array_values( (array) $user->roles ),
+			array_keys( (array) $wp_roles->roles )
+		);
+
+		$primary_role = array_shift( $valid_roles );
+		return $primary_role !== null ? (string) $primary_role : '';
 	}
 }

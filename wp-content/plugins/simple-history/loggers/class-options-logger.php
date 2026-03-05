@@ -338,7 +338,7 @@ class Options_Logger extends Logger {
 		$output      = '';
 
 		// Bail if not option_updated message.
-		if ( 'option_updated' !== $message_key ) {
+		if ( $message_key !== 'option_updated' ) {
 			return $output;
 		}
 
@@ -388,9 +388,7 @@ class Options_Logger extends Logger {
 			}
 		}
 
-		$output .= '</table>';
-
-		return $output;
+		return $output . '</table>';
 	}
 
 	/**
@@ -758,7 +756,7 @@ class Options_Logger extends Logger {
 	protected function get_wordpress_options_keys() {
 		$keys = [];
 
-		foreach ( $this->get_wordpress_built_in_options() as $option_page => $options_page ) {
+		foreach ( $this->get_wordpress_built_in_options() as $options_page ) {
 			foreach ( $options_page['options'] as $option_name => $option_info ) {
 				$keys[] = $option_name;
 			}

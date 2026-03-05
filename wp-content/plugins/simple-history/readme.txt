@@ -4,7 +4,7 @@ Contributors: eskapism, wpsimplehistory
 Donate link: https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_donate_link
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 6.9
-Stable tag: 5.22.0
+Stable tag: 5.23.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -195,17 +195,27 @@ Take your activity logging to the next level with add-ons that enhance tracking,
 
 #### [Simple History Premium](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium)
 
-Unlock advanced features and customization options:
+Unlock enterprise-grade logging and advanced customization:
 
--   **Custom Log Entries** – Add custom log entries using a UI. Document important changes by creating custom log entries for team actions, content updates, or system changes that aren't automatically tracked.
--   **Stealth Mode GUI** – User-friendly interface for managing Stealth Mode settings without writing code.
--   **Log Retention** – Control how long logs are stored, from a few days to forever.
--   **Export Search Results** – Download logs in CSV or JSON format for deeper analysis.
--   **Failed User Logins** – Disable or limit logging of failed login attempts to reduce noise.
--   **IP Address Anonymization** – Choose whether to store full IPs or anonymize them for privacy compliance (e.g., GDPR).
--   **Login Location Lookup** – View the location of a specific login attempt on Google Maps to identify suspicious activity.
--   **Logger Control** – Enable or disable specific loggers to manage what type of events are recorded.
--   **Ad-Free Experience** – Remove promotional banners for a distraction-free workflow.
+**Log Channels – Stream Events Beyond WordPress**
+
+-   **File Channel** – Write events to local log files in JSON Lines, RFC 5424, or Logfmt format for integration with any log analysis tool.
+-   **Syslog Channels** – Forward events to syslog servers via UDP, TCP, or encrypted TLS. Works with Graylog, Papertrail, and other centralized logging platforms.
+-   **External Database Channel** – Store events in external MySQL/MariaDB databases for long-term retention and multi-site log aggregation.
+-   **Datadog Channel** – Send events directly to Datadog for real-time monitoring, alerting, and dashboards.
+-   **Webhook Channel** – Forward events to any HTTP endpoint with custom JSON payloads. Perfect for Slack notifications, custom integrations, or automation workflows.
+
+**Enhanced Controls & Productivity**
+
+-   **Custom Log Entries** – Document team decisions, manual changes, or system updates that aren't automatically tracked.
+-   **Export Search Results** – Download filtered logs as CSV or JSON for reporting and compliance audits.
+-   **Log Retention** – Store logs for as long as you need—set custom retention periods or keep them forever.
+-   **Backfill** – Import years of historical content created before Simple History was installed.
+-   **Post Activity Panel** – View complete post history directly in the block editor sidebar.
+-   **Stealth Mode GUI** – Manage hidden logging through a user-friendly interface.
+-   **Logger Control** – Fine-tune which events are recorded by enabling or disabling specific loggers.
+-   **IP Address Anonymization** – Full IP logging or anonymization for GDPR compliance.
+-   **Ad-Free Experience** – Clean, distraction-free interface.
 
 #### [WooCommerce Logger](https://simple-history.com/add-ons/woocommerce/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=addons&utm_content=readme_addon_woocommerce)
 
@@ -335,6 +345,45 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
 -   [Sponsor the plugin to keep it free.](https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_sponsor_footer)
 -   [Add a 5-star review so other users know it's good.](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5)
 -   [Get the premium add-on for more features.](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium)
+
+### 5.23.1 (February 2026)
+
+**Fixed**
+
+-   Added backward-compatibility stubs for PHP classes 5.21–5.23, hopefully preventing crashes when updating from those versions. 🤞
+
+### 5.23.0 (February 2026)
+
+**Added**
+
+-   Detection of forced security updates from WordPress.org; shown as "Update method: Security auto-update" in plugin update details.
+-   Upgrade notices from WordPress.org API in plugin update details.
+-   Search labels on 11 loggers (Beaver Builder, Duplicate Post, Enable Media Replace, Jetpack, Limit Login Attempts, Redirection, User Switching, WP Crontrol, Privacy, Simple History, Translations) for better filtering in alert rules.
+-   Granular failed-login filters: "Failed login (wrong password)" for known users and "Failed login (unknown user)" for non-existent usernames, alongside the existing "Failed user logins" option.
+-   User role (`_user_role`) in event context for debugging and used by alerts to be able to add rules for specific user roles.
+-   Notes feature stats (WordPress 6.9+):
+    -   Statistics in weekly email reports (notes added and resolved).
+    -   Statistics on History Insights for block editor notes activity.
+    -   REST API at `/wp-json/simple-history/v1/stats/notes`.
+-   Alerts settings page with premium notification teasers (presets and custom rules in [Premium](https://simple-history.com/add-ons/premium/?utm_source=worg)).
+
+**Changed**
+
+-   Updated some logger messages to use active voice: e.g. "Was denied access" → "Attempted to access restricted", "was auto-disabled" → "Auto-disabled", "Was locked out because" → "Locked out after", "was updated" → "Updated".
+-   Debug tab merged into Help & Support; System Information sits directly under support links.
+-   Status bar on Help & Support showing plugin version, event count, and retention at a glance.
+-   System Information extended with PHP Max Input Vars, WP Memory Limit, Child Theme, Theme Author, and User Agent for support debugging.
+-   Log level for forced security plugin updates is changed from "info" to "notice", so auto-updates stand out.
+-   Disable autoload for Available Updates Logger options, so they are only loaded when needed.
+-   Sub-navigation tabs scroll horizontally on narrow screens instead of wrapping.
+-   Plugin loading no longer scans the filesystem at startup; loggers and extensions are registered via static class lists for faster, more reliable init.
+-   Sidebar stats and database purge queries rewritten to use the date index (faster on large tables).
+-   Log_Query now has a `skip_count_query` option to omit the total row count when pagination metadata is not needed.
+-   RSS feed now defaults to last 7 days and skips the count query for better performance. It also has a `dates` parameter for date filtering (e.g. `&dates=lastdays:30`).
+
+**Fixed**
+
+-   Infinite loop when the [Debug & Monitor add-on](https://simple-history.com/add-ons/debug-and-monitor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_debug_monitor) logged HTTP requests from channels (Webhook, Datadog, Splunk).
 
 ### 5.22.0 (December 2025)
 

@@ -20,7 +20,7 @@ class Plugin_Jetpack_Logger extends Logger {
 	 * @return array Array with plugin info.
 	 */
 	public function get_info() {
-		$arr_info = array(
+		return array(
 			'name'        => _x( 'Plugin: Jetpack Logger', 'Logger: Jetpack', 'simple-history' ),
 			'description' => _x( 'Log Jetpack settings changes', 'Logger: Jetpack', 'simple-history' ),
 			'capability'  => 'manage_options',
@@ -29,9 +29,21 @@ class Plugin_Jetpack_Logger extends Logger {
 				'module_activated'   => _x( 'Activated Jetpack module "{module_name}"', 'Logger: Jetpack', 'simple-history' ),
 				'module_deactivated' => _x( 'Deactivated Jetpack module "{module_name}"', 'Logger: Jetpack', 'simple-history' ),
 			),
+			'labels'      => array(
+				'search' => array(
+					'label'     => _x( 'Jetpack', 'Jetpack logger: search', 'simple-history' ),
+					'label_all' => _x( 'All Jetpack activity', 'Jetpack logger: search', 'simple-history' ),
+					'options'   => array(
+						_x( 'Modules activated', 'Jetpack logger: search', 'simple-history' ) => array(
+							'module_activated',
+						),
+						_x( 'Modules deactivated', 'Jetpack logger: search', 'simple-history' ) => array(
+							'module_deactivated',
+						),
+					),
+				),
+			),
 		);
-
-		return $arr_info;
 	}
 
 	/**
@@ -93,7 +105,7 @@ class Plugin_Jetpack_Logger extends Logger {
 	 * @return void
 	 */
 	public function on_jetpack_activate_module( $module_slug = null, $success = null ) {
-		if ( true !== $success ) {
+		if ( $success !== true ) {
 			return;
 		}
 
@@ -124,7 +136,7 @@ class Plugin_Jetpack_Logger extends Logger {
 	 * @param bool   $success Whether the module deactivation was successful.
 	 */
 	public function on_jetpack_deactivate_module( $module_slug = null, $success = null ) {
-		if ( true !== $success ) {
+		if ( $success !== true ) {
 			return;
 		}
 

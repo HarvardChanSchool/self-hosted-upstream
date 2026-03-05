@@ -285,6 +285,16 @@ class RSS_Dropin extends Dropin {
 					// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 					$args = $this->set_log_query_args_from_query_string( $_GET );
 
+					// Default to last 7 days when no date filter is provided,
+					// to avoid scanning the entire events table.
+					$has_date_filter = ! empty( $args['date_from'] ) || ! empty( $args['date_to'] ) || ! empty( $args['dates'] );
+					if ( ! $has_date_filter ) {
+						$args['dates'] = 'lastdays:7';
+					}
+
+					// RSS feeds don't need pagination metadata.
+					$args['skip_count_query'] = true;
+
 					/**
 					 * Filters the arguments passed to `SimpleHistoryLogQuery()` when fetching the RSS feed
 					 *
@@ -329,9 +339,9 @@ class RSS_Dropin extends Dropin {
 					}
 
 					foreach ( $queryResults['log_rows'] as $row ) {
-						$header_output  = $this->simple_history->get_log_row_header_output( $row );
-						$text_output    = $this->simple_history->get_log_row_plain_text_output( $row );
-						$details_output = $this->simple_history->get_log_row_details_output( $row );
+						$header_output  = $this->clean_broken_links( $this->simple_history->get_log_row_header_output( $row ) );
+						$text_output    = $this->clean_broken_links( $this->simple_history->get_log_row_plain_text_output( $row ) );
+						$details_output = $this->clean_broken_links( (string) $this->simple_history->get_log_row_details_output( $row ) );
 
 						// phpcs:ignore Squiz.PHP.CommentedOutCode.Found -- URL reference.
 						// See http://cyber.law.harvard.edu/rss/rss.html#ltguidgtSubelementOfLtitemgt.
@@ -465,6 +475,36 @@ class RSS_Dropin extends Dropin {
 	}
 
 	/**
+	 * Clean broken links from HTML output.
+	 *
+	 * Finds <a> tags with unresolved {placeholder} hrefs or empty hrefs
+	 * and removes the href attribute. An <a> without href is valid HTML
+	 * and renders as plain text with no link behavior.
+	 *
+	 * @since 5.x
+	 * @param string $html HTML output from a logger.
+	 * @return string Cleaned HTML with broken links neutralized.
+	 */
+	private function clean_broken_links( $html ) {
+		$processor = new \WP_HTML_Tag_Processor( $html );
+
+		while ( $processor->next_tag( array( 'tag_name' => 'a' ) ) ) {
+			$href = $processor->get_attribute( 'href' );
+
+			$is_empty       = $href === '' || $href === null;
+			$is_placeholder = is_string( $href ) && str_contains( $href, '{' );
+
+			if ( ! $is_empty && ! $is_placeholder ) {
+				continue;
+			}
+
+			$processor->remove_attribute( 'href' );
+		}
+
+		return $processor->get_updated_html();
+	}
+
+	/**
 	 * Create a new RSS secret.
 	 *
 	 * @return string new secret
@@ -560,15 +600,13 @@ class RSS_Dropin extends Dropin {
 	public function get_rss_address() {
 		$rss_secret = get_option( 'simple_history_rss_secret' );
 
-		$rss_address = add_query_arg(
+		return add_query_arg(
 			array(
 				'simple_history_get_rss' => '1',
 				'rss_secret'             => $rss_secret,
 			),
 			get_bloginfo( 'url' ) . '/'
 		);
-
-		return $rss_address;
 	}
 
 	/**
@@ -610,6 +648,7 @@ class RSS_Dropin extends Dropin {
 		$loggers        = isset( $args['loggers'] ) ? sanitize_text_field( $args['loggers'] ) : null;
 		$messages       = isset( $args['messages'] ) ? sanitize_text_field( $args['messages'] ) : null;
 		$loglevels      = isset( $args['loglevels'] ) ? sanitize_text_field( $args['loglevels'] ) : null;
+		$dates          = isset( $args['dates'] ) ? sanitize_text_field( $args['dates'] ) : null;
 
 		// Exclusion filters - useful for subscribing to events excluding your own actions.
 		$exclude_loggers   = isset( $args['exclude_loggers'] ) ? sanitize_text_field( $args['exclude_loggers'] ) : null;
@@ -626,6 +665,7 @@ class RSS_Dropin extends Dropin {
 			'loggers'           => $loggers,
 			'messages'          => $messages,
 			'loglevels'         => $loglevels,
+			'dates'             => $dates,
 			'exclude_loggers'   => $exclude_loggers,
 			'exclude_messages'  => $exclude_messages,
 			'exclude_loglevels' => $exclude_loglevels,

@@ -15,7 +15,7 @@ class Plugin_Beaver_Builder_Logger extends Logger {
 	 * @return array
 	 */
 	public function get_info() {
-		$arr_info = array(
+		return array(
 			'name'        => _x( 'Plugin: Beaver Builder Logger', 'Logger: Plugin Beaver Builder', 'simple-history' ),
 			'description' => _x(
 				'Logs various things in Beaver Builder',
@@ -46,9 +46,23 @@ class Plugin_Beaver_Builder_Logger extends Logger {
 					'simple-history'
 				),
 			),
+			'labels'      => array(
+				'search' => array(
+					'label'     => _x( 'Beaver Builder', 'Beaver Builder logger: search', 'simple-history' ),
+					'label_all' => _x( 'All Beaver Builder activity', 'Beaver Builder logger: search', 'simple-history' ),
+					'options'   => array(
+						_x( 'Layouts and templates saved', 'Beaver Builder logger: search', 'simple-history' ) => array(
+							'layout_saved',
+							'template_saved',
+							'draft_saved',
+						),
+						_x( 'Settings saved', 'Beaver Builder logger: search', 'simple-history' ) => array(
+							'admin_saved',
+						),
+					),
+				),
+			),
 		);
-
-		return $arr_info;
 	}
 
 	/**
@@ -125,9 +139,11 @@ class Plugin_Beaver_Builder_Logger extends Logger {
 		$context = array(
 			'layout_name' => $post->post_name,
 		);
-		if ( $publish ) {
-			$this->notice_message( 'layout_saved', $context );
+		if ( ! $publish ) {
+			return;
 		}
+
+		$this->notice_message( 'layout_saved', $context );
 	}
 
 	/**

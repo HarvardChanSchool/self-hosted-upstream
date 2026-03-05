@@ -8,41 +8,45 @@ jQuery( '.js-SimpleHistory-Settings-ClearLog' ).on( 'click', function ( e ) {
 } );
 
 /**
- * Handle premium plugin toggle button click (dev mode only)
+ * Handle dev mode toggle badge clicks (premium, experimental, etc.)
  */
-jQuery( document ).ready( function( $ ) {
-	$( '#sh-premium-toggle' ).on( 'click', function( e ) {
+jQuery( document ).ready( function ( $ ) {
+	$( '.sh-PageHeader-badge--toggle' ).on( 'click', function ( e ) {
 		e.preventDefault();
 
 		const $button = $( this );
-		const plugin = $button.data( 'plugin' );
 		const nonce = $button.data( 'nonce' );
+		const endpoint = $button.data( 'endpoint' );
 
-		// Disable button during request
+		// Disable button during request.
 		$button.prop( 'disabled', true );
 
-		// Get REST API root URL - try wpApiSettings first, fallback to relative path
+		// Get REST API root URL.
 		let apiRoot = '/wp-json/';
 		if ( typeof wpApiSettings !== 'undefined' && wpApiSettings.root ) {
 			apiRoot = wpApiSettings.root;
 		}
 
-		// Make API request to toggle plugin
+		// Collect any extra data- attributes (e.g. data-plugin).
+		const data = {};
+		$.each( $button.data(), function ( key, value ) {
+			if ( key !== 'nonce' && key !== 'endpoint' ) {
+				data[ key ] = value;
+			}
+		} );
+
 		$.ajax( {
-			url: apiRoot + 'simple-history/v1/dev-tools/toggle-plugin',
+			url: apiRoot + 'simple-history/v1/dev-tools/' + endpoint,
 			method: 'POST',
-			beforeSend: function( xhr ) {
+			beforeSend: function ( xhr ) {
 				xhr.setRequestHeader( 'X-WP-Nonce', nonce );
 			},
-			data: {
-				plugin: plugin
-			},
-			success: function( response ) {
-				// Reload the page to reflect the new plugin state
+			data: data,
+			success: function () {
 				window.location.reload();
 			},
-			error: function( xhr, status, error ) {
-				let errorMessage = 'Failed to toggle plugin.';
+			error: function ( xhr ) {
+				let errorMessage = 'Toggle failed.';
 
 				if ( xhr.responseJSON && xhr.responseJSON.message ) {
 					errorMessage = xhr.responseJSON.message;
@@ -50,7 +54,7 @@ jQuery( document ).ready( function( $ ) {
 
 				alert( errorMessage );
 				$button.prop( 'disabled', false );
-			}
+			},
 		} );
 	} );
 } );

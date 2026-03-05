@@ -65,9 +65,9 @@ class Channels_Settings_Page extends Service {
 			return;
 		}
 
-		// Build menu title with Beta badge.
+		// Build menu title with New badge.
 		$menu_title = __( 'Log Forwarding', 'simple-history' )
-			. ' <span class="sh-Badge sh-Badge--new">' . esc_html__( 'Beta', 'simple-history' ) . '</span>';
+			. ' <span class="sh-Badge sh-Badge--new">' . esc_html__( 'New', 'simple-history' ) . '</span>';
 
 		( new Menu_Page() )
 			->set_page_title( __( 'Log Forwarding', 'simple-history' ) )
@@ -387,7 +387,7 @@ class Channels_Settings_Page extends Service {
 	/**
 	 * Add a settings section for a specific channel.
 	 *
-	 * @param \Simple_History\Channels\Interfaces\Channel_Interface $channel The channel.
+	 * @param \Simple_History\Channels\Channel_Interface $channel The channel.
 	 */
 	private function add_channel_settings_section( $channel ) {
 		$channel_slug = $channel->get_slug();
@@ -435,7 +435,7 @@ class Channels_Settings_Page extends Service {
 	/**
 	 * Render the intro for a channel's settings section.
 	 *
-	 * @param \Simple_History\Channels\Interfaces\Channel_Interface $channel The channel.
+	 * @param \Simple_History\Channels\Channel_Interface $channel The channel.
 	 */
 	private function render_channel_section_intro( $channel ) {
 		if ( ! empty( $channel->get_description() ) ) {
@@ -470,21 +470,23 @@ class Channels_Settings_Page extends Service {
 	}
 
 	/**
-	 * Render new feature notice banner at the top of the settings page.
+	 * Render beta feature notice.
 	 */
 	private function render_beta_notice() {
 		?>
-		<div class="sh-BetaNotice">
-			<p>
-				<strong><?php esc_html_e( 'Beta feature – your feedback matters!', 'simple-history' ); ?></strong>
+		<div class="sh-StatusBar sh-StatusBar--beta">
+			<span class="sh-StatusBar-item">
+				<?php esc_html_e( 'Log Forwarding is a beta feature', 'simple-history' ); ?>
+			</span>
+			<span class="sh-StatusBar-stats">
 				<?php
 				printf(
 					/* translators: %s: email address link */
-					esc_html__( 'Let us know what\'s working and what could be better at %s.', 'simple-history' ),
-					'<a href="mailto:contact@simple-history.com">contact@simple-history.com</a>'
+					esc_html__( 'Share feedback at %s', 'simple-history' ),
+					'<a href="mailto:contact@simple-history.com?subject=Log%20Forwarding%20Feedback">contact@simple-history.com</a>'
 				);
 				?>
-			</p>
+			</span>
 		</div>
 		<?php
 	}

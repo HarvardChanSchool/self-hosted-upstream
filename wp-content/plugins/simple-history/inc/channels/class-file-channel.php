@@ -2,8 +2,6 @@
 
 namespace Simple_History\Channels;
 
-use Simple_History\Channels\Formatters\Formatter_Interface;
-use Simple_History\Channels\Formatters\Human_Readable_Formatter;
 use Simple_History\Helpers;
 
 /**
@@ -28,14 +26,6 @@ class File_Channel extends Channel {
 	 * @var ?string
 	 */
 	protected ?string $slug = 'file';
-
-	/**
-	 * Whether this channel supports async processing.
-	 * File writing is fast, no need for async.
-	 *
-	 * @var bool
-	 */
-	protected bool $supports_async = false;
 
 	/**
 	 * Called when the channel is loaded and ready.
@@ -183,7 +173,7 @@ class File_Channel extends Channel {
 		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- Direct file operations required for log file channel.
 		$result = file_put_contents( $log_file, $log_entry, FILE_APPEND | LOCK_EX );
 
-		if ( false === $result ) {
+		if ( $result === false ) {
 			return false;
 		}
 
@@ -273,11 +263,15 @@ class File_Channel extends Channel {
 			<?php esc_html_e( 'Create a new file', 'simple-history' ); ?>
 
 			<select name="<?php echo esc_attr( $option_name ); ?>[rotation_frequency]">
-				<?php foreach ( $rotation_options as $value => $label ) { ?>
+				<?php
+				foreach ( $rotation_options as $value => $label ) {
+					?>
 					<option value="<?php echo esc_attr( $value ); ?>" <?php selected( $rotation_value, $value ); ?>>
 						<?php echo esc_html( $label ); ?>
 					</option>
-				<?php } ?>
+					<?php
+				}
+				?>
 			</select>
 
 			<?php esc_html_e( 'and keep the last', 'simple-history' ); ?>
@@ -335,20 +329,22 @@ class File_Channel extends Channel {
 
 		<?php
 		// Show premium promo box if premium add-on is not active.
-		if ( ! $is_premium_active ) {
-			echo wp_kses_post(
-				Helpers::get_premium_feature_teaser(
-					__( 'Unlock All Log Formats', 'simple-history' ),
-					[
-						__( 'JSON Lines, Logfmt, and Syslog formats', 'simple-history' ),
-						__( 'Compatible with Graylog, Splunk, Grafana Loki, and more', 'simple-history' ),
-						__( 'Machine-readable for easy parsing and analysis', 'simple-history' ),
-					],
-					'file_channel_formatters',
-					__( 'Unlock All Formats', 'simple-history' )
-				)
-			);
+		if ( $is_premium_active ) {
+			return;
 		}
+
+		echo wp_kses_post(
+			Helpers::get_premium_feature_teaser(
+				__( 'Unlock All Log Formats', 'simple-history' ),
+				[
+					__( 'JSON Lines, Logfmt, and Syslog formats', 'simple-history' ),
+					__( 'Compatible with Graylog, Splunk, Grafana Loki, and more', 'simple-history' ),
+					__( 'Machine-readable for easy parsing and analysis', 'simple-history' ),
+				],
+				'file_channel_formatters',
+				__( 'Unlock All Formats', 'simple-history' )
+			)
+		);
 	}
 
 	/**
@@ -435,22 +431,30 @@ class File_Channel extends Channel {
 
 			<?php // Status line with icon. ?>
 			<p class="sh-FileChannel-folderStatus">
-				<?php if ( $creation_failed ) { ?>
+				<?php
+				if ( $creation_failed ) {
+					?>
 					<span class="sh-FileChannel-folderStatus--error">
 						<span class="dashicons dashicons-warning"></span>
 						<?php esc_html_e( 'Folder could not be created. Check that the parent directory is writable.', 'simple-history' ); ?>
 					</span>
-				<?php } elseif ( ! $is_writable ) { ?>
+					<?php
+				} elseif ( ! $is_writable ) {
+					?>
 					<span class="sh-FileChannel-folderStatus--error">
 						<span class="dashicons dashicons-warning"></span>
 						<?php esc_html_e( 'Folder exists but is not writable. Check folder permissions.', 'simple-history' ); ?>
 					</span>
-				<?php } else { ?>
+					<?php
+				} else {
+					?>
 					<span class="sh-FileChannel-folderStatus--success">
 						<span class="dashicons dashicons-yes-alt"></span>
 						<?php esc_html_e( 'Writable', 'simple-history' ); ?>
 					</span>
-					<?php if ( $stats && $stats['count'] > 0 ) { ?>
+					<?php
+					if ( $stats && $stats['count'] > 0 ) {
+						?>
 						<span class="sh-FileChannel-folderStats">
 							<?php
 							echo esc_html(
@@ -463,7 +467,9 @@ class File_Channel extends Channel {
 							?>
 							&middot;
 							<?php echo esc_html( size_format( $stats['total_size'] ) ); ?>
-							<?php if ( $stats['oldest'] && $stats['newest'] ) { ?>
+							<?php
+							if ( $stats['oldest'] && $stats['newest'] ) {
+								?>
 								&middot;
 								<?php
 								echo esc_html(
@@ -475,22 +481,32 @@ class File_Channel extends Channel {
 									)
 								);
 								?>
-							<?php } ?>
+								<?php
+							}
+							?>
 						</span>
-					<?php } ?>
-				<?php } ?>
+						<?php
+					}
+					?>
+					<?php
+				}
+				?>
 			</p>
 
 			<?php // Security note (inline, discrete). ?>
 			<p class="sh-FileChannel-securityNote">
-				<?php if ( $test_url ) { ?>
-					<?php esc_html_e( 'Folder is public.', 'simple-history' ); ?>
+				<?php
+				if ( $test_url ) {
+					esc_html_e( 'Folder is public.', 'simple-history' );
+					?>
 					<a href="<?php echo esc_url( $test_url ); ?>" target="_blank" class="sh-ExternalLink">
 						<?php esc_html_e( 'Verify access is blocked', 'simple-history' ); ?>
 					</a>
-				<?php } else { ?>
-					<?php esc_html_e( 'Folder is outside the public web directory.', 'simple-history' ); ?>
-				<?php } ?>
+					<?php
+				} else {
+					esc_html_e( 'Folder is outside the public web directory.', 'simple-history' );
+				}
+				?>
 			</p>
 		</div>
 		<?php
@@ -726,21 +742,23 @@ class File_Channel extends Channel {
 		$htaccess_path = trailingslashit( $directory ) . '.htaccess';
 
 		// Only create if it doesn't exist.
-		if ( ! file_exists( $htaccess_path ) ) {
-			$htaccess_content  = "# Simple History log directory protection\n\n";
-			$htaccess_content .= "# Apache 2.4+\n";
-			$htaccess_content .= "<IfModule mod_authz_core.c>\n";
-			$htaccess_content .= "    Require all denied\n";
-			$htaccess_content .= "</IfModule>\n\n";
-			$htaccess_content .= "# Apache 2.2\n";
-			$htaccess_content .= "<IfModule !mod_authz_core.c>\n";
-			$htaccess_content .= "    Order deny,allow\n";
-			$htaccess_content .= "    Deny from all\n";
-			$htaccess_content .= "</IfModule>\n";
-
-			// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- Direct file operations required for log directory protection.
-			file_put_contents( $htaccess_path, $htaccess_content );
+		if ( file_exists( $htaccess_path ) ) {
+			return;
 		}
+
+		$htaccess_content  = "# Simple History log directory protection\n\n";
+		$htaccess_content .= "# Apache 2.4+\n";
+		$htaccess_content .= "<IfModule mod_authz_core.c>\n";
+		$htaccess_content .= "    Require all denied\n";
+		$htaccess_content .= "</IfModule>\n\n";
+		$htaccess_content .= "# Apache 2.2\n";
+		$htaccess_content .= "<IfModule !mod_authz_core.c>\n";
+		$htaccess_content .= "    Order deny,allow\n";
+		$htaccess_content .= "    Deny from all\n";
+		$htaccess_content .= "</IfModule>\n";
+
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- Direct file operations required for log directory protection.
+		file_put_contents( $htaccess_path, $htaccess_content );
 	}
 
 	/**
@@ -752,10 +770,12 @@ class File_Channel extends Channel {
 		$index_path = trailingslashit( $directory ) . 'index.php';
 
 		// Only create if it doesn't exist.
-		if ( ! file_exists( $index_path ) ) {
-			// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- Direct file operations required for log directory protection.
-			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
+		if ( file_exists( $index_path ) ) {
+			return;
 		}
+
+		// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.file_ops_file_put_contents -- Direct file operations required for log directory protection.
+		file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
 	}
 
 	/**

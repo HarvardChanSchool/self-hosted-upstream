@@ -49,6 +49,8 @@ $args = wp_parse_args(
 		'failed_logins'          => 0,
 		'posts_created'          => 0,
 		'posts_updated'          => 0,
+		'notes_added'            => 0,
+		'notes_resolved'         => 0,
 		'plugin_activations'     => 0,
 		'plugin_deactivations'   => 0,
 		'wordpress_updates'      => 0,
@@ -177,7 +179,7 @@ $args = wp_parse_args(
 					<!-- Subtitle -->
 					<p style="margin: 0 0 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 18px; line-height: 26px; color: #000000; text-align: left;"
 						class="mobile-text">
-						<?php echo esc_html( __( 'Here\'s a summary of activity on your website.', 'simple-history' ) ); ?>
+						<?php echo esc_html( __( "Here's a summary of activity on your website.", 'simple-history' ) ); ?>
 					</p>
 
 					<p style="margin: 0 0 40px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 18px; line-height: 26px; color: #000000; text-align: left;" 
@@ -202,7 +204,9 @@ $args = wp_parse_args(
 						?>
 					</p>
 					
-					<?php if ( $show_main_core_stats ) { ?>
+					<?php
+					if ( $show_main_core_stats ) {
+						?>
 					<!-- Key Metrics Section -->
 					<div style="margin-bottom: 40px;">
 
@@ -254,15 +258,17 @@ $args = wp_parse_args(
 							// Data is already keyed by day number (0-6) to avoid language issues.
 							$day_counts = [];
 							foreach ( $args['most_active_days'] as $day ) {
-								if ( isset( $day['day_number'] ) && isset( $day['count'] ) ) {
-									$day_counts[ $day['day_number'] ] = $day['count'];
+								if ( ! isset( $day['day_number'] ) || ! isset( $day['count'] ) ) {
+									continue;
 								}
+
+								$day_counts[ $day['day_number'] ] = $day['count'];
 							}
 
 							// Build days array in chronological order based on actual date range.
 							$ordered_days    = [];
-							$start_timestamp = isset( $args['date_from_timestamp'] ) ? $args['date_from_timestamp'] : strtotime( '-6 days' );
-							$end_timestamp   = isset( $args['date_to_timestamp'] ) ? $args['date_to_timestamp'] : time();
+							$start_timestamp = $args['date_from_timestamp'] ?? strtotime( '-6 days' );
+							$end_timestamp   = $args['date_to_timestamp'] ?? time();
 
 							// Create DateTimeImmutable objects for iteration.
 							$current_date = ( new DateTimeImmutable( '@' . $start_timestamp ) )->setTimezone( wp_timezone() );
@@ -288,7 +294,7 @@ $args = wp_parse_args(
 								$ordered_days[] = [
 									'name'      => $day_name,
 									'key'       => $day_number,
-									'count'     => isset( $day_counts[ $day_number ] ) ? $day_counts[ $day_number ] : 0,
+									'count'     => $day_counts[ $day_number ] ?? 0,
 									'full_date' => $full_date,
 									'date_ymd'  => $date_ymd,
 								];
@@ -314,7 +320,7 @@ $args = wp_parse_args(
 											$args['history_admin_url']
 										);
 										?>
-										<td style="width: 14.28%; vertical-align: top; text-align: center;<?php echo $day_index < ( $total_days - 1 ) ? ' padding-right: 8px;' : ''; ?>" title="<?php echo esc_attr( $day_data['full_date'] ); ?>">
+										<td style="width: 14.28%; vertical-align: top; text-align: center;<?php echo $day_index < $total_days - 1 ? ' padding-right: 8px;' : ''; ?>" title="<?php echo esc_attr( $day_data['full_date'] ); ?>">
 											<a href="<?php echo esc_url( $day_url ); ?>" style="color: #0040FF; text-decoration: none; display: block;">
 												<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 12px; color: #000000; text-align: center; font-weight: 500;">
 													<?php echo esc_html( substr( $day_data['name'], 0, 3 ) ); ?>
@@ -337,7 +343,7 @@ $args = wp_parse_args(
 							<h2 style="margin: 0 0 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600; text-align: left;">
 								<?php echo esc_html( __( 'Posts and Pages', 'simple-history' ) ); ?>
 							</h2>
-							
+
 							<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
 								<tr>
 									<td style="width: 50%; vertical-align: top; padding-right: 15px;">
@@ -359,6 +365,41 @@ $args = wp_parse_args(
 								</tr>
 							</table>
 						</div>
+						<?php
+						// Notes Section - only show on WordPress 6.9+ where Notes feature exists.
+						global $wp_version;
+						if ( version_compare( $wp_version, '6.9', '>=' ) ) {
+							?>
+							<!-- Notes Section (WordPress 6.9+) -->
+							<div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 2px solid #000000;">
+								<h2 style="margin: 0 0 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600; text-align: left;">
+									<?php echo esc_html( __( 'Notes', 'simple-history' ) ); ?>
+								</h2>
+
+								<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+									<tr>
+										<td style="width: 50%; vertical-align: top; padding-right: 15px;">
+											<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #000000; text-align: left; font-weight: 500; margin-bottom: 5px;">
+												<?php echo esc_html( __( 'Notes added', 'simple-history' ) ); ?>
+											</div>
+											<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 24px; line-height: 28px; color: #000000; font-weight: 700; text-align: left;">
+												<?php echo esc_html( number_format_i18n( $args['notes_added'] ) ); ?>
+											</div>
+										</td>
+										<td style="width: 50%; vertical-align: top; padding-left: 15px;">
+											<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #000000; text-align: left; font-weight: 500; margin-bottom: 5px;">
+												<?php echo esc_html( __( 'Notes resolved', 'simple-history' ) ); ?>
+											</div>
+											<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 24px; line-height: 28px; color: #000000; font-weight: 700; text-align: left;">
+												<?php echo esc_html( number_format_i18n( $args['notes_resolved'] ) ); ?>
+											</div>
+										</td>
+									</tr>
+								</table>
+							</div>
+							<?php
+						}
+						?>
 						<!-- Users Section -->
 						<div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 2px solid #000000;">
 							<h2 style="margin: 0 0 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600; text-align: left;">
@@ -429,8 +470,10 @@ $args = wp_parse_args(
 								<?php echo esc_html( number_format_i18n( $args['wordpress_updates'] ) ); ?>
 							</div>
 						</div>
-											
-						<?php } ?>
+
+						<?php
+					}
+					?>
 					</div>
 
 					<?php echo wp_kses_post( $content_after_core_stats ); ?>

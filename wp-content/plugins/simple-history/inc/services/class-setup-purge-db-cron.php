@@ -29,9 +29,11 @@ class Setup_Purge_DB_Cron extends Service {
 	public function setup_cron() {
 		add_action( 'simple_history/maybe_purge_db', array( $this, 'maybe_purge_db' ) );
 
-		if ( ! wp_next_scheduled( 'simple_history/maybe_purge_db' ) ) {
-			wp_schedule_event( time(), 'daily', 'simple_history/maybe_purge_db' );
+		if ( wp_next_scheduled( 'simple_history/maybe_purge_db' ) ) {
+			return;
 		}
+
+		wp_schedule_event( time(), 'daily', 'simple_history/maybe_purge_db' );
 	}
 
 	/**
@@ -71,9 +73,11 @@ class Setup_Purge_DB_Cron extends Service {
 		 */
 		$day_of_week_to_purge_db = apply_filters( 'simple_history/day_of_week_to_purge_db', $day_of_week_to_purge_db );
 
-		if ( $current_day_of_week === $day_of_week_to_purge_db ) {
-			$this->purge_db();
+		if ( $current_day_of_week !== $day_of_week_to_purge_db ) {
+			return;
 		}
+
+		$this->purge_db();
 	}
 
 	/**
@@ -174,8 +178,9 @@ class Setup_Purge_DB_Cron extends Service {
 		global $wpdb;
 
 		// Default: delete events older than X days.
+		// Compare date column directly to allow index usage.
 		$where = $wpdb->prepare(
-			'DATE_ADD(date, INTERVAL %d DAY) < NOW()',
+			'date < DATE_SUB(NOW(), INTERVAL %d DAY)',
 			$days
 		);
 
@@ -241,7 +246,7 @@ class Setup_Purge_DB_Cron extends Service {
 		 *             continue;
 		 *         }
 		 *         $conditions[] = $wpdb->prepare(
-		 *             '(logger = %s AND DATE_ADD(date, INTERVAL %d DAY) < NOW())',
+		 *             '(logger = %s AND date < DATE_SUB(NOW(), INTERVAL %d DAY))',
 		 *             $logger,
 		 *             $logger_days
 		 *         );

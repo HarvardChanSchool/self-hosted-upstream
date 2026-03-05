@@ -207,12 +207,14 @@ class Log_Query {
 		if ( $db_engine === 'mysql' ) {
 			// Call usual method.
 			return $this->query_overview_mysql( $args );
-		} elseif ( $db_engine === 'sqlite' ) {
+		}
+
+		if ( $db_engine === 'sqlite' ) {
 			// Call sqlite method.
 			return $this->query_overview_simple( $args );
-		} else {
-			throw new \ErrorException( 'Invalid DB engine' );
 		}
+
+		throw new \ErrorException( 'Invalid DB engine' );
 	}
 
 	/**
@@ -236,7 +238,7 @@ class Log_Query {
 		$arr_return = wp_cache_get( $cache_key, $cache_group );
 
 		// Return cached value if it exists.
-		if ( false !== $arr_return ) {
+		if ( $arr_return !== false ) {
 			$arr_return['cached_result'] = true;
 			return $arr_return;
 		}
@@ -300,30 +302,33 @@ class Log_Query {
 		// Re-index array.
 		$result_log_rows = array_values( $result_log_rows );
 
-		// Like $sql_statement_log_rows but all columns is replaced by a single COUNT(*).
-		$sql_statement_log_rows_count = '
-			SELECT count(*) as count
-			FROM %1$s AS simple_history_1
-			%2$s
-			ORDER BY simple_history_1.date DESC, simple_history_1.id DESC
-		';
+		$total_found_rows = null;
+		$pages_count      = null;
+		$log_rows_count   = count( $result_log_rows );
+		$page_rows_from   = ( $args['paged'] * $args['posts_per_page'] ) - $args['posts_per_page'] + 1;
+		$page_rows_to     = $page_rows_from + $log_rows_count - 1;
 
-		$sql_query_log_rows_count = sprintf(
-			$sql_statement_log_rows_count,
-			$Simple_History->get_events_table_name(), // 1
-			$inner_where_string, // 2
-		);
+		if ( ! $args['skip_count_query'] ) {
+			// Like $sql_statement_log_rows but all columns is replaced by a single COUNT(*).
+			$sql_statement_log_rows_count = '
+				SELECT count(*) as count
+				FROM %1$s AS simple_history_1
+				%2$s
+				ORDER BY simple_history_1.date DESC, simple_history_1.id DESC
+			';
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$total_found_rows = $wpdb->get_var( $sql_query_log_rows_count );
+			$sql_query_log_rows_count = sprintf(
+				$sql_statement_log_rows_count,
+				$Simple_History->get_events_table_name(), // 1
+				$inner_where_string, // 2
+			);
 
-		// Calc pages.
-		$pages_count = Ceil( $total_found_rows / $args['posts_per_page'] );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$total_found_rows = $wpdb->get_var( $sql_query_log_rows_count );
 
-		// Calc pagination info.
-		$log_rows_count = count( $result_log_rows );
-		$page_rows_from = ( $args['paged'] * $args['posts_per_page'] ) - $args['posts_per_page'] + 1;
-		$page_rows_to   = $page_rows_from + $log_rows_count - 1;
+			// Calc pages.
+			$pages_count = Ceil( $total_found_rows / $args['posts_per_page'] );
+		}
 
 		// Get maxId, minId, and maxDate.
 		// MaxId is the id of the first row in the result (i.e. the latest entry).
@@ -341,7 +346,7 @@ class Log_Query {
 		// Create array to return.
 		// Add log rows to sub key 'log_rows' because meta info is also added.
 		$arr_return = [
-			'total_row_count' => (int) $total_found_rows,
+			'total_row_count' => $total_found_rows !== null ? (int) $total_found_rows : null,
 			'pages_count'     => $pages_count,
 			'page_current'    => $args['paged'],
 			'page_rows_from'  => $page_rows_from,
@@ -376,7 +381,7 @@ class Log_Query {
 		$arr_return = wp_cache_get( $cache_key, $cache_group );
 
 		// Return cached value if it exists.
-		if ( false !== $arr_return ) {
+		if ( $arr_return !== false ) {
 			$arr_return['cached_result'] = true;
 			return $arr_return;
 		}
@@ -469,14 +474,6 @@ class Log_Query {
 			## END SQL_STATEMENT_MAX_IDS_AND_COUNT_TEMPLATE
 		';
 
-		/** @var string Inner where clause, including "where" if has values. */
-		$inner_where_string = '';
-
-		$inner_where_array = $this->get_inner_where( $args );
-		if ( ! empty( $inner_where_array ) ) {
-			$inner_where_string = "\nWHERE\n" . implode( "\nAND ", $inner_where_array );
-		}
-
 		/** @var string Outer where clause, including "where" if has values. */
 		$outer_where_string = '';
 
@@ -568,49 +565,52 @@ class Log_Query {
 			$max_date = $result_log_rows[0]->date;
 		}
 
-		// Like $sql_statement_log_rows but all columns is replaced by a single COUNT(*).
-		$sql_statement_log_rows_count = '
-			## START SQL_STATEMENT_LOG_ROWS
-			SELECT
-				count(*) as count
+		$total_found_rows = null;
+		$pages_count      = null;
+		$log_rows_count   = count( $result_log_rows );
+		$page_rows_from   = ( $args['paged'] * $args['posts_per_page'] ) - $args['posts_per_page'] + 1;
+		$page_rows_to     = $page_rows_from + $log_rows_count - 1;
 
-			FROM %1$s AS simple_history_1
+		if ( ! $args['skip_count_query'] ) {
+			// Like $sql_statement_log_rows but all columns is replaced by a single COUNT(*).
+			$sql_statement_log_rows_count = '
+				## START SQL_STATEMENT_LOG_ROWS
+				SELECT
+					count(*) as count
 
-			INNER JOIN (
-				%2$s
-			) AS max_ids_and_count ON simple_history_1.id = max_ids_and_count.maxId
+				FROM %1$s AS simple_history_1
 
-			ORDER BY simple_history_1.date DESC, simple_history_1.id DESC
-			## END SQL_STATEMENT_LOG_ROWS
-		';
+				INNER JOIN (
+					%2$s
+				) AS max_ids_and_count ON simple_history_1.id = max_ids_and_count.maxId
 
-		// Create $max_ids_and_count_sql_statement without limit,
-		// to get count(*).
-		$max_ids_and_count_without_limit_sql_statement = sprintf(
-			$sql_statement_max_ids_and_count_template,
-			$Simple_History->get_events_table_name(), // 1
-			$Simple_History->get_contexts_table_name(), // 2
-			$inner_sql_query_statement, // 3
-			$outer_where_string, // 4
-			'', // 5 Limit clause.
-		);
+				ORDER BY simple_history_1.date DESC, simple_history_1.id DESC
+				## END SQL_STATEMENT_LOG_ROWS
+			';
 
-		$sql_query_log_rows_count = sprintf(
-			$sql_statement_log_rows_count,
-			$Simple_History->get_events_table_name(), // 1
-			$max_ids_and_count_without_limit_sql_statement // 2
-		);
+			// Create $max_ids_and_count_sql_statement without limit,
+			// to get count(*).
+			$max_ids_and_count_without_limit_sql_statement = sprintf(
+				$sql_statement_max_ids_and_count_template,
+				$Simple_History->get_events_table_name(), // 1
+				$Simple_History->get_contexts_table_name(), // 2
+				$inner_sql_query_statement, // 3
+				$outer_where_string, // 4
+				'', // 5 Limit clause.
+			);
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$total_found_rows = $wpdb->get_var( $sql_query_log_rows_count );
+			$sql_query_log_rows_count = sprintf(
+				$sql_statement_log_rows_count,
+				$Simple_History->get_events_table_name(), // 1
+				$max_ids_and_count_without_limit_sql_statement // 2
+			);
 
-		// Calc pages.
-		$pages_count = Ceil( $total_found_rows / $args['posts_per_page'] );
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$total_found_rows = $wpdb->get_var( $sql_query_log_rows_count );
 
-		// Calc pagination info.
-		$log_rows_count = count( $result_log_rows );
-		$page_rows_from = ( $args['paged'] * $args['posts_per_page'] ) - $args['posts_per_page'] + 1;
-		$page_rows_to   = $page_rows_from + $log_rows_count - 1;
+			// Calc pages.
+			$pages_count = Ceil( $total_found_rows / $args['posts_per_page'] );
+		}
 
 		// Prepend sticky events to the result.
 		// Sticky events are added first in the result set and does not
@@ -646,7 +646,7 @@ class Log_Query {
 		// Create array to return.
 		// Add log rows to sub key 'log_rows' because meta info is also added.
 		$arr_return = [
-			'total_row_count' => (int) $total_found_rows,
+			'total_row_count' => $total_found_rows !== null ? (int) $total_found_rows : null,
 			'pages_count'     => $pages_count,
 			'page_current'    => $args['paged'],
 			'page_rows_from'  => $page_rows_from,
@@ -687,7 +687,7 @@ class Log_Query {
 		$arr_return = wp_cache_get( $cache_key, $cache_group );
 
 		// Return cached value if it exists.
-		if ( false !== $arr_return ) {
+		if ( $arr_return !== false ) {
 			$arr_return['cached_result'] = true;
 			return $arr_return;
 		}
@@ -1082,6 +1082,10 @@ class Log_Query {
 				// Return ungrouped events without occasions grouping.
 				'ungrouped'         => false,
 
+				// Skip the count query for total rows. Useful for feeds
+				// and other consumers that don't need pagination metadata.
+				'skip_count_query'  => false,
+
 				// Exclusion filters - hide events matching these criteria.
 				// Text to exclude from search.
 				'exclude_search'    => null,
@@ -1120,35 +1124,45 @@ class Log_Query {
 		// If occasionsCountMaxReturn is set then it must be an integer.
 		if ( isset( $args['occasionsCountMaxReturn'] ) && ! is_numeric( $args['occasionsCountMaxReturn'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid occasionsCountMaxReturn' );
-		} elseif ( isset( $args['occasionsCountMaxReturn'] ) ) {
+		}
+
+		if ( isset( $args['occasionsCountMaxReturn'] ) ) {
 			$args['occasionsCountMaxReturn'] = (int) $args['occasionsCountMaxReturn'];
 		}
 
 		// If occasionsCount is set then it must be an integer.
 		if ( isset( $args['occasionsCount'] ) && ! is_numeric( $args['occasionsCount'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid occasionsCount' );
-		} elseif ( isset( $args['occasionsCount'] ) ) {
+		}
+
+		if ( isset( $args['occasionsCount'] ) ) {
 			$args['occasionsCount'] = (int) $args['occasionsCount'];
 		}
 
 		// If posts_per_page is set then it must be a positive integer.
 		if ( isset( $args['posts_per_page'] ) && ( ! is_numeric( $args['posts_per_page'] ) || $args['posts_per_page'] < 1 ) ) {
 			throw new \InvalidArgumentException( 'Invalid posts_per_page' );
-		} elseif ( isset( $args['posts_per_page'] ) ) {
+		}
+
+		if ( isset( $args['posts_per_page'] ) ) {
 			$args['posts_per_page'] = (int) $args['posts_per_page'];
 		}
 
 		// paged must be must be a positive integer.
 		if ( isset( $args['paged'] ) && ( ! is_numeric( $args['paged'] ) || $args['paged'] < 1 ) ) {
 			throw new \InvalidArgumentException( 'Invalid paged' );
-		} elseif ( isset( $args['paged'] ) ) {
+		}
+
+		if ( isset( $args['paged'] ) ) {
 			$args['paged'] = (int) $args['paged'];
 		}
 
 		// "post__in" must be array and must only contain integers.
 		if ( isset( $args['post__in'] ) && ! is_array( $args['post__in'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid post__in' );
-		} elseif ( isset( $args['post__in'] ) ) {
+		}
+
+		if ( isset( $args['post__in'] ) ) {
 			$args['post__in'] = array_map( 'intval', $args['post__in'] );
 			$args['post__in'] = array_filter( $args['post__in'] );
 		}
@@ -1156,14 +1170,18 @@ class Log_Query {
 		// "max_id_first_page" must be integer.
 		if ( isset( $args['max_id_first_page'] ) && ! is_numeric( $args['max_id_first_page'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid max_id_first_page' );
-		} elseif ( isset( $args['max_id_first_page'] ) ) {
+		}
+
+		if ( isset( $args['max_id_first_page'] ) ) {
 			$args['max_id_first_page'] = (int) $args['max_id_first_page'];
 		}
 
 		// "since_id" must be integer.
 		if ( isset( $args['since_id'] ) && ! is_numeric( $args['since_id'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid since_id' );
-		} elseif ( isset( $args['since_id'] ) ) {
+		}
+
+		if ( isset( $args['since_id'] ) ) {
 			$args['since_id'] = (int) $args['since_id'];
 		}
 
@@ -1229,7 +1247,9 @@ class Log_Query {
 		// or array of log level strings.
 		if ( isset( $args['loglevels'] ) && ! is_string( $args['loglevels'] ) && ! is_array( $args['loglevels'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid loglevels' );
-		} elseif ( isset( $args['loglevels'] ) && is_string( $args['loglevels'] ) ) {
+		}
+
+		if ( isset( $args['loglevels'] ) && is_string( $args['loglevels'] ) ) {
 			$args['loglevels'] = explode( ',', $args['loglevels'] );
 		}
 
@@ -1251,7 +1271,9 @@ class Log_Query {
 		// )
 		if ( isset( $args['messages'] ) && ! is_string( $args['messages'] ) && ! is_array( $args['messages'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid messages' );
-		} elseif ( isset( $args['messages'] ) && is_string( $args['messages'] ) ) {
+		}
+
+		if ( isset( $args['messages'] ) && is_string( $args['messages'] ) ) {
 			$args['messages'] = explode( ',', $args['messages'] );
 		} elseif ( isset( $args['messages'] ) && is_array( $args['messages'] ) ) {
 			// Turn multi dimensional array into single array with strings.
@@ -1299,21 +1321,27 @@ class Log_Query {
 		// Example format: "AvailableUpdatesLogger,SimpleuserLogger".
 		if ( isset( $args['loggers'] ) && ! is_string( $args['loggers'] ) && ! is_array( $args['loggers'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid loggers' );
-		} elseif ( isset( $args['loggers'] ) && is_string( $args['loggers'] ) ) {
+		}
+
+		if ( isset( $args['loggers'] ) && is_string( $args['loggers'] ) ) {
 			$args['loggers'] = explode( ',', $args['loggers'] );
 		}
 
 		// "user" must be integer.
 		if ( isset( $args['user'] ) && ! is_numeric( $args['user'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid user' );
-		} elseif ( isset( $args['user'] ) ) {
+		}
+
+		if ( isset( $args['user'] ) ) {
 			$args['user'] = (int) $args['user'];
 		}
 
 		// "users" must be comma separated string or array with integers.
 		if ( isset( $args['users'] ) && ! is_string( $args['users'] ) && ! is_array( $args['users'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid users' );
-		} elseif ( isset( $args['users'] ) && is_string( $args['users'] ) ) {
+		}
+
+		if ( isset( $args['users'] ) && is_string( $args['users'] ) ) {
 			$args['users'] = explode( ',', $args['users'] );
 		}
 
@@ -1352,7 +1380,9 @@ class Log_Query {
 		// "exclude_loglevels", comma separated string or array with strings.
 		if ( isset( $args['exclude_loglevels'] ) && ! is_string( $args['exclude_loglevels'] ) && ! is_array( $args['exclude_loglevels'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid exclude_loglevels' );
-		} elseif ( isset( $args['exclude_loglevels'] ) && is_string( $args['exclude_loglevels'] ) ) {
+		}
+
+		if ( isset( $args['exclude_loglevels'] ) && is_string( $args['exclude_loglevels'] ) ) {
 			$args['exclude_loglevels'] = explode( ',', $args['exclude_loglevels'] );
 		}
 
@@ -1366,7 +1396,9 @@ class Log_Query {
 		// "exclude_loggers", comma separated string or array with strings.
 		if ( isset( $args['exclude_loggers'] ) && ! is_string( $args['exclude_loggers'] ) && ! is_array( $args['exclude_loggers'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid exclude_loggers' );
-		} elseif ( isset( $args['exclude_loggers'] ) && is_string( $args['exclude_loggers'] ) ) {
+		}
+
+		if ( isset( $args['exclude_loggers'] ) && is_string( $args['exclude_loggers'] ) ) {
 			$args['exclude_loggers'] = explode( ',', $args['exclude_loggers'] );
 		}
 
@@ -1380,7 +1412,9 @@ class Log_Query {
 		// "exclude_messages" is string with comma separated loggers and messages, or array.
 		if ( isset( $args['exclude_messages'] ) && ! is_string( $args['exclude_messages'] ) && ! is_array( $args['exclude_messages'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid exclude_messages' );
-		} elseif ( isset( $args['exclude_messages'] ) && is_string( $args['exclude_messages'] ) ) {
+		}
+
+		if ( isset( $args['exclude_messages'] ) && is_string( $args['exclude_messages'] ) ) {
 			$args['exclude_messages'] = explode( ',', $args['exclude_messages'] );
 		} elseif ( isset( $args['exclude_messages'] ) && is_array( $args['exclude_messages'] ) ) {
 			// Turn multi dimensional array into single array with strings.
@@ -1425,14 +1459,18 @@ class Log_Query {
 		// "exclude_user" must be integer.
 		if ( isset( $args['exclude_user'] ) && ! is_numeric( $args['exclude_user'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid exclude_user' );
-		} elseif ( isset( $args['exclude_user'] ) ) {
+		}
+
+		if ( isset( $args['exclude_user'] ) ) {
 			$args['exclude_user'] = (int) $args['exclude_user'];
 		}
 
 		// "exclude_users" must be comma separated string or array with integers.
 		if ( isset( $args['exclude_users'] ) && ! is_string( $args['exclude_users'] ) && ! is_array( $args['exclude_users'] ) ) {
 			throw new \InvalidArgumentException( 'Invalid exclude_users' );
-		} elseif ( isset( $args['exclude_users'] ) && is_string( $args['exclude_users'] ) ) {
+		}
+
+		if ( isset( $args['exclude_users'] ) && is_string( $args['exclude_users'] ) ) {
 			$args['exclude_users'] = explode( ',', $args['exclude_users'] );
 		}
 
@@ -1513,9 +1551,11 @@ class Log_Query {
 
 			$log_row->context_message_key = null;
 
-			if ( isset( $log_row->context['_message_key'] ) ) {
-				$log_row->context_message_key = $log_row->context['_message_key'];
+			if ( ! isset( $log_row->context['_message_key'] ) ) {
+				continue;
 			}
+
+			$log_row->context_message_key = $log_row->context['_message_key'];
 		}
 
 		return $log_rows;
@@ -1643,15 +1683,17 @@ class Log_Query {
 					}
 				}
 
-				if ( $all_words_found ) {
-					$found_matches[] = [
-						'logger_name'       => $one_logger_name,
-						'logger_slug'       => $one_logger_slug,
-						'message_key'       => $one_message_key,
-						'translated_text'   => $translated_text,
-						'untranslated_text' => strtolower( $one_message['untranslated_text'] ),
-					];
+				if ( ! $all_words_found ) {
+					continue;
 				}
+
+				$found_matches[] = [
+					'logger_name'       => $one_logger_name,
+					'logger_slug'       => $one_logger_slug,
+					'message_key'       => $one_message_key,
+					'translated_text'   => $translated_text,
+					'untranslated_text' => strtolower( $one_message['untranslated_text'] ),
+				];
 			}
 		}
 
@@ -1679,7 +1721,6 @@ class Log_Query {
 
 		$simple_history      = Simple_History::get_instance();
 		$contexts_table_name = $simple_history->get_contexts_table_name();
-		$db_engine           = $this->get_db_engine();
 
 		$inner_where = [];
 
@@ -2297,14 +2338,12 @@ class Log_Query {
 		$contexts_table = $simple_history->get_contexts_table_name();
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-		$results = $wpdb->get_col(
+		return $wpdb->get_col(
 			$wpdb->prepare(
 				'SELECT history_id, value FROM %i WHERE `key` = %s',
 				$contexts_table,
 				'_sticky'
 			)
 		);
-
-		return $results;
 	}
 }

@@ -192,10 +192,12 @@ class Email_Report_Service extends Service {
 			$max_count          = 0;
 			$busiest_day_number = 0;
 			foreach ( $all_days as $day ) {
-				if ( $day['count'] > $max_count ) {
-					$max_count          = $day['count'];
-					$busiest_day_number = $day['day_number'];
+				if ( $day['count'] <= $max_count ) {
+					continue;
 				}
+
+				$max_count          = $day['count'];
+				$busiest_day_number = $day['day_number'];
 			}
 			// Only set the busiest day if there was actual activity.
 			if ( $max_count > 0 ) {
@@ -210,7 +212,7 @@ class Email_Report_Service extends Service {
 					5 => __( 'Friday', 'simple-history' ),
 					6 => __( 'Saturday', 'simple-history' ),
 				];
-				$busiest_day_name = isset( $day_names[ $busiest_day_number ] ) ? $day_names[ $busiest_day_number ] : __( 'No activity', 'simple-history' );
+				$busiest_day_name = $day_names[ $busiest_day_number ] ?? __( 'No activity', 'simple-history' );
 			}
 		}
 		$stats['busiest_day_name'] = $busiest_day_name;
@@ -237,6 +239,10 @@ class Email_Report_Service extends Service {
 
 		// Get WordPress core statistics.
 		$stats['wordpress_updates'] = $events_stats->get_wordpress_core_updates_count( $date_from, $date_to );
+
+		// Get Notes statistics (WordPress 6.9+).
+		$stats['notes_added']    = $events_stats->get_notes_added_count( $date_from, $date_to );
+		$stats['notes_resolved'] = $events_stats->get_notes_resolved_count( $date_from, $date_to );
 
 		// Add history admin URL.
 		$stats['history_admin_url'] = \Simple_History\Helpers::get_history_admin_url();
@@ -309,13 +315,13 @@ class Email_Report_Service extends Service {
 					),
 				]
 			);
-		} else {
-			return new \WP_Error(
-				'email_send_failed',
-				__( 'Failed to send test email.', 'simple-history' ),
-				[ 'status' => 500 ]
-			);
 		}
+
+		return new \WP_Error(
+			'email_send_failed',
+			__( 'Failed to send test email.', 'simple-history' ),
+			[ 'status' => 500 ]
+		);
 	}
 
 	/**

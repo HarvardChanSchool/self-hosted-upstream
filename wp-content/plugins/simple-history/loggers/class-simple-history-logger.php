@@ -35,8 +35,32 @@ class Simple_History_Logger extends Logger {
 				'purged_events'                   => _x( 'Removed {num_rows} events that were older than {days} days', 'Logger: SimpleHistoryLogger', 'simple-history' ),
 				'auto_backfill_completed'         => _x( 'Populated (backfilled) your history with {posts_imported} posts and {users_imported} users from the last {days_back} days', 'Logger: SimpleHistoryLogger', 'simple-history' ),
 				'manual_backfill_completed'       => _x( 'Manual backfill created {post_events} post events and {user_events} user events', 'Logger: SimpleHistoryLogger', 'simple-history' ),
-				'channel_auto_disabled'           => _x( 'Log forwarding channel "{channel_name}" was auto-disabled after {failure_count} consecutive failures', 'Logger: SimpleHistoryLogger', 'simple-history' ),
+				'channel_auto_disabled'           => _x( 'Auto-disabled log forwarding channel "{channel_name}" after {failure_count} consecutive failures', 'Logger: SimpleHistoryLogger', 'simple-history' ),
 				'log_forwarding_settings_updated' => _x( 'Updated Log Forwarding settings', 'Logger: SimpleHistoryLogger', 'simple-history' ),
+			),
+			'labels'      => array(
+				'search' => array(
+					'label'     => _x( 'Simple History', 'Simple History logger: search', 'simple-history' ),
+					'label_all' => _x( 'All Simple History activity', 'Simple History logger: search', 'simple-history' ),
+					'options'   => array(
+						_x( 'Settings changes', 'Simple History logger: search', 'simple-history' ) => array(
+							'modified_settings',
+							'regenerated_rss_feed_secret',
+							'log_forwarding_settings_updated',
+						),
+						_x( 'Log maintenance', 'Simple History logger: search', 'simple-history' ) => array(
+							'cleared_log',
+							'purged_events',
+						),
+						_x( 'Backfill operations', 'Simple History logger: search', 'simple-history' ) => array(
+							'auto_backfill_completed',
+							'manual_backfill_completed',
+						),
+						_x( 'Channel events', 'Simple History logger: search', 'simple-history' ) => array(
+							'channel_auto_disabled',
+						),
+					),
+				),
 			),
 		];
 	}
@@ -292,7 +316,7 @@ class Simple_History_Logger extends Logger {
 			) . '</p>';
 		}
 
-		$event_details_group = ( new Event_Details_Group() )
+		return ( new Event_Details_Group() )
 			->add_items(
 				[
 					new Event_Details_Item(
@@ -322,7 +346,5 @@ class Simple_History_Logger extends Logger {
 				]
 			)
 			->set_title( __( 'Changed items', 'simple-history' ) );
-
-		return $event_details_group;
 	}
 }

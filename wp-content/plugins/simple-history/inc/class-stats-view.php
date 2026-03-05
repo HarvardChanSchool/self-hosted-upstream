@@ -160,6 +160,10 @@ class Stats_View {
 						'label' => __( 'Media actions', 'simple-history' ),
 						'value' => number_format_i18n( $data['media_stats']['total_count'] ),
 					),
+					array(
+						'label' => __( 'Notes actions', 'simple-history' ),
+						'value' => number_format_i18n( $data['notes_stats']['total_count'] ?? 0 ),
+					),
 				);
 
 				foreach ( $categories as $category ) {
@@ -241,9 +245,13 @@ class Stats_View {
 											?>
 										</span>
 
-										<?php if ( ! empty( $user_data['sessions'] ) ) { ?>
+										<?php
+										if ( ! empty( $user_data['sessions'] ) ) {
+											?>
 											<div class="sh-StatsDashboard-userSessions-details">
-												<?php foreach ( $user_data['sessions'] as $session ) { ?>
+												<?php
+												foreach ( $user_data['sessions'] as $session ) {
+													?>
 													<div class="sh-StatsDashboard-userSession">
 														<span class="sh-StatsDashboard-userLastLogin">
 															<?php
@@ -267,7 +275,9 @@ class Stats_View {
 															?>
 														</span>
 
-														<?php if ( ! empty( $session['ip'] ) ) { ?>
+														<?php
+														if ( ! empty( $session['ip'] ) ) {
+															?>
 															<span class="sh-StatsDashboard-userIP">
 																<?php
 																printf(
@@ -277,7 +287,9 @@ class Stats_View {
 																);
 																?>
 															</span>
-														<?php } ?>
+															<?php
+														}
+														?>
 													</div>
 												<?php } ?>
 											</div>
@@ -344,7 +356,9 @@ class Stats_View {
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ( $top_posts_and_pages as $post ) { ?>
+					<?php
+					foreach ( $top_posts_and_pages as $post ) {
+						?>
 						<tr>
 							<td>
 								<span class="dashicons dashicons-admin-page"></span>
@@ -354,7 +368,9 @@ class Stats_View {
 								<?php echo esc_html( $post->edit_count ); ?>
 							</td>
 						</tr>
-					<?php } ?>
+						<?php
+					}
+					?>
 				</tbody>
 			</table>
 		</div>
@@ -464,12 +480,14 @@ class Stats_View {
 					</tr>
 				</thead>
 				<tbody>
-					<?php foreach ( $top_users as $user ) { ?>
+					<?php
+					foreach ( $top_users as $user ) {
+						?>
 						<tr>
 							<td>
-								<img 
-										src="<?php echo esc_url( $user['avatar'] ); ?>" 
-										alt="<?php echo esc_attr( $user['display_name'] ); ?>" 
+								<img
+										src="<?php echo esc_url( $user['avatar'] ); ?>"
+										alt="<?php echo esc_attr( $user['display_name'] ); ?>"
 										class="sh-StatsDashboard-userAvatar"
 									>
 								<?php
@@ -481,7 +499,9 @@ class Stats_View {
 								<?php echo esc_html( number_format_i18n( $user['count'] ) ); ?>
 							</td>
 						</tr>
-					<?php } ?>
+						<?php
+					}
+					?>
 				</tbody>
 			</table>
 		</div>
@@ -579,7 +599,7 @@ class Stats_View {
 					// Output calendar days.
 					while ( $current_date <= $last_day_of_month ) {
 						$date_str    = $current_date->format( 'Y-m-d' );
-						$count       = isset( $date_counts[ $date_str ] ) ? $date_counts[ $date_str ] : 0;
+						$count       = $date_counts[ $date_str ] ?? 0;
 						$is_in_range = $current_date >= $start_date && $current_date <= $end_date;
 
 						$classes = array( 'sh-StatsDashboard-calendarDay' );
@@ -601,12 +621,16 @@ class Stats_View {
 							sprintf( _n( '%d event', '%d events', $count, 'simple-history' ), $count ) :
 							__( 'Outside selected date range', 'simple-history' );
 						?>
-						<div class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>" 
+						<div class="<?php echo esc_attr( implode( ' ', $classes ) ); ?>"
 							title="<?php echo esc_attr( $title ); ?>">
 							<span class="sh-StatsDashboard-calendarDayNumber"><?php echo esc_html( $current_date->format( 'j' ) ); ?></span>
-							<?php if ( $is_in_range ) { ?>
+							<?php
+							if ( $is_in_range ) {
+								?>
 								<span class="sh-StatsDashboard-calendarDayCount"><?php echo esc_html( number_format_i18n( $count ) ); ?></span>
-							<?php } ?>
+								<?php
+							}
+							?>
 						</div>
 						<?php
 						$current_date->modify( '+1 day' );
@@ -660,12 +684,16 @@ class Stats_View {
 			
 			<div class="sh-StatsDashboard-content">
 				<div class="sh-StatsDashboard-stats is-blurred">
-					<?php foreach ( $stats as $stat ) { ?>
+					<?php
+					foreach ( $stats as $stat ) {
+						?>
 						<div class="sh-StatsDashboard-stat">
 							<span class="sh-StatsDashboard-statLabel"><?php echo esc_html( $stat['label'] ); ?></span>
 							<span class="sh-StatsDashboard-statValue"><?php echo esc_html( number_format_i18n( $stat['value'] ) ); ?></span>
 						</div>
-					<?php } ?>
+						<?php
+					}
+					?>
 				</div>
 			</div>
 		</div>
@@ -805,6 +833,30 @@ class Stats_View {
 	}
 
 	/**
+	 * Output the notes statistics section.
+	 * Shows WordPress 6.9+ collaborative Notes activity.
+	 */
+	public static function output_notes_stats_section() {
+		$stats_data = [
+			[
+				'label' => __( 'Notes added', 'simple-history' ),
+				'value' => self::get_random_stat( 5, 20 ),
+			],
+			[
+				'label' => __( 'Notes resolved', 'simple-history' ),
+				'value' => self::get_random_stat( 2, 10 ),
+			],
+		];
+
+		self::output_stats_box_section(
+			_x( 'Notes', 'stats section title', 'simple-history' ),
+			$stats_data,
+			'--sh-color-blue',
+			'Premium users get detailed stats on collaborative notes activity from the block editor.'
+		);
+	}
+
+	/**
 	 * Output the main insights dashboard content.
 	 *
 	 * @param array $data      Insights data array.
@@ -839,6 +891,7 @@ class Stats_View {
 			self::output_user_stats_section();
 			self::output_posts_pages_stats_section();
 			self::output_media_stats_section();
+			self::output_notes_stats_section();
 			?>
 		</div>
 		<?php

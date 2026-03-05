@@ -3,7 +3,6 @@
 namespace Simple_History\Channels;
 
 use Simple_History\Services\Service;
-use Simple_History\Channels\Interfaces\Channel_Interface;
 
 /**
  * Manages all log forwarding channels.
@@ -20,13 +19,6 @@ class Channels_Manager extends Service {
 	 * @var Channel_Interface[]
 	 */
 	private array $channels = [];
-
-	/**
-	 * Alert rules engine instance.
-	 *
-	 * @var Alert_Rules_Engine|null
-	 */
-	private ?Alert_Rules_Engine $rules_engine = null;
 
 	/**
 	 * Called when service is loaded.
@@ -46,6 +38,13 @@ class Channels_Manager extends Service {
 	 * Register core channels that come with the free plugin.
 	 */
 	private function register_core_channels() {
+		// Some users report "Class File_Channel not found" errors during plugin updates.
+		// We haven't been able to reproduce this, but checking class_exists() first
+		// should prevent the fatal error for those affected.
+		if ( ! class_exists( File_Channel::class ) ) {
+			return;
+		}
+
 		$this->register_channel( new File_Channel() );
 	}
 
@@ -186,16 +185,10 @@ class Channels_Manager extends Service {
 	 * @return string The formatted message.
 	 */
 	private function format_message_for_channel( Channel_Interface $channel, $event_data ) {
-		// For now, use a simple format. This will be enhanced later.
 		$message = $event_data['message'];
 
-		// Interpolate context variables into the message.
 		if ( ! empty( $event_data['context'] ) ) {
-			foreach ( $event_data['context'] as $key => $value ) {
-				if ( is_string( $value ) || is_numeric( $value ) ) {
-					$message = str_replace( '{' . $key . '}', $value, $message );
-				}
-			}
+			$message = \Simple_History\Helpers::interpolate( $message, $event_data['context'] );
 		}
 
 		return $message;
@@ -234,10 +227,20 @@ class Channels_Manager extends Service {
 	 * @param string            $formatted_message The formatted message.
 	 */
 	private function send_sync( Channel_Interface $channel, $event_data, $formatted_message ) {
+		// Set filter to indicate we're forwarding to a channel.
+		// This allows other plugins (like Debug & Monitor) to skip logging
+		// HTTP requests made by channels, preventing infinite loops.
+		add_filter( 'simple_history/is_forwarding_to_channel', '__return_true' );
+
 		try {
 			$channel->send_event( $event_data, $formatted_message );
-		} catch ( \Exception $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
-			// Errors are tracked by individual channels via their error handling.
+		} catch ( \Throwable $e ) { // phpcs:ignore Generic.CodeAnalysis.EmptyStatement.DetectedCatch
+			// Catch \Throwable (not just \Exception) to handle \Error too.
+			// During plugin updates, old code in memory may reference classes
+			// that were moved/renamed in the new version on disk, causing
+			// "Class not found" errors (which are \Error, not \Exception).
 		}
+
+		remove_filter( 'simple_history/is_forwarding_to_channel', '__return_true' );
 	}
 }

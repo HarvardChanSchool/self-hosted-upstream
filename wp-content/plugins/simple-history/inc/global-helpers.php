@@ -77,7 +77,7 @@ if ( ! function_exists( 'sh_d' ) ) {
 				$bool_string = $var ? 'true' : 'false';
 				$loopOutput  = "$bool_string (boolean value)";
 			} elseif ( is_null( $var ) ) {
-				$loopOutput = ( 'null (null value)' );
+				$loopOutput = 'null (null value)';
 			} elseif ( is_int( $var ) ) {
 				$loopOutput = "$var (integer value)";
 			} elseif ( is_numeric( $var ) ) {
@@ -89,16 +89,18 @@ if ( ! function_exists( 'sh_d' ) ) {
 				$loopOutput = print_r( $var, true );
 			}
 
-			if ( $loopOutput !== '' ) {
-				$maybe_escaped_loop_output = 'cli' === php_sapi_name() ? $loopOutput : esc_html( $loopOutput );
-
-				$output .= sprintf(
-					'
-                <pre>%1$s</pre>
-                ',
-					$maybe_escaped_loop_output
-				);
+			if ( $loopOutput === '' ) {
+				continue;
 			}
+
+			$maybe_escaped_loop_output = php_sapi_name() === 'cli' ? $loopOutput : esc_html( $loopOutput );
+
+			$output .= sprintf(
+				'
+			<pre>%1$s</pre>
+			',
+				$maybe_escaped_loop_output
+			);
 		}
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

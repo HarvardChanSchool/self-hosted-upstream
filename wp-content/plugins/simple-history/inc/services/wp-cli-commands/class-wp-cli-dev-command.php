@@ -5,7 +5,6 @@ namespace Simple_History\Services\WP_CLI_Commands;
 use WP_CLI;
 use WP_CLI_Command;
 use Simple_History\Simple_History;
-use Simple_History\Loggers\Plugin_Logger;
 
 /**
  * Development commands for Simple History.
@@ -108,9 +107,11 @@ class WP_CLI_Dev_Command extends WP_CLI_Command {
 		$deleted_count = 0;
 
 		foreach ( $options_to_delete as $option ) {
-			if ( delete_option( $option ) ) {
-				++$deleted_count;
+			if ( ! delete_option( $option ) ) {
+				continue;
 			}
+
+			++$deleted_count;
 		}
 
 		WP_CLI::log(
