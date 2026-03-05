@@ -329,3 +329,71 @@ This is an outline of tasks that should be performed by maintainers during month
       https://www.hhrjournal.org/2025/12/19/us-funding-plan-for-homeless-people-threatens-rights/ \
       http://boone.cool/hsph/fxb-center/hhrjournal/2025/12/19/us-funding-plan-for-homeless-people-threatens-rights/
 
+
+8. __POP Center__
+
+    Web: https://popcenter.harvard.edu
+         https://haalsi.org
+	 https://workwellbeinginitiative.org
+
+    GitHub: https://github.com/HarvardChanSchool/popcenter
+
+    Pantheon: https://dashboard.pantheon.io/workspace/1008eed6-3a1c-45c4-8b11-00a9f67a1c8f/cms-site/4777ab20-67b9-411d-a655-c567bded64fd/environment/dev/code
+
+    Verification URLs:
+    - https://popcenter.harvard.edu/
+    - https://popcenter.harvard.edu/about-us/
+    - https://popcenter.harvard.edu/news-media/news-and-announcements/
+    - https://popcenter.harvard.edu/postdoctoral-fellowships/bell-fellowship/profiles/
+    - https://haalsi.org/
+    - https://haalsi.org/directory/
+    - https://haalsi.org/news/
+    - https://haalsi.org/2024/02/23/3-conversations-that-tell-the-story-of-health-and-aging-in-rural-south-africa/
+    - https://workwellbeinginitiative.org/
+    - https://workwellbeinginitiative.org/about-us/people/
+    - https://workwellbeinginitiative.org/employer-toolkit/
+    - https://workwellbeinginitiative.org/category/news/
+    - https://workwellbeinginitiative.org/593-2/
+
+    boone.cool/hsph/popcenter versions:
+    - http://boone.cool/hsph/popcenter/
+    - http://boone.cool/hsph/popcenter/about-us/
+    - http://boone.cool/hsph/popcenter/news-media/news-and-announcements/
+    - http://boone.cool/hsph/popcenter/postdoctoral-fellowships/bell-fellowship/profiles/
+    - http://boone.cool/hsph/popcenter/haalsi/
+    - http://boone.cool/hsph/popcenter/haalsi/directory/
+    - http://boone.cool/hsph/popcenter/haalsi/news/
+    - http://boone.cool/hsph/popcenter/haalsi/2024/02/23/3-conversations-that-tell-the-story-of-health-and-aging-in-rural-south-africa/
+    - http://boone.cool/hsph/popcenter/workwellbeinginitiative/
+    - http://boone.cool/hsph/popcenter/workwellbeinginitiative/about-us/people/
+    - http://boone.cool/hsph/popcenter/workwellbeinginitiative/employer-toolkit/
+    - http://boone.cool/hsph/popcenter/workwellbeinginitiative/category/news/
+    - http://boone.cool/hsph/popcenter/workwellbeinginitiative/593-2/
+
+    chromium --incognito --new-window \
+      https://popcenter.harvard.edu/ \
+      http://boone.cool/hsph/popcenter/ \
+      https://popcenter.harvard.edu/about-us/ \
+      http://boone.cool/hsph/popcenter/about-us/ \
+      https://popcenter.harvard.edu/news-media/news-and-announcements/ \
+      http://boone.cool/hsph/popcenter/news-media/news-and-announcements/ \
+      https://popcenter.harvard.edu/postdoctoral-fellowships/bell-fellowship/profiles/ \
+      http://boone.cool/hsph/popcenter/postdoctoral-fellowships/bell-fellowship/profiles/ \
+      https://haalsi.org/ \
+      http://boone.cool/hsph/popcenter/haalsi/ \
+      https://haalsi.org/directory/ \
+      http://boone.cool/hsph/popcenter/haalsi/directory/ \
+      https://haalsi.org/news/ \
+      http://boone.cool/hsph/popcenter/haalsi/news/ \
+      https://haalsi.org/2024/02/23/3-conversations-that-tell-the-story-of-health-and-aging-in-rural-south-africa/ \
+      http://boone.cool/hsph/popcenter/haalsi/2024/02/23/3-conversations-that-tell-the-story-of-health-and-aging-in-rural-south-africa/ \
+      https://workwellbeinginitiative.org/ \
+      http://boone.cool/hsph/popcenter/workwellbeinginitiative/ \
+      https://workwellbeinginitiative.org/about-us/people/ \
+      http://boone.cool/hsph/popcenter/workwellbeinginitiative/about-us/people/ \
+      https://workwellbeinginitiative.org/employer-toolkit/ \
+      http://boone.cool/hsph/popcenter/workwellbeinginitiative/employer-toolkit/ \
+      https://workwellbeinginitiative.org/category/news/ \
+      http://boone.cool/hsph/popcenter/workwellbeinginitiative/category/news/ \
+      http://workwellbeinginitiative.org/593-2/ \
+      http://boone.cool/hsph/popcenter/workwellbeinginitiative/593-2/
