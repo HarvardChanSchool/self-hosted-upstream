@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'pantheon-systems/wp-saml-auth',
-        'pretty_version' => 'dev-master',
-        'version' => 'dev-master',
-        'reference' => 'b5fd164d552fd510a23ead477aa81f37cf5a1a7a',
+        'pretty_version' => 'dev-release',
+        'version' => 'dev-release',
+        'reference' => 'a177a287e2a53f9f85410191ba429c2268f0c902',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -20,9 +20,9 @@
             'dev_requirement' => false,
         ),
         'pantheon-systems/wp-saml-auth' => array(
-            'pretty_version' => 'dev-master',
-            'version' => 'dev-master',
-            'reference' => 'b5fd164d552fd510a23ead477aa81f37cf5a1a7a',
+            'pretty_version' => 'dev-release',
+            'version' => 'dev-release',
+            'reference' => 'a177a287e2a53f9f85410191ba429c2268f0c902',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
