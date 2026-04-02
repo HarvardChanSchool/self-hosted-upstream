@@ -1,5 +1,16 @@
 # Changelog
 
+### [6.15.18] 2026-03-25
+
+* Fix - Add `is_array` verification to guard against non-array values passed by Elementor in some contexts. [TEC-5762]
+* Fix - Improve the URL compatibility with non-ASCII languages. [TEC-4848]
+* Fix - Verify if Elementor CSS exists before adding it to avoid a 404 response. [TEC-5752]
+* Language - 0 new strings added, 0 updated, 0 fuzzied, and 0 obsoleted.
+
+### [6.15.17.1] 2026-03-09
+
+* Security - Strengthen file type and location checks during aggregator imports. [SVUL-54]
+
 ### [6.15.17] 2026-02-25
 
 * Tweak - Changed views: `modules/meta/organizer`, `v2/components/content-title`, `v2/components/header`, `v2/day/nav`, `v2/day/top-bar/nav`, `v2/month/calendar-body/day/cell-title`, `v2/month/calendar-body/day/date`, `v2/month/top-bar/nav`
