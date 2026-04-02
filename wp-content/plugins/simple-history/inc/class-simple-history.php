@@ -150,10 +150,12 @@ class Simple_History {
 			Services\Auto_Backfill_Service::class,
 			Services\Channels_Service::class,
 			Services\Channels_Settings_Page::class,
+			Services\Command_Palette::class,
 			Services\Dashboard_Widget::class,
 			Services\Dropins_Loader::class,
 			Services\Email_Report_Service::class,
 			Services\Experimental_Features_Page::class,
+			Services\Failed_Login_Limit_Service::class,
 			Services\Failed_Logins_Settings_Page_Teaser::class,
 			Services\History_Insights_Sidebar_Service::class,
 			Services\Import_Handler::class,
@@ -173,9 +175,12 @@ class Simple_History {
 			Services\Setup_Pause_Resume_Actions::class,
 			Services\Setup_Purge_DB_Cron::class,
 			Services\Setup_Settings_Page::class,
+			Services\Sidebar_Tips_Service::class,
 			Services\Simple_History_Updates::class,
 			Services\Stats_Service::class,
+			Services\Status_Box_Service::class,
 			Services\Stealth_Mode::class,
+			Services\Welcome_Message_Service::class,
 			Services\WP_CLI_Commands::class,
 		);
 
@@ -494,6 +499,7 @@ class Simple_History {
 	public function get_core_loggers() {
 		$loggers = array(
 			Loggers\Available_Updates_Logger::class,
+			Loggers\Site_Health_Logger::class,
 			Loggers\File_Edits_Logger::class,
 			Loggers\Plugin_ACF_Logger::class,
 			Loggers\Plugin_Beaver_Builder_Logger::class,
@@ -523,6 +529,11 @@ class Simple_History {
 			Loggers\Simple_History_Logger::class,
 			Loggers\Custom_Entry_Logger::class,
 		);
+
+		// Experimental loggers, only loaded when experimental features are enabled.
+		if ( Helpers::experimental_features_is_enabled() ) {
+			$loggers[] = Loggers\Role_Capability_Logger::class;
+		}
 
 		/**
 		 * Filter the array with class names of core loggers.
@@ -868,7 +879,7 @@ class Simple_History {
 	 * @return string
 	 */
 	public function get_log_row_sender_image_output( $row ) {
-		/** @var Loggers\Logger $row_logger */
+		/** @var string $row_logger */
 		$row_logger   = $row->logger;
 		$row->context = isset( $row->context ) && is_array( $row->context ) ? $row->context : array();
 
@@ -925,6 +936,41 @@ class Simple_History {
 		}
 
 		return new Event_Details_Simple_Container( $logger_details_output );
+	}
+
+	/**
+	 * Get structured action links for a log row.
+	 *
+	 * Returns an array of action links (each with url, label, action)
+	 * for the given log row. Only active when experimental features are enabled.
+	 *
+	 * @since 5.24.0
+	 *
+	 * @param object $row Log row object.
+	 * @return array Array of action link arrays.
+	 */
+	public function get_action_links( $row ) {
+		$row_logger = $row->logger;
+
+		$logger = $this->get_instantiated_logger_by_slug( $row_logger );
+
+		if ( $logger === false ) {
+			return [];
+		}
+
+		$action_links = $logger->get_action_links( $row );
+
+		/**
+		 * Filter the action links for a log row.
+		 *
+		 * @since 5.24.0
+		 *
+		 * @param array  $action_links Array of action link arrays.
+		 * @param object $row          Log row object.
+		 */
+		$action_links = apply_filters( 'simple_history/get_action_links', $action_links, $row );
+
+		return $action_links;
 	}
 
 	/**

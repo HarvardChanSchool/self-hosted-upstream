@@ -20,6 +20,9 @@ class Simple_History_Updates extends Service {
 		add_filter( 'simple_history/pluginlogger/plugin_updated_details/simple-history/5.21.0', [ $this, 'on_plugin_updated_details_5_21_0' ] );
 		add_filter( 'simple_history/pluginlogger/plugin_updated_details/simple-history/5.22.0', [ $this, 'on_plugin_updated_details_5_22_0' ] );
 		add_filter( 'simple_history/pluginlogger/plugin_updated_details/simple-history/5.23.0', [ $this, 'on_plugin_updated_details_5_23_0' ] );
+		add_filter( 'simple_history/pluginlogger/plugin_updated_details/simple-history/5.24.0', [ $this, 'on_plugin_updated_details_5_24_0' ] );
+		add_filter( 'simple_history/pluginlogger/plugin_updated_details/simple-history/5.25.0', [ $this, 'on_plugin_updated_details_5_25_0' ] );
+
 
 		// To test the output of a specific version, you can enable it for any just recently updated plugin that is visible in the GUI.
 		// phpcs:ignore Squiz.Commenting.InlineComment.InvalidEndChar
@@ -201,5 +204,48 @@ class Simple_History_Updates extends Service {
 		];
 
 		return $this->format_new_features_list( $title, $new_features );
+	}
+
+	/**
+	 * Handle update details for Simple History version 5.24.0.
+	 *
+	 * @param string $extra_details Extra HTML to output after the changelog link.
+	 * @return string Extra HTML to output after the changelog link.
+	 */
+	public function on_plugin_updated_details_5_24_0( $extra_details ) {
+		$title = __( 'Highlights in this version', 'simple-history' );
+
+		$new_features = [
+			__( 'User details on click – click any avatar or name to instantly see their role, email, and profile', 'simple-history' ),
+			__( 'Redesigned dashboard widget – more compact and simplified for a faster overview of recent activity', 'simple-history' ),
+			__( 'Menu change logging – track item renames, moves, and location changes in your navigation menus', 'simple-history' ),
+			__( 'Site Health monitoring – get a record of when WordPress flags new issues, marks them resolved, or changes their severity', 'simple-history' ),
+			__( 'Copy as image – save any event as a shareable image, useful for bug reports, Slack messages, or sharing with clients', 'simple-history' ),
+		];
+
+		$release_link = 'https://simple-history.com/2026/simple-history-5-24-0-released/';
+
+		return $this->format_new_features_list( $title, $new_features, $release_link );
+	}
+
+	/**
+	 * Update details for version 5.25.0.
+	 *
+	 * @param string $extra_details Extra details.
+	 * @return string
+	 */
+	public function on_plugin_updated_details_5_25_0( $extra_details ) {
+		$title = __( 'Highlights in this version', 'simple-history' );
+
+		$new_features = [
+			__( 'Leaner database – smarter defaults reduce stored data over time, keeping your database smaller automatically', 'simple-history' ),
+			__( 'Faster, more accurate search – results load more quickly and match only what you\'re looking for', 'simple-history' ),
+			__( 'Keyboard shortcut – press / to jump straight to search from anywhere on the log page', 'simple-history' ),
+			__( 'Easier settings navigation – Email Reports now has its own sub-tab so it\'s quicker to find', 'simple-history' ),
+		];
+
+		$release_link = 'https://simple-history.com/2026/simple-history-5-25-0-released/';
+
+		return $this->format_new_features_list( $title, $new_features, $release_link );
 	}
 }

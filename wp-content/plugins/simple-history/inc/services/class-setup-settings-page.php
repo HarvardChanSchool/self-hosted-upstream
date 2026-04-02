@@ -208,7 +208,7 @@ class Setup_Settings_Page extends Service {
 
 		Helpers::add_settings_section(
 			$settings_section_general_id,
-			[ __( 'General', 'simple-history' ), 'tune' ],
+			[ __( 'General', 'simple-history' ), 'tune', 'simple_history_general_section' ],
 			[ $this, 'settings_section_output' ],
 			$settings_menu_slug // Same slug as for options menu page.
 		);
@@ -507,7 +507,7 @@ class Setup_Settings_Page extends Service {
 		if ( $clear_days > 0 ) {
 			printf(
 				// translators: %1$s is number of days.
-				esc_html__( 'Items in the database are automatically removed after %1$s days.', 'simple-history' ),
+				esc_html__( 'Activity older than %1$s days is automatically cleaned up to keep your database lean.', 'simple-history' ),
 				esc_html( $clear_days )
 			);
 			echo '<br>';
@@ -522,7 +522,7 @@ class Setup_Settings_Page extends Service {
 			?>
 			<p>
 				<a href="<?php echo esc_url( Helpers::get_tracking_url( 'https://simple-history.com/premium/', 'premium_settings_purge' ) ); ?>" target="_blank" class="sh-ExternalLink">
-					<?php esc_html_e( 'Upgrade to Simple History Premium to set this to any number of days.', 'simple-history' ); ?>
+					<?php esc_html_e( 'Need to keep history longer? Premium extends retention to 365+ days.', 'simple-history' ); ?>
 				</a>
 			</p>
 			<?php

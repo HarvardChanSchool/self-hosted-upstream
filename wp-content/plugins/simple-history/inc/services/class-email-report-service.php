@@ -2,24 +2,25 @@
 
 namespace Simple_History\Services;
 
-use Simple_History\Simple_History;
 use Simple_History\Helpers;
 use Simple_History\Events_Stats;
 use Simple_History\Date_Helper;
+use Simple_History\Menu_Page;
 
 /**
  * Service that handles email reports.
  */
 class Email_Report_Service extends Service {
+	private const SETTINGS_PAGE_SLUG    = 'simple_history_settings_menu_slug_email_reports';
+	private const SETTINGS_OPTION_GROUP = 'simple_history_settings_group_email_reports';
+
 	/**
 	 * @inheritdoc
 	 */
 	public function loaded() {
-		// Register settings with priority 10 to ensure it loads before RSS feed (priority 15).
+		// Register settings and menu tab.
+		add_action( 'admin_menu', [ $this, 'add_settings_menu_tab' ], 15 );
 		add_action( 'admin_menu', [ $this, 'register_settings' ], 13 );
-
-		// Add settings fields to general section.
-		add_action( 'simple_history/settings_page/general_section_output', [ $this, 'on_general_section_output' ] );
 
 		// Register REST API endpoints.
 		add_action( 'rest_api_init', [ $this, 'register_rest_routes' ] );
@@ -62,6 +63,44 @@ class Email_Report_Service extends Service {
 	 */
 	public function rest_permission_callback() {
 		return current_user_can( 'manage_options' );
+	}
+
+	/**
+	 * Add email reports settings tab as a subtab to main settings tab.
+	 */
+	public function add_settings_menu_tab() {
+		$menu_manager = $this->simple_history->get_menu_manager();
+
+		// Bail if parent settings page does not exist (due to Stealth Mode or similar).
+		if ( ! $menu_manager->page_exists( Setup_Settings_Page::SETTINGS_GENERAL_SUBTAB_SLUG ) ) {
+			return;
+		}
+
+		( new Menu_Page() )
+			->set_page_title( __( 'Email Reports', 'simple-history' ) )
+			->set_menu_title( __( 'Email Reports', 'simple-history' ) )
+			->set_menu_slug( 'general_settings_subtab_email_reports' )
+			->set_callback( [ $this, 'settings_output_email_reports' ] )
+			->set_order( 15 )
+			->set_parent( Setup_Settings_Page::SETTINGS_GENERAL_SUBTAB_SLUG )
+			->add();
+	}
+
+	/**
+	 * Output for the email reports settings tab.
+	 */
+	public function settings_output_email_reports() {
+		?>
+		<div class="wrap sh-Page-content">
+			<form method="post" action="options.php">
+				<?php
+				do_settings_sections( self::SETTINGS_PAGE_SLUG );
+				settings_fields( self::SETTINGS_OPTION_GROUP );
+				submit_button();
+				?>
+			</form>
+		</div>
+		<?php
 	}
 
 	/**
@@ -237,6 +276,10 @@ class Email_Report_Service extends Service {
 		$stats['plugin_activations']   = $events_stats->get_plugin_activations_count( $date_from, $date_to );
 		$stats['plugin_deactivations'] = $events_stats->get_plugin_deactivations_count( $date_from, $date_to );
 
+		// Get user creation and modification statistics.
+		$stats['users_created'] = $events_stats->get_user_added_count( $date_from, $date_to );
+		$stats['users_updated'] = $events_stats->get_user_updated_count( $date_from, $date_to );
+
 		// Get WordPress core statistics.
 		$stats['wordpress_updates'] = $events_stats->get_wordpress_core_updates_count( $date_from, $date_to );
 
@@ -248,7 +291,7 @@ class Email_Report_Service extends Service {
 		$stats['history_admin_url'] = \Simple_History\Helpers::get_history_admin_url();
 
 		// Add settings URL for unsubscribe link.
-		$stats['settings_url'] = admin_url( 'admin.php?page=simple_history_settings_page&selected-tab=general_settings_subtab_general&selected-sub-tab=general_settings_subtab_settings_general' );
+		$stats['settings_url'] = admin_url( 'admin.php?page=simple_history_settings_page&selected-tab=general_settings_subtab_general&selected-sub-tab=general_settings_subtab_email_reports' );
 
 		return $stats;
 	}
@@ -349,22 +392,19 @@ class Email_Report_Service extends Service {
 	 * Register settings for email report.
 	 */
 	public function register_settings() {
-		$settings_general_option_group = Simple_History::SETTINGS_GENERAL_OPTION_GROUP;
-		$settings_menu_slug            = Simple_History::SETTINGS_MENU_SLUG;
-
 		// Add settings section for email reports.
 		Helpers::add_settings_section(
 			'simple_history_email_report_section',
 			[ __( 'Email Reports (Weekly Activity Digest)', 'simple-history' ), 'schedule_send', 'simple_history_email_report_section' ],
 			[ $this, 'settings_section_output' ],
-			$settings_menu_slug,
+			self::SETTINGS_PAGE_SLUG,
 			[
 				'callback_last' => [ $this, 'settings_section_output_last' ],
 			],
 		);
 
 		register_setting(
-			$settings_general_option_group,
+			self::SETTINGS_OPTION_GROUP,
 			'simple_history_email_report_enabled',
 			[
 				'type'              => 'boolean',
@@ -374,13 +414,38 @@ class Email_Report_Service extends Service {
 		);
 
 		register_setting(
-			$settings_general_option_group,
+			self::SETTINGS_OPTION_GROUP,
 			'simple_history_email_report_recipients',
 			[
 				'type'              => 'string',
 				'default'           => '',
 				'sanitize_callback' => [ $this, 'sanitize_email_recipients' ],
 			]
+		);
+
+		// Add settings fields directly (no longer via hook).
+		add_settings_field(
+			'simple_history_email_report_enabled',
+			Helpers::get_settings_field_title_output( __( 'Enable', 'simple-history' ), 'mark_email_unread' ),
+			[ $this, 'settings_field_enabled' ],
+			self::SETTINGS_PAGE_SLUG,
+			'simple_history_email_report_section'
+		);
+
+		add_settings_field(
+			'simple_history_email_report_recipients',
+			Helpers::get_settings_field_title_output( __( 'Recipients', 'simple-history' ), 'group_add' ),
+			[ $this, 'settings_field_recipients' ],
+			self::SETTINGS_PAGE_SLUG,
+			'simple_history_email_report_section'
+		);
+
+		add_settings_field(
+			'simple_history_email_report_preview',
+			Helpers::get_settings_field_title_output( __( 'Preview', 'simple-history' ), 'preview' ),
+			[ $this, 'settings_field_preview' ],
+			self::SETTINGS_PAGE_SLUG,
+			'simple_history_email_report_section'
 		);
 	}
 
@@ -389,39 +454,6 @@ class Email_Report_Service extends Service {
 	 */
 	public function settings_section_output_last() {
 		echo '<p>💡 ' . esc_html__( 'Pro tip: The digest helps you catch unauthorized changes even when you\'re away from your site.', 'simple-history' ) . '</p>';
-	}
-
-	/**
-	 * Add settings fields to general section.
-	 *
-	 * Function fired from action `simple_history/settings_page/general_section_output`.
-	 */
-	public function on_general_section_output() {
-		$settings_menu_slug = Simple_History::SETTINGS_MENU_SLUG;
-
-		add_settings_field(
-			'simple_history_email_report_enabled',
-			Helpers::get_settings_field_title_output( __( 'Enable', 'simple-history' ), 'mark_email_unread' ),
-			[ $this, 'settings_field_enabled' ],
-			$settings_menu_slug,
-			'simple_history_email_report_section'
-		);
-
-		add_settings_field(
-			'simple_history_email_report_recipients',
-			Helpers::get_settings_field_title_output( __( 'Recipients', 'simple-history' ), 'group_add' ),
-			[ $this, 'settings_field_recipients' ],
-			$settings_menu_slug,
-			'simple_history_email_report_section'
-		);
-
-		add_settings_field(
-			'simple_history_email_report_preview',
-			Helpers::get_settings_field_title_output( __( 'Preview', 'simple-history' ), 'preview' ),
-			[ $this, 'settings_field_preview' ],
-			$settings_menu_slug,
-			'simple_history_email_report_section'
-		);
 	}
 
 	/**
@@ -570,6 +602,7 @@ class Email_Report_Service extends Service {
 			<li><span class="dashicons dashicons-yes" style="color: #00a32a; margin-inline-end: 0.25em;"></span><?php esc_html_e( 'Total event count and daily breakdown', 'simple-history' ); ?></li>
 			<li><span class="dashicons dashicons-yes" style="color: #00a32a; margin-inline-end: 0.25em;"></span><?php esc_html_e( 'Number of posts and pages created or updated', 'simple-history' ); ?></li>
 			<li><span class="dashicons dashicons-yes" style="color: #00a32a; margin-inline-end: 0.25em;"></span><?php esc_html_e( 'Login statistics (successful and failed)', 'simple-history' ); ?></li>
+			<li><span class="dashicons dashicons-yes" style="color: #00a32a; margin-inline-end: 0.25em;"></span><?php esc_html_e( 'User creation and profile update counts', 'simple-history' ); ?></li>
 			<li><span class="dashicons dashicons-yes" style="color: #00a32a; margin-inline-end: 0.25em;"></span><?php esc_html_e( 'Plugin activation and deactivation counts', 'simple-history' ); ?></li>
 			<li><span class="dashicons dashicons-yes" style="color: #00a32a; margin-inline-end: 0.25em;"></span><?php esc_html_e( 'WordPress core update count', 'simple-history' ); ?></li>
 		</ul>

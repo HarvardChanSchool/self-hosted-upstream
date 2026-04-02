@@ -61,13 +61,10 @@ class Plugin_Duplicate_Post_Logger extends Logger {
 			return;
 		}
 
-		// When a copy have been made of a post or page
-		// the action 'dp_duplicate_page' or 'dp_duplicate_post'
-		// is fired with args $new_post_id, $post, $status.
-		// We add actions with priority 20 so we probably run after
-		// the plugins own.
-		add_action( 'dp_duplicate_post', array( $this, 'onDpDuplicatePost' ), 100, 3 );
-		add_action( 'dp_duplicate_page', array( $this, 'onDpDuplicatePost' ), 100, 3 );
+		// When a copy has been made of a post or page
+		// the action 'duplicate_post_after_duplicated' is fired
+		// with args $new_post_id, $post, $status, $post_type.
+		add_action( 'duplicate_post_after_duplicated', array( $this, 'onDpDuplicatePost' ), 100, 4 );
 	}
 
 	/**
@@ -76,8 +73,9 @@ class Plugin_Duplicate_Post_Logger extends Logger {
 	 * @param int      $new_post_id id of new post that was created.
 	 * @param \WP_Post $post old post that a copy was made of.
 	 * @param string   $status status of new post.
+	 * @param string   $post_type post type of the duplicated post.
 	 */
-	public function onDpDuplicatePost( $new_post_id, $post, $status ) {
+	public function onDpDuplicatePost( $new_post_id, $post, $status, $post_type = '' ) {
 		$new_post = get_post( $new_post_id );
 
 		$context = array(
@@ -137,10 +135,6 @@ class Plugin_Duplicate_Post_Logger extends Logger {
 
 		$context['duplicated_post_edit_link'] = isset( $context['duplicated_post_edit_link'] )
 			? esc_html( $context['duplicated_post_edit_link'] )
-			: '';
-
-		$context['duplicated_post_title'] = isset( $context['duplicated_post_title'] )
-			? esc_html( $context['duplicated_post_title'] )
 			: '';
 
 		$context['duplicated_post_title'] = isset( $context['duplicated_post_title'] )

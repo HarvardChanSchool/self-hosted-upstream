@@ -517,7 +517,7 @@ abstract class Logger {
 		$logger_name_via = $this->get_info_value_by_key( 'name_via' );
 
 		if ( ! $logger_name_via ) {
-			return;
+			return '';
 		}
 
 		$via_html  = "<span class='SimpleHistoryLogitem__inlineDivided SimpleHistoryLogitem__via'>";
@@ -830,6 +830,21 @@ abstract class Logger {
 	}
 
 	/**
+	 * Get structured action links for a log row.
+	 *
+	 * Override in subclass to return links like View, Edit, Preview.
+	 * Each link is an array with 'url', 'label', and 'action' keys.
+	 *
+	 * @since 5.24.0
+	 *
+	 * @param object $row Log row object.
+	 * @return array Array of action link arrays.
+	 */
+	public function get_action_links( $row ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+		return [];
+	}
+
+	/**
 	 * System is unusable.
 	 *
 	 * @param string $message Message to log.
@@ -915,7 +930,7 @@ abstract class Logger {
 	 *
 	 * @param string $message Message to log.
 	 * @param array  $context Context to log.
-	 * @return null
+	 * @return static
 	 */
 	public function alert( $message, array $context = array() ) {
 		return $this->log( Log_Levels::ALERT, $message, $context );
@@ -943,7 +958,7 @@ abstract class Logger {
 	 *
 	 * @param string $message Message to log.
 	 * @param array  $context Context to log.
-	 * @return null
+	 * @return static
 	 */
 	public function critical( $message, array $context = array() ) {
 		return $this->log( Log_Levels::CRITICAL, $message, $context );
@@ -1002,7 +1017,7 @@ abstract class Logger {
 	 *
 	 * @param string $message Message to log.
 	 * @param array  $context Context to log.
-	 * @return null
+	 * @return static
 	 */
 	public function warning( $message, array $context = array() ) {
 		return $this->log( Log_Levels::WARNING, $message, $context );
@@ -1028,7 +1043,7 @@ abstract class Logger {
 	 *
 	 * @param string $message Message to log.
 	 * @param array  $context Context to log.
-	 * @return null
+	 * @return static
 	 */
 	public function notice( $message, array $context = array() ) {
 		return $this->log( Log_Levels::NOTICE, $message, $context );
@@ -1084,7 +1099,7 @@ abstract class Logger {
 	 *
 	 * @param string $message Message to log.
 	 * @param array  $context Context to log.
-	 * @return null
+	 * @return static
 	 */
 	public function debug( $message, array $context = array() ) {
 		return $this->log( Log_Levels::DEBUG, $message, $context );
@@ -1113,7 +1128,7 @@ abstract class Logger {
 	 * @param mixed  $level The log level. Default "info".
 	 * @param string $message The log message. Default "".
 	 * @param array  $context The log context. Default empty array.
-	 * @return Logger SimpleLogger instance
+	 * @return static
 	 */
 	public function log( $level = 'info', $message = '', $context = array() ) {
 		global $wpdb;
@@ -1799,10 +1814,10 @@ abstract class Logger {
 	}
 
 	/**
-	 * Append remote addr and other related headers to to context.
+	 * Append remote addr, referer and other related headers to to context.
 	 *
 	 * @param array $context Context.
-	 * @return array $context
+	 * @return array $context Context with remote addr, referer and other related headers appended.
 	 */
 	private function append_remote_addr_to_context( $context ) {
 		if ( ! isset( $context['_server_remote_addr'] ) ) {

@@ -9,14 +9,24 @@ use Simple_History\Helpers;
  */
 class Sidebar_Add_Ons_Dropin extends Dropin {
 	/**
+	 * Minimum number of days since install before showing the compact premium promo.
+	 *
+	 * 21 days gives users time to build a habit with the plugin while
+	 * surfacing the promo ~9 days before the first 30-day retention purge.
+	 *
+	 * @var int
+	 */
+	const MINIMUM_DAYS_BEFORE_PREMIUM_PROMO = 21;
+
+	/**
 	 * Add actions when dropin is loaded.
 	 */
 	public function loaded() {
-		// Black Week sale at priority 1 to show first.
-		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_sale_promo' ], 1 );
-		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_premium_promo' ], 5 );
-		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_debug_and_monitor_promo' ], 5 );
-		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_woocommerce_promo' ], 7 );
+		// Black Week sale at priority 10 to show first.
+		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_sale_promo' ], 10 );
+		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_premium_promo_compact' ], 25 );
+		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_debug_and_monitor_promo' ], 60 );
+		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html_woocommerce_promo' ], 70 );
 	}
 
 	/**
@@ -95,16 +105,57 @@ class Sidebar_Add_Ons_Dropin extends Dropin {
 	}
 
 	/**
-	 * Output HTML if premium add-on is not installed.
+	 * Output compact premium promo above History Insights.
 	 */
-	public function on_sidebar_html_premium_promo() {
-		// Don't show if addon is already installed.
-		if ( ! Helpers::show_promo_boxes() ) {
+	public function on_sidebar_html_premium_promo_compact() {
+		$install_date       = Helpers::get_plugin_install_date();
+		$install_timestamp  = $install_date ? strtotime( $install_date ) : false;
+		$days_since_install = $install_timestamp ? ( time() - $install_timestamp ) / DAY_IN_SECONDS : 0;
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$show_premium_card = Helpers::show_promo_boxes()
+			&& (
+				isset( $_GET['sh_preview_premium_promo'] )
+				|| $days_since_install >= self::MINIMUM_DAYS_BEFORE_PREMIUM_PROMO
+			);
+
+		if ( ! $show_premium_card ) {
 			return;
 		}
 
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-		echo self::get_premium_features_postbox_html();
+		$premium_url = Helpers::get_tracking_url( 'https://simple-history.com/add-ons/premium/', 'premium_sidebar_compact' );
+		?>
+		<div class="postbox sh-PremiumFeaturesPostbox" style="--box-bg-color: var(--sh-color-cream);">
+			<div class="inside">
+				<p class="sh-PremiumFeaturesPostbox-preTitleFeaturesBadge"><span class="sh-Badge sh-Badge--premium"><?php esc_html_e( 'Premium', 'simple-history' ); ?></span></p>
+
+				<h3 class="sh-PremiumFeaturesPostbox-title">
+					<?php esc_html_e( 'Your activity log, supercharged.', 'simple-history' ); ?>
+				</h3>
+
+				<ul class="sh-PremiumFeaturesPostbox-featuresList">
+					<li class="sh-PremiumFeaturesPostbox-featuresList-item"><?php esc_html_e( 'Keep your history as long as you need — 90 days, a year, or forever', 'simple-history' ); ?></li>
+					<li class="sh-PremiumFeaturesPostbox-featuresList-item"><?php esc_html_e( 'Get Slack, Email, or Discord alerts when something important happens on your site', 'simple-history' ); ?></li>
+					<li class="sh-PremiumFeaturesPostbox-featuresList-item"><?php esc_html_e( 'Export your log as CSV or JSON — ready for any audit', 'simple-history' ); ?></li>
+					<li class="sh-PremiumFeaturesPostbox-featuresList-item"><?php esc_html_e( 'Choose exactly which events to log — skip the noise', 'simple-history' ); ?></li>
+					<li class="sh-PremiumFeaturesPostbox-featuresList-item"><?php esc_html_e( 'Forward your log to Datadog, Splunk, Syslog, or any webhook', 'simple-history' ); ?></li>
+					<li class="sh-PremiumFeaturesPostbox-featuresList-item sh-PremiumFeaturesPostbox-featuresList-item--more"><?php esc_html_e( '20+ more features included.', 'simple-history' ); ?></li>
+				</ul>
+
+				<p>
+					<a href="<?php echo esc_url( $premium_url ); ?>" target="_blank" class="sh-PremiumFeaturesPostbox-button">
+						<?php esc_html_e( 'Get Premium', 'simple-history' ); ?>
+					</a>
+				</p>
+
+				<p class="sh-PremiumFeaturesPostbox-guarantee">
+					<?php esc_html_e( '30-day money-back guarantee.', 'simple-history' ); ?>
+					<br />
+					<?php esc_html_e( 'No questions asked.', 'simple-history' ); ?>
+				</p>
+			</div>
+		</div>
+		<?php
 	}
 
 	/**

@@ -76,7 +76,7 @@ class RSS_Dropin extends Dropin {
 
 		Helpers::add_settings_section(
 			$settings_section_rss_id,
-			[ $rss_section_title, 'rss_feed' ],
+			[ $rss_section_title, 'rss_feed', 'simple_history_rss_section' ],
 			array( $this, 'settings_section_output' ),
 			Simple_History::SETTINGS_MENU_SLUG // same slug as for options menu page.
 		);
@@ -295,6 +295,9 @@ class RSS_Dropin extends Dropin {
 					// RSS feeds don't need pagination metadata.
 					$args['skip_count_query'] = true;
 
+					// Occasion grouping is enabled so subsequentOccasions
+					// values are accurate in the RSS output.
+
 					/**
 					 * Filters the arguments passed to `SimpleHistoryLogQuery()` when fetching the RSS feed
 					 *
@@ -426,7 +429,7 @@ class RSS_Dropin extends Dropin {
 
 								if ( $occasions ) {
 									echo '<p>';
-									esc_html(
+									echo esc_html(
 										sprintf(
 											// translators: %1$s is the number of times this log has been repeated.
 											_n( '+%1$s occasion', '+%1$s occasions', $occasions, 'simple-history' ),
@@ -461,7 +464,6 @@ class RSS_Dropin extends Dropin {
 					<title><?php echo esc_xml( $title ); ?></title>
 					<description><?php echo esc_xml( $description ); ?></description>
 					<link><?php echo esc_url( home_url() ); ?></link>
-					<atom:link href="<?php echo esc_url( $self_link ); ?>" rel="self" type="application/atom+xml" />
 					<item>
 						<title><?php echo esc_xml( __( 'Wrong RSS secret', 'simple-history' ) ); ?></title>
 						<description><?php echo esc_xml( __( 'Your RSS secret for Simple History RSS feed is wrong. Please see WordPress settings for current link to the RSS feed.', 'simple-history' ) ); ?></description>

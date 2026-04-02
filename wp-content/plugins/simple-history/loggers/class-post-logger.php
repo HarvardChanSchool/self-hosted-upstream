@@ -6,6 +6,7 @@ use Simple_History\Event_Details\Event_Details_Group;
 use Simple_History\Event_Details\Event_Details_Group_Diff_Table_Formatter;
 use Simple_History\Event_Details\Event_Details_Item;
 use Simple_History\Helpers;
+use Simple_History\Vendor\Jfcherng\Diff\DiffHelper;
 
 /**
  * Logs changes to posts and pages, including custom post types.
@@ -36,11 +37,16 @@ class Post_Logger extends Logger {
 			'description' => __( 'Logs the creation and modification of posts and pages', 'simple-history' ),
 			'capability'  => 'edit_pages',
 			'messages'    => array(
-				'post_created'  => __( 'Created {post_type} "{post_title}"', 'simple-history' ),
-				'post_updated'  => __( 'Updated {post_type} "{post_title}"', 'simple-history' ),
-				'post_restored' => __( 'Restored {post_type} "{post_title}" from trash', 'simple-history' ),
-				'post_deleted'  => __( 'Deleted {post_type} "{post_title}"', 'simple-history' ),
-				'post_trashed'  => __( 'Moved {post_type} "{post_title}" to the trash', 'simple-history' ),
+				'post_created'               => __( 'Created {post_type} "{post_title}"', 'simple-history' ),
+				'post_updated'               => __( 'Updated {post_type} "{post_title}"', 'simple-history' ),
+				'post_restored'              => __( 'Restored {post_type} "{post_title}" from trash', 'simple-history' ),
+				'post_deleted'               => __( 'Deleted {post_type} "{post_title}"', 'simple-history' ),
+				'post_trashed'               => __( 'Moved {post_type} "{post_title}" to the trash', 'simple-history' ),
+
+				'page_set_as_homepage'       => __( 'Set {post_type} "{post_title}" as the homepage', 'simple-history' ),
+				'page_removed_as_homepage'   => __( 'Removed {post_type} "{post_title}" as the homepage', 'simple-history' ),
+				'page_set_as_posts_page'     => __( 'Set {post_type} "{post_title}" as the posts page', 'simple-history' ),
+				'page_removed_as_posts_page' => __( 'Removed {post_type} "{post_title}" as the posts page', 'simple-history' ),
 			),
 			'labels'      => array(
 				'search' => array(
@@ -52,6 +58,12 @@ class Post_Logger extends Logger {
 						_x( 'Posts trashed', 'Post logger: search', 'simple-history' ) => array( 'post_trashed' ),
 						_x( 'Posts deleted', 'Post logger: search', 'simple-history' ) => array( 'post_deleted' ),
 						_x( 'Posts restored', 'Post logger: search', 'simple-history' ) => array( 'post_restored' ),
+						_x( 'Pages set as homepage or posts page', 'Post logger: search', 'simple-history' ) => array(
+							'page_set_as_homepage',
+							'page_removed_as_homepage',
+							'page_set_as_posts_page',
+							'page_removed_as_posts_page',
+						),
 					),
 				),
 			),
@@ -86,6 +98,9 @@ class Post_Logger extends Logger {
 
 		// Add rest hooks late to increase chance of getting all registered post types.
 		add_action( 'init', array( $this, 'add_rest_hooks' ), 99 );
+
+		add_action( 'update_option_page_on_front', array( $this, 'on_update_option_page_on_front' ), 10, 2 );
+		add_action( 'update_option_page_for_posts', array( $this, 'on_update_option_page_for_posts' ), 10, 2 );
 
 		add_filter( 'simple_history/rss_item_link', array( $this, 'filter_rss_item_link' ), 10, 2 );
 
@@ -743,6 +758,12 @@ class Post_Logger extends Logger {
 			$context['post_prev_status']      = $old_status;
 			$context['post_new_status']       = $new_status;
 
+			$referer_post = $this->get_referer_post();
+			if ( $referer_post ) {
+				$context['post_created_from_post_id']    = $referer_post->ID;
+				$context['post_created_from_post_title'] = get_the_title( $referer_post );
+			}
+
 			$this->info_message( 'post_created', $context );
 		} elseif ( $new_status === 'auto-draft' || ( $old_status === 'new' && $new_status === 'inherit' ) ) {
 			// Post was automagically saved by WordPress but not yet created (still auto-draft).
@@ -895,6 +916,53 @@ class Post_Logger extends Logger {
 		// If changes where detected.
 		// Save at least 2 values for each detected value change, i.e. the old value and the new value.
 		foreach ( $post_data_diff as $diff_key => $diff_values ) {
+			// For post_content, try compact JSON diff storage if the library is available.
+			if (
+				$diff_key === 'post_content'
+				&& class_exists( DiffHelper::class )
+			) {
+				try {
+					// Normalize whitespace to match WP's text_diff behavior.
+					$old_normalized = normalize_whitespace( $diff_values['old'] );
+					$new_normalized = normalize_whitespace( $diff_values['new'] );
+
+					$json_diff = DiffHelper::calculate(
+						$old_normalized,
+						$new_normalized,
+						'JsonHtml',
+						[
+							'context'           => 1,
+							'ignoreLineEndings' => true,
+							'ignoreWhitespace'  => true,
+						],
+						[
+							'detailLevel'       => 'word',
+							'outputTagAsString' => true,
+						]
+					);
+
+					$full_size = strlen( $old_normalized ) + strlen( $new_normalized );
+					$diff_size = strlen( $json_diff );
+
+					// Use compact diff only if it's actually smaller than storing full content.
+					if ( $diff_size < $full_size ) {
+						$context['post_content_diff']        = $json_diff;
+						$context['post_content_diff_format'] = 'jfcherng_json_html_v1';
+					} else {
+						$context[ "post_prev_{$diff_key}" ]  = $diff_values['old'];
+						$context[ "post_new_{$diff_key}" ]   = $diff_values['new'];
+						$context['post_content_diff_format'] = 'full_content_v1';
+					}
+				} catch ( \Exception $e ) {
+					// Fallback to full content storage on any error.
+					$context[ "post_prev_{$diff_key}" ]  = $diff_values['old'];
+					$context[ "post_new_{$diff_key}" ]   = $diff_values['new'];
+					$context['post_content_diff_format'] = 'full_content_v1';
+				}
+
+				continue;
+			}
+
 				$context[ "post_prev_{$diff_key}" ] = $diff_values['old'];
 				$context[ "post_new_{$diff_key}" ]  = $diff_values['new'];
 
@@ -1216,13 +1284,130 @@ class Post_Logger extends Logger {
 					'Moved {post_type} <a href="{edit_link}">"{post_title}"</a> to the trash',
 					'simple-history'
 				);
+			} elseif ( $message_key === 'page_set_as_homepage' ) {
+				if ( ! empty( $context['old_post_title'] ) ) {
+					$message = __( 'Set {post_type} <a href="{edit_link}">"{post_title}"</a> as the homepage, replacing "{old_post_title}"', 'simple-history' );
+				} else {
+					$message = __( 'Set {post_type} <a href="{edit_link}">"{post_title}"</a> as the homepage', 'simple-history' );
+				}
+			} elseif ( $message_key === 'page_removed_as_homepage' ) {
+				$message = __( 'Removed {post_type} <a href="{edit_link}">"{post_title}"</a> as the homepage', 'simple-history' );
+			} elseif ( $message_key === 'page_set_as_posts_page' ) {
+				if ( ! empty( $context['old_post_title'] ) ) {
+					$message = __( 'Set {post_type} <a href="{edit_link}">"{post_title}"</a> as the posts page, replacing "{old_post_title}"', 'simple-history' );
+				} else {
+					$message = __( 'Set {post_type} <a href="{edit_link}">"{post_title}"</a> as the posts page', 'simple-history' );
+				}
+			} elseif ( $message_key === 'page_removed_as_posts_page' ) {
+				$message = __( 'Removed {post_type} <a href="{edit_link}">"{post_title}"</a> as the posts page', 'simple-history' );
 			}
 		}
 
-		$context['post_type']  = isset( $context['post_type'] ) ? esc_html( $context['post_type'] ) : '';
-		$context['post_title'] = isset( $context['post_title'] ) ? esc_html( $context['post_title'] ) : '';
+		// For page role messages without edit link, add "replacing" info to the plain message.
+		if ( ! empty( $context['old_post_title'] ) ) {
+			if ( $message_key === 'page_set_as_homepage' && strpos( $message, 'old_post_title' ) === false ) {
+				$message = __( 'Set {post_type} "{post_title}" as the homepage, replacing "{old_post_title}"', 'simple-history' );
+			} elseif ( $message_key === 'page_set_as_posts_page' && strpos( $message, 'old_post_title' ) === false ) {
+				$message = __( 'Set {post_type} "{post_title}" as the posts page, replacing "{old_post_title}"', 'simple-history' );
+			}
+		}
+
+		$context['post_type']      = isset( $context['post_type'] ) ? esc_html( $context['post_type'] ) : '';
+		$context['post_title']     = isset( $context['post_title'] ) ? esc_html( $context['post_title'] ) : '';
+		$context['old_post_title'] = isset( $context['old_post_title'] ) ? esc_html( $context['old_post_title'] ) : '';
 
 		return helpers::interpolate( $message, $context, $row );
+	}
+
+	/**
+	 * Get structured action links for a post event.
+	 *
+	 * Returns View, Edit, Preview, and Revisions links based on
+	 * message key, post availability, status, and user capabilities.
+	 *
+	 * @since 5.24.0
+	 *
+	 * @param object $row Log row object.
+	 * @return array Array of action link arrays.
+	 */
+	public function get_action_links( $row ) {
+		$context     = $row->context;
+		$post_id     = $context['post_id'] ?? 0;
+		$message_key = $context['_message_key'] ?? null;
+
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof \WP_Post ) {
+			return [];
+		}
+
+		// Post was permanently deleted; no links to show.
+		if ( $message_key === 'post_deleted' ) {
+			return [];
+		}
+
+		$post_type_obj = get_post_type_object( $post->post_type );
+		$type_label    = $post_type_obj ? strtolower( $post_type_obj->labels->singular_name ) : $post->post_type;
+		$post_status   = get_post_status( $post );
+		$action_links  = [];
+
+		$is_published = $post_status === 'publish';
+		$is_viewable  = in_array( $post_status, [ 'draft', 'pending', 'future' ], true );
+		$has_edit_cap = current_user_can( 'edit_post', $post_id );
+
+		// Edit link — if user has capability.
+		if ( $has_edit_cap ) {
+			$edit_link = get_edit_post_link( $post_id, 'raw' );
+			if ( $edit_link ) {
+				$action_links[] = [
+					'url'    => $edit_link,
+					/* translators: %s: post type label, e.g. "page" or "post". */
+					'label'  => sprintf( __( 'Edit %s', 'simple-history' ), $type_label ),
+					'action' => 'edit',
+				];
+			}
+		}
+
+		// View link — only for published posts.
+		if ( $is_published ) {
+			$permalink = get_permalink( $post_id );
+			if ( $permalink ) {
+				$action_links[] = [
+					'url'    => $permalink,
+					/* translators: %s: post type label, e.g. "page" or "post". */
+					'label'  => sprintf( __( 'View %s', 'simple-history' ), $type_label ),
+					'action' => 'view',
+				];
+			}
+		}
+
+		// Preview link — for drafts, pending, and future posts.
+		if ( $is_viewable && $has_edit_cap ) {
+			$preview_link = get_preview_post_link( $post_id );
+			if ( $preview_link ) {
+				$action_links[] = [
+					'url'    => $preview_link,
+					/* translators: %s: post type label, e.g. "page" or "post". */
+					'label'  => sprintf( __( 'Preview %s', 'simple-history' ), $type_label ),
+					'action' => 'preview',
+				];
+			}
+		}
+
+		// Revisions link — only for post_updated when revisions exist.
+		if ( $message_key === 'post_updated' && post_type_supports( $post->post_type, 'revisions' ) ) {
+			$revisions = wp_get_post_revisions( $post_id, [ 'numberposts' => 1 ] );
+			if ( ! empty( $revisions ) ) {
+				$latest_revision = reset( $revisions );
+				$action_links[]  = [
+					'url'    => admin_url( 'revision.php?revision=' . $latest_revision->ID ),
+					'label'  => __( 'View revisions', 'simple-history' ),
+					'action' => 'revisions',
+				];
+			}
+		}
+
+		return $action_links;
 	}
 
 	/**
@@ -1285,9 +1470,11 @@ class Post_Logger extends Logger {
 						helpers::text_diff( $post_old_value, $post_new_value )
 					);
 				} elseif ( $key_to_diff === 'post_content' ) {
-					// Problem: to much text/content.
-					// Risks to fill the visual output.
-					// Maybe solution: use own diff function, that uses none or few context lines.
+					// Skip if compact JSON diff exists — it's rendered separately below.
+					if ( isset( $context['post_content_diff'] ) ) {
+						continue;
+					}
+
 					$has_diff_values = true;
 					$label           = __( 'Content', 'simple-history' );
 					$key_text_diff   = helpers::text_diff( $post_old_value, $post_new_value );
@@ -1487,6 +1674,20 @@ class Post_Logger extends Logger {
 			// post_prev_thumb, int of prev thumb, empty if not prev thumb.
 			// post_new_thumb, int of new thumb, empty if no new thumb.
 			$diff_table_output .= $this->get_log_row_details_output_for_post_thumb( $context );
+
+			// Render compact JSON diff for post_content if available.
+			if ( isset( $context['post_content_diff'] ) ) {
+				$json_diff_html = Helpers::render_json_diff_to_html( $context['post_content_diff'] );
+
+				if ( $json_diff_html !== '' ) {
+					$has_diff_values    = true;
+					$diff_table_output .= sprintf(
+						'<tr><td>%1$s</td><td>%2$s</td></tr>',
+						esc_html( __( 'Content', 'simple-history' ) ),
+						$json_diff_html
+					);
+				}
+			}
 
 			/**
 			 * Modify the formatted diff output of a saved/modified post
@@ -1795,5 +1996,134 @@ class Post_Logger extends Logger {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Fired when the "page_on_front" option is updated.
+	 *
+	 * Only logs during REST API requests (block editor).
+	 * Traditional admin changes are handled by the Options Logger,
+	 * and Customizer changes by the Theme Logger.
+	 *
+	 * @param mixed $old_value Previous value.
+	 * @param mixed $new_value New value.
+	 */
+	public function on_update_option_page_on_front( $old_value, $new_value ) {
+		$this->log_page_role_change( $old_value, $new_value, 'homepage' );
+	}
+
+	/**
+	 * Fired when the "page_for_posts" option is updated.
+	 *
+	 * Only logs during REST API requests (block editor).
+	 * Traditional admin changes are handled by the Options Logger,
+	 * and Customizer changes by the Theme Logger.
+	 *
+	 * @param mixed $old_value Previous value.
+	 * @param mixed $new_value New value.
+	 */
+	public function on_update_option_page_for_posts( $old_value, $new_value ) {
+		$this->log_page_role_change( $old_value, $new_value, 'posts_page' );
+	}
+
+	/**
+	 * Log when a page is set as or removed as the homepage or posts page.
+	 *
+	 * @param mixed  $old_value Previous option value (page ID or 0).
+	 * @param mixed  $new_value New option value (page ID or 0).
+	 * @param string $role Either 'homepage' or 'posts_page'.
+	 */
+	private function log_page_role_change( $old_value, $new_value, $role ) {
+		// Only log during REST API requests (block editor).
+		if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
+			return;
+		}
+
+		$old_value = (int) $old_value;
+		$new_value = (int) $new_value;
+
+		// No change.
+		if ( $old_value === $new_value ) {
+			return;
+		}
+
+		$set_message_key     = $role === 'homepage' ? 'page_set_as_homepage' : 'page_set_as_posts_page';
+		$removed_message_key = $role === 'homepage' ? 'page_removed_as_homepage' : 'page_removed_as_posts_page';
+
+		// A page was set.
+		if ( ! empty( $new_value ) ) {
+			$new_post = get_post( $new_value );
+
+			if ( ! $new_post instanceof \WP_Post ) {
+				return;
+			}
+
+			$context = array(
+				'post_id'    => $new_post->ID,
+				'post_type'  => get_post_type( $new_post ),
+				'post_title' => get_the_title( $new_post ),
+			);
+
+			// If changing from one page to another, include the old page info.
+			if ( ! empty( $old_value ) ) {
+				$old_post = get_post( $old_value );
+				if ( $old_post instanceof \WP_Post ) {
+					$context['old_post_id']    = $old_post->ID;
+					$context['old_post_title'] = get_the_title( $old_post );
+				}
+			}
+
+			$this->info_message( $set_message_key, $context );
+		} elseif ( ! empty( $old_value ) ) {
+			// Page was removed (set to 0).
+			$old_post = get_post( $old_value );
+
+			if ( ! $old_post instanceof \WP_Post ) {
+				return;
+			}
+
+			$context = array(
+				'post_id'    => $old_post->ID,
+				'post_type'  => get_post_type( $old_post ),
+				'post_title' => get_the_title( $old_post ),
+			);
+
+			$this->info_message( $removed_message_key, $context );
+		}
+	}
+
+	/**
+	 * Get the post from the HTTP referer if it points to a post editor.
+	 *
+	 * Useful for detecting when a post is created from within another post's
+	 * editor, e.g. via the Gutenberg link component.
+	 *
+	 * @return \WP_Post|null Post object or null if referer doesn't point to a valid post editor.
+	 */
+	private function get_referer_post() {
+		$http_referer = wp_get_referer();
+		if ( ! $http_referer ) {
+			return null;
+		}
+
+		$referer_query = wp_parse_url( $http_referer, PHP_URL_QUERY );
+		if ( ! $referer_query ) {
+			return null;
+		}
+
+		$referer_args = [];
+		wp_parse_str( $referer_query, $referer_args );
+
+		if (
+			empty( $referer_args['post'] )
+			|| empty( $referer_args['action'] )
+			|| $referer_args['action'] !== 'edit'
+		) {
+			return null;
+		}
+
+		$post = get_post( (int) $referer_args['post'] );
+
+		return $post instanceof \WP_Post ? $post : null;
 	}
 }

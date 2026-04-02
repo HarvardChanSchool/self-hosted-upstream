@@ -179,7 +179,6 @@
 	margin-top: calc(var(--sh-spacing-medium) * -1);
 	min-height: 30px;
 	font-weight: 600;
-	/* outline: 1px dotted pink; */
 }
 
 /* Divider line, at middle of divider. */
@@ -196,11 +195,6 @@
 	font-size: var(--sh-font-size-small);
 	transform: translateY(-50%);
 	box-shadow: 0px 3px 3px 0px #f7f7f7;
-}
-
-/* Sticky events style */
-.SimpleHistoryLogitem--is-sticky {
-	/* background-color: var(--sh-color-cream); */
 }
 
 /* Text inside event, contains tooltip and SVG icon component */
@@ -267,12 +261,18 @@ Tag = the pill with the log level.
 	color: #eee;
 }
 
-.SimpleHistoryLogitem a {
+.SimpleHistoryLogitem a,
+.SimpleHistoryLogitem .components-external-link,
+.SimpleHistoryLogitem .components-button.is-link {
+	color: #2271b1;
 	text-decoration: none;
 }
 
-.SimpleHistoryLogitem a:hover {
-	text-decoration: underline;
+.SimpleHistoryLogitem a:hover,
+.SimpleHistoryLogitem .components-external-link:hover,
+.SimpleHistoryLogitem .components-button.is-link:hover {
+	color: #135e96;
+	text-decoration: none;
 }
 
 .SimpleHistoryLogitem__firstcol {
@@ -378,11 +378,116 @@ Tag = the pill with the log level.
 	max-width: 100%;
 }
 
-/* Actions button, dropdown with three dots ⋮ */
+/* Structured action links below event details */
+.SimpleHistoryLogitem__actionLinks {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sh-spacing-small) var(--sh-spacing-xsmall);
+	margin-top: var(--sh-spacing-small);
+	margin-bottom: var(--sh-spacing-xsmall);
+	margin-left: calc(var(--sh-spacing-small) * -1);
+	font-size: var(--sh-font-size-small);
+	line-height: 1.4;
+}
+
+.SimpleHistoryLogitem__actionLinks__link {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sh-spacing-xsmall);
+	padding: var(--sh-spacing-xsmall) var(--sh-spacing-small);
+	color: #2271b1;
+	text-decoration: none;
+}
+
+.SimpleHistoryLogitem__actionLinks__link:hover {
+	color: #135e96;
+	background-color: var(--sh-color-gray-4);
+	border-radius: var(--sh-border-radius);
+}
+
+.SimpleHistoryLogitem__actionLinks__link .sh-Icon {
+	--sh-icon-size: 1em;
+	top: 1px;
+	/* Use mask so icon color inherits from link via currentColor. */
+	mask-size: 100%;
+	-webkit-mask-size: 100%;
+	background: currentColor;
+}
+
+.SimpleHistoryLogitem__actionLinks__link .sh-Icon--visibility {
+	mask-image: url(./icons/visibility_FILL0_wght400_GRAD0_opsz48.svg);
+	-webkit-mask-image: url(./icons/visibility_FILL0_wght400_GRAD0_opsz48.svg);
+}
+
+.SimpleHistoryLogitem__actionLinks__link .sh-Icon--edit {
+	mask-image: url(./icons/edit_FILL0_wght400_GRAD0_opsz48.svg);
+	-webkit-mask-image: url(./icons/edit_FILL0_wght400_GRAD0_opsz48.svg);
+}
+
+.SimpleHistoryLogitem__actionLinks__link .sh-Icon--preview {
+	mask-image: url(./icons/preview_48dp_1F1F1F_FILL0_wght400_GRAD0_opsz48.svg);
+	-webkit-mask-image: url(./icons/preview_48dp_1F1F1F_FILL0_wght400_GRAD0_opsz48.svg);
+}
+
+.SimpleHistoryLogitem__actionLinks__link .sh-Icon--history {
+	mask-image: url(./icons/history_FILL0_wght400_GRAD0_opsz48.svg);
+	-webkit-mask-image: url(./icons/history_FILL0_wght400_GRAD0_opsz48.svg);
+}
+
+/* Actions area: quick action buttons + three-dot dropdown menu. */
 .SimpleHistoryLogitem__actions {
 	position: absolute;
 	top: 12px;
 	right: 12px;
+	display: flex;
+	align-items: center;
+	gap: var(--sh-spacing-xsmall);
+}
+
+/* Quick actions hidden by default, shown on hover/focus. */
+.SimpleHistoryLogitem__quickActions {
+	display: flex;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.15s ease;
+}
+
+.SimpleHistoryLogitem__quickActions .components-button {
+	min-width: 36px;
+	height: 36px;
+	padding: 6px;
+	color: #757575;
+}
+
+.SimpleHistoryLogitem__quickActions .components-button:hover {
+	color: #1d2327;
+}
+
+.SimpleHistoryLogitem:is(:hover, :focus-within)
+	.SimpleHistoryLogitem__quickActions {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Three-dot button: dimmed by default, full opacity on hover. */
+.SimpleHistoryLogitem__actions > .components-dropdown-menu {
+	opacity: 0.3;
+	transition: opacity 0.15s ease;
+}
+
+.SimpleHistoryLogitem:is(:hover, :focus-within)
+	.SimpleHistoryLogitem__actions
+	> .components-dropdown-menu {
+	opacity: 1;
+}
+
+/* Always show everything on touch devices (no hover). */
+@media (hover: none) {
+	.SimpleHistoryLogitem__quickActions,
+	.SimpleHistoryLogitem__actions > .components-dropdown-menu {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
 
 .SimpleHistoryLogitem__keyValueTable th,
@@ -458,6 +563,11 @@ Images/thumbs can be styles nicely
 	max-width: 200px;
 	max-height: 125px;
 	height: auto;
+}
+
+.SimpleHistoryLogitemThumbnail--small img {
+	max-width: 100px;
+	max-height: 63px;
 }
 
 /* remove border below */
@@ -597,6 +707,9 @@ i.e. the log is inside a .postbox element.
 	.SimpleHistoryLogitem__senderImage:before,
 .postbox
 	.SimpleHistoryLogitem--initiator-web_user
+	.SimpleHistoryLogitem__senderImage:before,
+.postbox
+	.SimpleHistoryLogitem--initiator-other
 	.SimpleHistoryLogitem__senderImage:before {
 	font-size: 24px;
 }
@@ -629,6 +742,299 @@ i.e. the log is inside a .postbox element.
 		display: none;
 	}
 	*/
+
+/* Dashboard widget: match WP core dashboard padding. */
+.SimpleHistoryReactRoot.is-dashboard .SimpleHistoryLogitem {
+	padding-top: var(--sh-dashboard-padding-y);
+	padding-bottom: var(--sh-dashboard-padding-y);
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.SimpleHistoryReactRoot.is-dashboard .SimpleHistoryLogitem:last-child {
+	border-bottom: none;
+}
+
+.SimpleHistoryReactRoot.is-dashboard .SimpleHistoryLogitems {
+	border-bottom: none;
+}
+
+/* Dashboard widget: truncate long header to keep single-line. */
+.SimpleHistoryReactRoot.is-dashboard .SimpleHistoryLogitem__header {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Dashboard widget: no extra padding before date separators. */
+.SimpleHistoryReactRoot.is-dashboard
+	.SimpleHistoryLogitem:has(
+		+ .SimpleHistoryLogitem .SimpleHistoryEventSeparator--hasLabel
+	) {
+	padding-bottom: var(--sh-dashboard-padding-y);
+}
+
+/* Dashboard widget: date headings as clean inline labels. */
+.SimpleHistoryReactRoot.is-dashboard .SimpleHistoryEventSeparator {
+	border-top: none;
+	margin-top: 0;
+	min-height: auto;
+	width: auto;
+	margin-left: 0;
+	justify-content: flex-start;
+}
+
+#dashboard-widgets
+	.SimpleHistoryReactRoot.is-dashboard
+	.SimpleHistoryEventSeparator__label {
+	transform: none;
+	border: none;
+	border-radius: 0;
+	background: none;
+	box-shadow: none;
+	padding: 0;
+	margin: 4px 0 var(--sh-dashboard-padding-y);
+	font-size: var(--sh-font-size-normal);
+	font-weight: 600;
+	line-height: 1.4;
+	max-height: none;
+	color: var(--sh-color-gray-3);
+}
+
+/* Dashboard widget: tighter action links. */
+.SimpleHistoryReactRoot.is-dashboard .SimpleHistoryLogitem__actionLinks {
+	margin-top: var(--sh-spacing-xsmall);
+	margin-bottom: 0;
+}
+
+/* Dashboard widget: stats summary row. Fixed min-height prevents shift when skeleton swaps to real content. */
+.sh-DashboardWidget-stats {
+	display: flex;
+	align-items: center;
+	gap: var(--sh-spacing-xsmall);
+	padding: var(--sh-dashboard-padding-y) var(--sh-dashboard-padding-x);
+	min-height: 21px;
+	font-size: var(--sh-font-size-normal);
+	color: #50575e;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sh-DashboardWidget-stats > svg {
+	fill: #787c82;
+	flex-shrink: 0;
+}
+
+.sh-DashboardWidget-stats__separator {
+	margin: 0 0.4em;
+	color: #c3c4c7;
+}
+
+/* Dashboard widget: clickable stats row — whole row links to activity log. */
+a.sh-DashboardWidget-stats--link {
+	text-decoration: none;
+	color: #50575e;
+	cursor: pointer;
+}
+
+a.sh-DashboardWidget-stats--link:hover {
+	background: #f6f7f7;
+}
+
+/* Dashboard widget: search row wrapper. */
+.sh-DashboardWidget-searchRow {
+	padding: var(--sh-dashboard-padding-y) var(--sh-dashboard-padding-x);
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sh-DashboardWidget-searchRow__row {
+	display: flex;
+	align-items: center;
+	gap: var(--sh-spacing-small);
+}
+
+.sh-DashboardWidget-search {
+	display: flex;
+	align-items: stretch;
+	gap: 6px;
+	flex: 1;
+}
+
+.sh-DashboardWidget-search__input {
+	flex: 1;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	padding: var(--sh-spacing-xsmall) var(--sh-spacing-small);
+	font-size: var(--sh-font-size-normal);
+	line-height: 1.6;
+	background: #fff;
+	color: #2c3338;
+	outline: none;
+}
+
+.sh-DashboardWidget-search__input:focus {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+	position: relative;
+	z-index: 1;
+}
+
+.sh-DashboardWidget-search__input::placeholder {
+	color: #a7aaad;
+}
+
+.sh-DashboardWidget-searchRow__filtersLink {
+	font-size: var(--sh-font-size-small);
+	text-decoration: none;
+	margin-left: auto;
+}
+
+.sh-DashboardWidget-searchRow__filtersLink:hover {
+	text-decoration: underline;
+}
+
+.sh-DashboardWidget-searchRow__filtersLink.is-placeholder {
+	color: #c3c4c7;
+	cursor: default;
+}
+
+/* Dashboard widget: "View all activity" link — full-width click target. */
+.sh-DashboardWidget-viewAll a {
+	display: block;
+	padding: 12px var(--sh-dashboard-padding-x);
+	text-decoration: none;
+	font-size: var(--sh-font-size-normal);
+}
+
+.sh-DashboardWidget-viewAll a:hover {
+	background-color: var(--sh-color-item-hover);
+	text-decoration: underline;
+}
+
+.sh-DashboardWidget-viewAll {
+	border-top: 1px solid #f0f0f1;
+}
+
+.sh-DashboardWidget-viewAll__placeholder {
+	display: block;
+	padding: 12px var(--sh-dashboard-padding-x);
+	font-size: var(--sh-font-size-normal);
+	color: #c3c4c7;
+	cursor: default;
+}
+
+/* Dashboard widget: sparse-state notice when few events in the 7-day window. */
+.sh-DashboardWidget-sparseNotice {
+	margin: 0;
+	padding: var(--sh-dashboard-padding-y) var(--sh-dashboard-padding-x);
+	font-size: var(--sh-font-size-small);
+	color: #646970;
+	border-top: 1px solid #f0f0f1;
+}
+
+/* Dashboard widget: rotating tip line. */
+.sh-DashboardWidget-tip {
+	margin: 0;
+	padding: var(--sh-dashboard-padding-y) var(--sh-dashboard-padding-x);
+	font-size: var(--sh-font-size-small);
+	color: #646970;
+	border-top: 1px solid #f0f0f1;
+}
+
+/* Dashboard widget: main container. Spacing matches WP core dashboard widgets (12px/8px). */
+.sh-DashboardWidget {
+	--sh-dashboard-padding-x: 12px;
+	--sh-dashboard-padding-y: 8px;
+}
+
+/* Dashboard widget: content area. Overflow is managed by JS during height animation only. */
+.sh-DashboardWidget-content {
+	height: auto;
+}
+
+/* Dashboard widget: skeleton shimmer animation. */
+@keyframes sh-skeleton-shimmer {
+	0% {
+		background-position: -200px 0;
+	}
+	100% {
+		background-position: 400px 0;
+	}
+}
+
+/* Dashboard widget: skeleton event rows. */
+.sh-DashboardWidget-skeleton {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sh-DashboardWidget-skeleton__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: var(--sh-dashboard-padding-y) var(--sh-dashboard-padding-x);
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sh-DashboardWidget-skeleton__row:last-child {
+	border-bottom: none;
+}
+
+.sh-DashboardWidget-skeleton__avatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	flex-shrink: 0;
+	background: linear-gradient(90deg, #f0f0f1 25%, #e8e8e9 50%, #f0f0f1 75%);
+	background-size: 400px 100%;
+	animation: sh-skeleton-shimmer 1.5s infinite linear;
+}
+
+.sh-DashboardWidget-skeleton__content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding-top: 4px;
+}
+
+.sh-DashboardWidget-skeleton__line {
+	height: 12px;
+	border-radius: 3px;
+	background: linear-gradient(90deg, #f0f0f1 25%, #e8e8e9 50%, #f0f0f1 75%);
+	background-size: 400px 100%;
+	animation: sh-skeleton-shimmer 1.5s infinite linear;
+}
+
+.sh-DashboardWidget-skeleton__line--short {
+	width: 55%;
+}
+
+.sh-DashboardWidget-skeleton__line--long {
+	width: 80%;
+}
+
+.sh-DashboardWidget-skeleton__line--stats {
+	width: 180px;
+	height: 14px;
+}
+
+/* Dashboard widget: occasions full-width with subtle background.
+   The wrapper lives inside secondcol (margin-left: 40px) inside the event li (padding: 16px).
+   Pull the background out by 56px left and 16px right to reach the widget edges. */
+.SimpleHistoryLogitem__occasionsItemsWrap.is-dashboard
+	.SimpleHistoryLogitem__occasionsItems {
+	box-shadow: none;
+	background: #f6f7f7;
+	margin-left: calc(-40px - var(--sh-spacing-medium));
+	margin-right: calc(-1 * var(--sh-spacing-medium));
+}
+
+.SimpleHistoryLogitem__occasionsItemsWrap.is-dashboard
+	.SimpleHistoryLogitem__occasionsItems
+	.SimpleHistoryLogitem {
+	padding-top: 6px;
+	padding-bottom: 6px;
+}
 
 /* // end dashboard */
 
@@ -892,19 +1298,19 @@ Modal window with detailss
 
 .SimpleHistory-modal
 	.SimpleHistoryLogitem--initiator-web_user
-	.SimpleHistoryLogitem__secondcol,
-.SimpleHistory-modal
-	.SimpleHistoryLogitem--initiator-other
 	.SimpleHistoryLogitem__secondcol {
 	margin-left: 0;
 }
 
 /* wordpress as initiator = add wordpress icon */
 /* anonymous user as initiator = plain user image */
+/* other as initiator = admin-generic gear icon */
 .SimpleHistoryLogitem--initiator-wp .SimpleHistoryLogitem__senderImage:before,
 .SimpleHistoryLogitem--initiator-wp_cli
 	.SimpleHistoryLogitem__senderImage:before,
 .SimpleHistoryLogitem--initiator-web_user
+	.SimpleHistoryLogitem__senderImage:before,
+.SimpleHistoryLogitem--initiator-other
 	.SimpleHistoryLogitem__senderImage:before {
 	display: inline-block;
 	-webkit-font-smoothing: antialiased;
@@ -937,6 +1343,11 @@ Modal window with detailss
 .SimpleHistoryLogitem--initiator-web_user
 	.SimpleHistoryLogitem__senderImage:before {
 	content: "\f110";
+}
+
+.SimpleHistoryLogitem--initiator-other
+	.SimpleHistoryLogitem__senderImage:before {
+	content: "\f223";
 }
 
 .SimpleHistoryQuickStats {
@@ -1049,6 +1460,68 @@ Modal window with detailss
 	width: auto;
 }
 
+/* jfcherng/php-diff side-by-side renderer styles */
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side {
+	border-collapse: collapse;
+	border-spacing: 1px;
+	width: 100%;
+	font-family: "Open Sans", sans-serif;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side td {
+	text-align: left;
+	white-space: normal;
+	font-size: 13px;
+	line-height: 1.3;
+	padding: 0.5em 0.5em 0.5em 2em;
+	color: rgb(75, 75, 75);
+	font-family: "Open Sans", sans-serif;
+	width: 50%;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side .change-eq td {
+	background: transparent;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side .change-ins td.new {
+	background: #dfd;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side .change-del td.old {
+	background: #fdd;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side .change-rep td.old {
+	background: #fdd;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side .change-rep td.new {
+	background: #dfd;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side td.none {
+	background: #f9f9f9;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side ins {
+	background: #9e9;
+	text-decoration: none;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side del {
+	background: #e99;
+	text-decoration: line-through;
+}
+
+.SimpleHistory__diff__contents .diff-html.diff-side-by-side .skipped td {
+	background: #f7f7f7;
+	text-align: center;
+	color: #999;
+	font-style: italic;
+}
+
 .sh-ExternalLink::after {
 	/* External icon on link */
 	content: "\f504";
@@ -1067,6 +1540,7 @@ Modal window with detailss
 	border-bottom: 1px solid var(--sh-color-gray);
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	justify-content: space-between;
 	column-gap: 1rem;
 }
@@ -1108,11 +1582,116 @@ so add some extra place then to make it look a bit less ugly.
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 0.25rem;
+	gap: var(--sh-spacing-medium);
 }
 
 .sh-PageHeader-settingsLinkIcon {
 	--sh-icon-size: 25px;
+}
+
+/* Shared header button style for Settings / Premium */
+.sh-PageHeader-headerBtn {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font-size: 13px;
+	font-weight: 500;
+	padding: 6px 14px;
+	border-radius: var(--sh-border-radius);
+	text-decoration: none;
+	line-height: 1;
+	transition:
+		background-color 0.15s ease,
+		border-color 0.15s ease;
+}
+
+.sh-PageHeader-headerBtn .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	line-height: 16px;
+}
+
+/* Settings — icon-only gear link */
+.sh-PageHeader-settingsIcon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: #50575e;
+	text-decoration: none;
+	padding: 4px;
+	border-radius: var(--sh-border-radius);
+	transition: color 0.15s ease;
+}
+
+.sh-PageHeader-settingsIcon .dashicons {
+	font-size: 20px;
+	width: 20px;
+	height: 20px;
+	line-height: 20px;
+}
+
+.sh-PageHeader-settingsIcon:hover {
+	color: #1d2327;
+}
+
+.sh-PageHeader-settingsIcon:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+/* Get Premium — text link style */
+.sh-PageHeader-headerBtn--getPremium {
+	color: #996800;
+	border: none;
+	background: none;
+	padding: 6px 4px;
+	text-decoration: none;
+	text-underline-offset: 2px;
+	transition: color 0.15s ease;
+}
+
+.sh-PageHeader-headerBtn--getPremium:hover {
+	color: #7a4a00;
+	background: none;
+	border: none;
+	text-decoration: underline;
+	text-decoration-color: #996800;
+}
+
+.sh-PageHeader-headerBtn--getPremium:focus-visible {
+	outline: 2px solid #996800;
+	outline-offset: 2px;
+}
+
+/* Premium active — subtle status badge */
+.sh-PageHeader-headerBtn--premiumActive {
+	background: none;
+	color: #996800;
+	border: 1px solid transparent;
+}
+
+.sh-PageHeader-headerBtn--premiumActive .dashicons {
+	color: #996800;
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	line-height: 16px;
+}
+
+/* Dev badges container — absolute positioned above log content */
+.SimpleHistoryWrap {
+	position: relative;
+}
+
+.sh-DevBadges {
+	position: fixed;
+	z-index: 1000;
+	bottom: var(--sh-spacing-small);
+	right: var(--sh-spacing-small);
+	display: flex;
+	gap: 6px;
+	padding: 4px 8px;
 }
 
 /* Base badge styles shared by all header badges */
@@ -1125,7 +1704,6 @@ so add some extra place then to make it look a bit less ugly.
 	text-transform: uppercase;
 	letter-spacing: 0.5px;
 	line-height: 1;
-	margin-left: var(--sh-spacing-small);
 }
 
 /* Dev badge variant */
@@ -1171,6 +1749,93 @@ so add some extra place then to make it look a bit less ugly.
 
 .sh-PageHeader-badge--experimental.is-inactive {
 	background-color: #888;
+}
+
+/* Feature discovery bar — sits inside title group, next to logo */
+.sh-HeaderStatus {
+	display: flex;
+	align-items: center;
+	font-size: var(--sh-font-size-small);
+	color: var(--sh-color-gray-3);
+	margin-left: var(--sh-spacing-medium);
+	border-left: 1px solid var(--sh-color-gray);
+	padding-left: var(--sh-spacing-medium);
+}
+
+/* On narrow screens, drop below the logo as full-width block */
+@media (max-width: 960px) {
+	.sh-HeaderStatus {
+		margin-left: 0;
+		margin-top: var(--sh-spacing-small);
+		border-left: none;
+		padding-left: 0;
+		width: 100%;
+	}
+}
+
+.sh-HeaderStatus-zone {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	column-gap: var(--sh-spacing-medium);
+	row-gap: 3px;
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sh-HeaderStatus-item {
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+	margin-bottom: 0;
+}
+
+/* Shared inner style for icon + text */
+.sh-HeaderStatus-item-inner {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--sh-color-gray-3);
+	text-decoration: none;
+}
+
+.sh-HeaderStatus-item-inner .dashicons {
+	font-size: 14px;
+	width: 14px;
+	height: 14px;
+	line-height: 14px;
+	color: #50575e;
+}
+
+/* Active link hover */
+a.sh-HeaderStatus-item-inner:hover {
+	color: #2271b1;
+}
+
+a.sh-HeaderStatus-item-inner:hover .dashicons {
+	color: #2271b1;
+}
+
+/* Inactive state — #767676 = 4.54:1 on white, WCAG AA compliant */
+.sh-HeaderStatus-item-inner--inactive {
+	color: #767676;
+}
+
+.sh-HeaderStatus-item-inner--inactive .dashicons {
+	color: #767676;
+}
+
+/* Focus outline on the whole item via :has */
+.sh-HeaderStatus-item:has(a.sh-HeaderStatus-item-inner:focus-visible) {
+	outline: 1px solid #2271b1;
+	outline-offset: 2px;
+	border-radius: 2px;
+}
+
+.sh-HeaderStatus-item a.sh-HeaderStatus-item-inner:focus-visible {
+	outline: none;
+	box-shadow: none;
 }
 
 .sh-NotificationBar {
@@ -1311,6 +1976,18 @@ so add some extra place then to make it look a bit less ugly.
 	font-size: var(--sh-font-size-small);
 	line-height: 1.4;
 	font-style: normal;
+}
+
+.sh-PremiumFeaturesPostbox-featuresList-item--more {
+	background-image: none;
+	color: var(--sh-color-black-2);
+}
+
+.sh-PremiumFeaturesPostbox-guarantee {
+	margin: 0.5rem 0 0;
+	text-align: center;
+	font-size: var(--sh-font-size-small);
+	color: var(--sh-color-black-2);
 }
 
 .sh-PremiumFeatureTeaser {
@@ -1723,6 +2400,93 @@ Can be overruled by .form-table td p
 	color: #999;
 }
 
+/* Failed login limit notice — compact flush bar matching dashboard style. */
+.sh-FailedLoginLimitNotice {
+	display: flex;
+	align-items: baseline;
+	gap: var(--sh-spacing-xsmall);
+	padding: 8px 12px 20px;
+	background: #f0f6fc;
+	border-bottom: 1px solid #c5d9ed;
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.sh-FailedLoginLimitNotice-icon {
+	flex-shrink: 0;
+	color: #72aee6;
+}
+
+.sh-FailedLoginLimitNotice-icon .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	position: relative;
+	top: 2px;
+}
+
+.sh-FailedLoginLimitNotice-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.sh-FailedLoginLimitNotice-heading {
+	margin: 0;
+	font-size: 13px;
+	color: #1d2327;
+}
+
+.sh-FailedLoginLimitNotice-details {
+	margin-top: var(--sh-spacing-xsmall);
+	font-size: 12px;
+	color: #646970;
+}
+
+.sh-FailedLoginLimitNotice-details summary {
+	cursor: pointer;
+	color: #646970;
+	font-size: 12px;
+}
+
+.sh-FailedLoginLimitNotice-details summary:hover {
+	color: #1d2327;
+}
+
+.sh-FailedLoginLimitNotice-details p {
+	margin: var(--sh-spacing-xsmall) 0 0;
+	line-height: 1.5;
+}
+
+/* Compact failed login throttle notice for dashboard widget. */
+.sh-DashboardWidget-throttleNotice {
+	display: flex;
+	align-items: baseline;
+	gap: var(--sh-spacing-xsmall);
+	padding: var(--sh-dashboard-padding-y) var(--sh-dashboard-padding-x);
+	background: #f0f6fc;
+	border-bottom: 1px solid #c5d9ed;
+	font-size: var(--sh-font-size-normal);
+	line-height: 1.5;
+}
+
+.sh-DashboardWidget-throttleNotice .dashicons {
+	font-size: 16px;
+	width: 16px;
+	height: 16px;
+	color: #72aee6;
+	position: relative;
+	top: 2px;
+}
+
+.sh-DashboardWidget-throttleNotice p {
+	margin: 0;
+}
+
+/* Notice in events log. */
+.sh-BackfilledNotice {
+	margin: var(--sh-spacing-medium);
+}
+
 /* Backfill Form */
 .sh-BackfillForm {
 	background: #fff;
@@ -2089,14 +2853,64 @@ a.sh-SettingsTabs-link:hover {
 } */
 
 /* Filters, moved from old filter-dropin.css */
-.SimpleHistory__filters {
-	/* hide by default while log is loading */
-	opacity: 0.5;
-	transition: all 0.25s ease-out;
+/* Compact search row: date dropdown, search input, button, links all inline. */
+.SimpleHistory-filters__searchRow {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 12px;
+	border-bottom: 1px solid #f0f0f1;
+	flex-wrap: wrap;
+	background-color: #f9f9f9;
 }
 
-.SimpleHistory--isLoaded .SimpleHistory__filters {
+.SimpleHistory-filters__defaultRow {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.SimpleHistory-filters__dateSelect {
+	width: auto;
+	min-width: 140px;
+	max-width: 180px;
+}
+
+/* Search InputControl. */
+.SimpleHistory-filters__searchControl {
+	width: 400px;
+	max-width: 100%;
+	line-height: 1;
+}
+
+.SimpleHistory-filters__searchShortcut {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+		Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+	font-size: 12px;
+	line-height: 1;
+	padding: 2px 6px;
+	border: 1px solid #c3c4c7;
+	border-radius: 3px;
+	color: #787c82;
+	background: #f6f7f7;
+	margin-right: 8px;
 	opacity: 1;
+	transition: opacity 0.15s ease;
+}
+
+/* Fade out shortcut hint when the input is focused. */
+.SimpleHistory-filters__searchControl:focus-within
+	.SimpleHistory-filters__searchShortcut {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Expanded filters area. */
+.SimpleHistory-filters__expandedFilters {
+	padding: 12px;
+	border-bottom: 1px solid #f0f0f1;
+	background-color: #f9f9f9;
 }
 
 .SimpleHistory__filters__form select {
@@ -2130,7 +2944,7 @@ a.sh-SettingsTabs-link:hover {
 	display: none;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 782px) {
 	.SimpleHistory__filters__filterLabel {
 		display: block;
 		width: auto;
@@ -2138,6 +2952,27 @@ a.sh-SettingsTabs-link:hover {
 
 	.SimpleHistory__filters__filterSubmitWrap {
 		margin-left: 0;
+	}
+
+	.SimpleHistory-filters__expandedFilters .components-flex {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.SimpleHistory-filters__searchRow {
+		flex-wrap: wrap;
+	}
+
+	.SimpleHistory-filters__defaultRow {
+		flex-wrap: wrap;
+	}
+
+	.SimpleHistory-filters__dateSelect {
+		min-width: 100%;
+	}
+
+	.SimpleHistory-filters__searchControl {
+		min-width: 100%;
 	}
 }
 
@@ -2184,8 +3019,26 @@ a.sh-SettingsTabs-link:hover {
 	margin-right: 10px;
 }
 
-.SimpleHistoryFilterDropin-showMoreFilters {
-	margin-left: 1rem;
+/* Filters toggle button with funnel icon. */
+.SimpleHistory-filters__filtersToggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+}
+
+.SimpleHistory-filters__filtersToggle svg {
+	fill: currentColor;
+}
+
+.SimpleHistory-filters__filtersToggle.has-active-filters {
+	background: #f0f6fc;
+	border-color: #2271b1;
+	color: #2271b1;
+}
+
+.SimpleHistoryFilterDropin-clearFilters {
+	margin-left: 0;
 }
 
 /* more filters are hidden by default */
@@ -2258,28 +3111,30 @@ a.sh-SettingsTabs-link:hover {
 	width: 200px;
 }
 
-/* Old styles moved from new-rows-notifier-dropin.css */
+/* New events notifier bar — compact flush strip, clickable. */
 .SimpleHistoryDropin__NewRowsNotifier {
 	max-height: 0;
 	overflow: hidden;
 	text-align: center;
-	background: rgba(0, 255, 30, 0.15);
-	/* Make room for divider label that will overlap otherwise. */
-	border-bottom: 30px;
-	transition:
-		max-height 0.5s ease-out,
-		background 0s;
+	background: #dceefb;
+	transition: max-height 0.5s ease-out;
 }
 
 .SimpleHistoryDropin__NewRowsNotifier--haveNewRows {
 	max-height: 50px;
 	cursor: pointer;
+	border-bottom: 1px solid #c5d9ed;
+}
+
+.SimpleHistoryDropin__NewRowsNotifier--haveNewRows:hover {
+	background: #cde3f7;
 }
 
 /* when there is a remote error or server down etc */
 .SimpleHistoryDropin__NewRowsNotifier--haveErrorCheck {
 	max-height: 50px;
-	background: rgb(254, 247, 241);
+	background: #fef7f1;
+	border-bottom-color: #e0c6ad;
 }
 
 .SimpleHistoryLogitem--newRowSinceReload {
@@ -2311,8 +3166,8 @@ a.sh-SettingsTabs-link:hover {
 .SimpleHistoryIpInfoDropin__ipInfoTable td {
 	vertical-align: top;
 	text-align: left;
-	padding: 5px 5px;
-	border-top: 1px solid #eee;
+	padding: var(--sh-spacing-xsmall) var(--sh-spacing-medium);
+	border-top: 1px solid var(--sh-color-separator);
 }
 
 .SimpleHistoryIpInfoDropin__ipInfoTable tr:first-of-type th,
@@ -2333,8 +3188,54 @@ a.sh-SettingsTabs-link:hover {
 }
 
 /* New styles for React */
+/* Stats bar: events today and last 7 days. */
+.sh-EventsStatsBar {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 8px 12px;
+	font-size: 13px;
+	color: #50575e;
+	border-bottom: 1px solid #f0f0f1;
+}
+
+.sh-EventsStatsBar > svg {
+	fill: #787c82;
+	flex-shrink: 0;
+}
+
+.sh-EventsStatsBar__separator {
+	margin: 0 0.4em;
+	color: #c3c4c7;
+}
+
+a.sh-EventsStatsBar--link {
+	text-decoration: none;
+	color: #50575e;
+	cursor: pointer;
+}
+
+a.sh-EventsStatsBar--link:hover {
+	background: #f6f7f7;
+}
+
+/* Events control bar: event count + actions. */
+.sh-EventsControlBar-actions {
+	padding: 6px 12px;
+	background-color: white;
+	white-space: nowrap;
+}
+
 .SimpleHistoryReactRoot {
 	flex: 1;
+}
+
+.SimpleHistoryReactRoot.is-page {
+	background: white;
+	border-radius: 8px;
+	overflow: hidden;
+	box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+	border: 1px solid #e0e0e0;
 }
 
 .SimpleHistoryReactRoot-loading {
@@ -3437,4 +4338,300 @@ Styles for plugin update details. Markup looks like this:
 /* Help page section title adjustment */
 .sh-HelpAndSupportPage > .sh-SettingsPage-settingsSection-title {
 	margin-bottom: 1rem;
+}
+
+/* Sidebar tip */
+.sh-SidebarTip {
+	padding: 0.75rem 1rem;
+}
+
+.sh-SidebarTip-text {
+	margin: 0;
+	font-size: var(--sh-font-size-medium);
+	line-height: 1.5;
+	color: var(--sh-color-black-2);
+}
+
+.sh-SidebarTip-icon {
+	margin-right: 0.25rem;
+}
+
+.sh-SidebarTip-label {
+	font-weight: 600;
+	color: var(--sh-color-black);
+}
+
+/* UserCard popover — shown on avatar/name click */
+.sh-UserCard__trigger.components-button.is-link {
+	text-decoration: none;
+	color: #2271b1;
+	cursor: pointer;
+}
+
+.sh-UserCard__trigger.components-button.is-link:hover {
+	text-decoration: underline;
+	color: #135e96;
+}
+
+.sh-UserCard__trigger.components-button.is-link:focus {
+	box-shadow: none;
+	outline: 1px dotted;
+	outline-offset: 1px;
+}
+
+.SimpleHistoryLogitem__firstcol
+	.sh-UserCard__trigger.components-button.is-link {
+	display: block;
+	padding: 0;
+	height: auto;
+}
+
+.sh-UserCard__popover .components-popover__content {
+	min-width: 320px;
+	overflow: visible;
+	max-height: none;
+}
+
+.sh-UserCard {
+	position: relative;
+	padding: var(--sh-spacing-medium);
+	padding-right: calc(var(--sh-spacing-medium) + 20px);
+}
+
+.sh-UserCard__close.components-button {
+	position: absolute;
+	top: var(--sh-spacing-xsmall);
+	right: var(--sh-spacing-xsmall);
+	z-index: 1;
+	min-width: 24px;
+	min-height: 24px;
+	padding: 2px;
+}
+
+.sh-UserCard__identity {
+	display: flex;
+	gap: var(--sh-spacing-medium);
+	align-items: flex-start;
+}
+
+.sh-UserCard__avatar {
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.sh-UserCard__avatar--placeholder {
+	background: var(--sh-color-gray-4);
+}
+
+.sh-UserCard__avatar--wp {
+	background: #0073aa;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+}
+
+.sh-UserCard__avatar--cli {
+	background: #23282d;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #fff;
+}
+
+.sh-UserCard__info {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.sh-UserCard__name {
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.3;
+	word-break: break-word;
+	margin: 0 0 2px 0;
+}
+
+.sh-UserCard__meta {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sh-UserCard__meta li {
+	font-size: 13px;
+	color: var(--sh-color-gray-3);
+	line-height: 1.5;
+	margin: 0;
+	padding: 0;
+}
+
+.sh-UserCard__userId {
+	font-size: 12px;
+	font-weight: 400;
+	color: var(--sh-color-gray-3, #757575);
+	margin-left: 6px;
+}
+
+.sh-UserCard__meta .sh-UserCard__detail {
+	margin-top: 4px;
+}
+
+.sh-UserCard__meta .sh-UserCard__detail + .sh-UserCard__detail {
+	margin-top: 0;
+}
+
+.sh-UserCard__description {
+	font-size: 13px;
+	color: var(--sh-color-gray-3);
+	line-height: 1.4;
+	margin: 0 0 4px 0;
+}
+
+.sh-UserCard__loading {
+	display: flex;
+	padding: 8px 0;
+	margin-left: calc(64px + var(--sh-spacing-medium));
+}
+
+.sh-UserCard__loading .components-spinner {
+	margin: 0;
+}
+
+.sh-UserCard__actions {
+	margin-top: var(--sh-spacing-small);
+	padding-top: var(--sh-spacing-small);
+	border-top: 1px solid var(--sh-color-gray-4);
+}
+
+.sh-UserCard__stats {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 2px var(--sh-spacing-medium);
+	margin-top: var(--sh-spacing-small);
+	padding-top: var(--sh-spacing-small);
+	border-top: 1px solid var(--sh-color-gray-4);
+	color: var(--sh-color-gray-3, #757575);
+}
+
+.sh-UserCard__statsHeading {
+	width: 100%;
+	margin: 0;
+	font-size: 11px;
+	font-weight: 500;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	color: var(--sh-color-gray-3, #757575);
+}
+
+.sh-UserCard__stat {
+	display: flex;
+	flex-direction: column;
+}
+
+.sh-UserCard__statValue {
+	font-weight: 600;
+	font-size: var(--sh-font-size-medium);
+	color: var(--sh-color-gray-1, #1e1e1e);
+}
+
+.sh-UserCard__statLabel {
+	font-size: var(--sh-font-size-small);
+}
+
+.sh-UserCard__actions ul {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sh-UserCard__actions li {
+	margin: 0;
+	padding: 0;
+}
+
+.sh-UserCard__actionLink {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sh-spacing-xsmall);
+	font-size: 13px;
+	line-height: 1.6;
+	text-decoration: none;
+}
+
+.sh-UserCard__actionLink:hover {
+	text-decoration: underline;
+}
+
+.sh-UserCard__actionLink svg {
+	fill: currentColor;
+	flex-shrink: 0;
+}
+
+.sh-UserCard__premiumTeaser {
+	margin-top: var(--sh-spacing-small);
+	font-size: var(--sh-font-size-small);
+	color: var(--sh-color-gray-3);
+	line-height: 1.4;
+}
+
+.sh-UserCard__premiumTeaser--blurred {
+	background: var(--sh-color-cream);
+	border-radius: var(--sh-border-radius, 4px);
+	padding: var(--sh-spacing-small);
+}
+
+/* Option A: Blurred preview. */
+.sh-UserCard__blurredPreview {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+	position: relative;
+}
+
+.sh-UserCard__blurredPreview:hover {
+	text-decoration: none;
+}
+
+.sh-UserCard__blurredPreview .sh-UserCard__meta {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.sh-UserCard__detail--blurred {
+	color: var(--sh-color-gray-3);
+}
+
+.sh-UserCard__blurredValue {
+	filter: blur(4px);
+	user-select: none;
+	margin-left: 4px;
+}
+
+.sh-UserCard__blurredAction {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-top: 8px;
+	color: #2271b1;
+}
+
+.sh-UserCard__premiumBadge {
+	display: inline-block;
+	margin-top: 8px;
+	padding: 2px 7px;
+	background: #f0f0f0;
+	color: #595959;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: 400;
+}
+
+.sh-UserCard__blurredPreview:hover .sh-UserCard__premiumBadge {
+	color: var(--sh-color-blue, #2271b1);
 }

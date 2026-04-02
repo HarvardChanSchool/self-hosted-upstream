@@ -9,6 +9,7 @@ use WP_REST_Server;
 use Simple_History\Event;
 use Simple_History\Helpers;
 use Simple_History\Log_Initiators;
+use Simple_History\Services;
 
 /**
  * REST API controller for events.
@@ -141,6 +142,19 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			],
 		);
 
+		// GET /wp-json/simple-history/v1/backfill-status.
+		register_rest_route(
+			$this->namespace,
+			'/backfill-status',
+			[
+				[
+					'methods'             => \WP_REST_Server::READABLE,
+					'callback'            => [ $this, 'get_backfill_status' ],
+					'permission_callback' => [ $this, 'get_items_permissions_check' ],
+				],
+			],
+		);
+
 		// POST /wp-json/simple-history/v1/events/<event-id>/unstick.
 		register_rest_route(
 			$this->namespace,
@@ -222,7 +236,8 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 	protected function get_single_event( $event_id ) {
 		$query_result = ( new Log_Query() )->query(
 			[
-				'post__in' => [ $event_id ],
+				'post__in'  => [ $event_id ],
+				'ungrouped' => true,
 			]
 		);
 
@@ -372,6 +387,12 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			),
 		);
 
+		$query_params['skip_count_query'] = array(
+			'description' => __( 'Skip the total count query for faster results when pagination info is not needed.', 'simple-history' ),
+			'type'        => 'boolean',
+			'default'     => false,
+		);
+
 		// lastdays = int with number of days back to show the history.
 		$query_params['lastdays'] = array(
 			'description' => __( 'Limit result set to rows with date within this range.', 'simple-history' ),
@@ -455,12 +476,27 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'sanitize_callback' => array( $this, 'sanitize_initiator_param' ),
 		);
 
+		$query_params['ip_address'] = array(
+			'description'       => __( 'Limit result set to events from a specific IP address. Supports anonymized IPs with ".x" suffix.', 'simple-history' ),
+			'type'              => 'string',
+			'validate_callback' => static function ( $value ) {
+				return Helpers::is_valid_ip_address_filter( $value );
+			},
+			'sanitize_callback' => 'sanitize_text_field',
+		);
+
 		$query_params['context_filters'] = array(
 			'description'          => __( 'Context filters as key-value pairs to filter events by context data.', 'simple-history' ),
 			'type'                 => 'object',
 			'additionalProperties' => array(
 				'type' => 'string',
 			),
+		);
+
+		$query_params['metadata_search'] = array(
+			'description'       => __( 'Plain text search across all event metadata (context values). Slower than the main search but covers IP addresses, emails, and other internal data.', 'simple-history' ),
+			'type'              => 'string',
+			'sanitize_callback' => 'sanitize_text_field',
 		);
 
 		$query_params['ungrouped'] = array(
@@ -655,6 +691,25 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 					'description' => __( 'Whether the event was backfilled from existing WordPress data.', 'simple-history' ),
 					'type'        => 'boolean',
 				),
+				'action_links'               => array(
+					'description' => __( 'Structured action links for the event.', 'simple-history' ),
+					'type'        => 'array',
+					'items'       => array(
+						'type'       => 'object',
+						'properties' => array(
+							'url'    => array(
+								'type'   => 'string',
+								'format' => 'uri',
+							),
+							'label'  => array(
+								'type' => 'string',
+							),
+							'action' => array(
+								'type' => 'string',
+							),
+						),
+					),
+				),
 			),
 		);
 
@@ -698,7 +753,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 	 * Takes the same args as get_items() but `since_id` param is required.
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function get_has_updates( $request ) {
 		// Retrieve the list of registered collection query parameters.
@@ -736,8 +791,11 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'users'                   => 'users',
 			'user'                    => 'user',
 			'initiator'               => 'initiator',
+			'ip_address'              => 'ip_address',
 			'context_filters'         => 'context_filters',
+			'metadata_search'         => 'metadata_search',
 			'ungrouped'               => 'ungrouped',
+			'skip_count_query'        => 'skip_count_query',
 		);
 
 		/*
@@ -751,6 +809,9 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 
 			$args[ $wp_param ] = $request[ $api_param ];
 		}
+
+		// Force ungrouped for accurate count — grouping is irrelevant for "has updates" check.
+		$args['ungrouped'] = true;
 
 		$log_query    = new Log_Query();
 		$query_result = $log_query->query( $args );
@@ -770,7 +831,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 	 * Get items.
 	 *
 	 * @param \WP_REST_Request $request Request object.
-	 * @return \WP_REST_Response Response object.
+	 * @return \WP_REST_Response|\WP_Error Response object or error.
 	 */
 	public function get_items( $request ) {
 		// Tmp slow requests to test slow response.
@@ -821,8 +882,11 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'include_sticky'          => 'include_sticky',
 			'only_sticky'             => 'only_sticky',
 			'initiator'               => 'initiator',
+			'ip_address'              => 'ip_address',
 			'context_filters'         => 'context_filters',
+			'metadata_search'         => 'metadata_search',
 			'ungrouped'               => 'ungrouped',
+			'skip_count_query'        => 'skip_count_query',
 			// Surrounding events parameters.
 			'surrounding_event_id'    => 'surrounding_event_id',
 			'surrounding_count'       => 'surrounding_count',
@@ -1083,6 +1147,10 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			);
 		}
 
+		if ( rest_is_field_included( 'action_links', $fields ) ) {
+			$data['action_links'] = $this->simple_history->get_action_links( $item );
+		}
+
 		// Wrap the data in a response object.
 		return rest_ensure_response( $data );
 	}
@@ -1316,6 +1384,61 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			return array_map( 'sanitize_text_field', $value );
 		}
 
-		return $value;
+		return (string) $value;
+	}
+
+	/**
+	 * Returns the auto-backfill status including per-type available and imported counts.
+	 *
+	 * @return \WP_REST_Response
+	 */
+	public function get_backfill_status() {
+		$status = Services\Auto_Backfill_Service::get_status();
+
+		if ( ! $status ) {
+			return rest_ensure_response(
+				[
+					'completed'  => false,
+					'type_stats' => [],
+				]
+			);
+		}
+
+		$type_stats = $status['type_stats'] ?? [];
+
+		// Add pre-formatted localized labels (e.g. "247 more posts", "1 more page")
+		// so the frontend can display them without manual pluralization.
+		foreach ( $type_stats as $type => &$stats ) {
+			$missed = $stats['available'] - $stats['imported'];
+
+			if ( $type === 'user' ) {
+				$stats['missed_label'] = sprintf(
+					/* translators: %s: Number of users */
+					_n( '%s more user', '%s more users', $missed, 'simple-history' ),
+					number_format_i18n( $missed )
+				);
+			} else {
+				$post_type_obj = get_post_type_object( $type );
+
+				if ( $post_type_obj ) {
+					$stats['missed_label'] = sprintf(
+						/* translators: 1: Number of items, 2: Post type label (singular or plural) */
+						__( '%1$s more %2$s', 'simple-history' ),
+						number_format_i18n( $missed ),
+						$missed === 1 ? $post_type_obj->labels->singular_name : $post_type_obj->labels->name
+					);
+				} else {
+					$stats['missed_label'] = number_format_i18n( $missed ) . ' more ' . $type;
+				}
+			}
+		}
+		unset( $stats );
+
+		return rest_ensure_response(
+			[
+				'completed'  => (bool) ( $status['completed'] ?? false ),
+				'type_stats' => $type_stats,
+			]
+		);
 	}
 }

@@ -11,7 +11,7 @@ defined( 'ABSPATH' ) || exit;
  * @param bool $show_upsell Whether to show the upsell.
  * @return bool Whether to show the upsell.
  */
-$show_upsell = apply_filters( 'simple_history/email_summary_report/show_upsell', false );
+$show_upsell = apply_filters( 'simple_history/email_summary_report/show_upsell', \Simple_History\Helpers::show_promo_boxes() );
 
 /**
  * Filter to show the main core stats.
@@ -51,6 +51,8 @@ $args = wp_parse_args(
 		'posts_updated'          => 0,
 		'notes_added'            => 0,
 		'notes_resolved'         => 0,
+		'users_created'          => 0,
+		'users_updated'          => 0,
 		'plugin_activations'     => 0,
 		'plugin_deactivations'   => 0,
 		'wordpress_updates'      => 0,
@@ -58,6 +60,63 @@ $args = wp_parse_args(
 		'settings_url'           => '',
 	]
 );
+
+// Determine which inline teaser to show (first match wins, only for free users).
+$inline_teaser_section = '';
+$inline_teaser_text    = '';
+$premium_url           = 'https://simple-history.com/add-ons/premium/?utm_source=wpadmin&utm_medium=email&utm_campaign=weekly-report&utm_content=inline-teaser';
+
+if ( $show_upsell ) {
+	if ( $args['failed_logins'] > 0 ) {
+		$inline_teaser_section = 'users';
+		$inline_teaser_text    = __( 'With Premium, this email shows the IP addresses and usernames behind every failed attempt.', 'simple-history' );
+	} elseif ( $args['plugin_activations'] > 0 ) {
+		$inline_teaser_section = 'plugins';
+		$inline_teaser_text    = __( 'With Premium, this email names each plugin and the person who changed it.', 'simple-history' );
+		// Only show posts teaser when activity is notable — low counts don't create curiosity.
+	} elseif ( $args['posts_created'] + $args['posts_updated'] > 3 ) {
+		$inline_teaser_section = 'posts';
+		$inline_teaser_text    = __( 'With Premium, this email shows who edited which posts and when.', 'simple-history' );
+	} elseif ( $args['users_created'] > 0 ) {
+		$inline_teaser_section = 'users';
+		$inline_teaser_text    = __( 'With Premium, this email includes the username and role of every new account.', 'simple-history' );
+	} else {
+		$inline_teaser_section = 'fallback';
+		$inline_teaser_text    = __( 'Premium also adds real-time alerts for critical events — so you don\'t have to wait for the weekly digest.', 'simple-history' );
+	}
+
+	/**
+	 * Filter the inline teaser section and text.
+	 * Premium can set section to empty string to disable inline teasers.
+	 *
+	 * @param string $inline_teaser_section The section to show the teaser in (users, plugins, posts, fallback).
+	 * @param string $inline_teaser_text The teaser text.
+	 * @param array  $args The email template args.
+	 */
+	$inline_teaser_section = apply_filters( 'simple_history/email_summary_report/inline_teaser_section', $inline_teaser_section, $inline_teaser_text, $args );
+	$inline_teaser_text    = apply_filters( 'simple_history/email_summary_report/inline_teaser_text', $inline_teaser_text, $inline_teaser_section, $args );
+}
+
+/**
+ * Render an inline teaser if the current section matches.
+ *
+ * @param string $section The current section name.
+ * @param string $active_section The section that should show the teaser.
+ * @param string $text The teaser text.
+ * @param string $url The premium URL.
+ */
+$render_inline_teaser = function ( $section, $active_section, $text, $url ) {
+	if ( $section !== $active_section || empty( $text ) ) {
+		return;
+	}
+	$learn_more = __( 'See what\'s included', 'simple-history' );
+	?>
+	<p style="margin: 15px 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 13px; line-height: 20px; color: #666666; text-align: left;">
+		<?php echo esc_html( $text ); ?>
+		<a href="<?php echo esc_url( $url ); ?>" style="color: #0040FF; text-decoration: underline;"><?php echo esc_html( $learn_more ); ?></a>
+	</p>
+	<?php
+};
 
 ?>
 
@@ -148,12 +207,38 @@ $args = wp_parse_args(
 		<!-- Email Container -->
 		<table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="500" style="margin: auto;" class="email-container">
 			
-			<!-- Logo on Background -->
+			<!-- Logo -->
 			<tr>
 				<td style="padding: 40px 0 20px; text-align: left;">
-					<img src="https://simple-history.com/wp/wp-content/uploads/2023/09/SH_logo_NEW-768x156.png" 
-						width="200" height="41" alt="<?php echo esc_attr( __( 'Simple History', 'simple-history' ) ); ?>" 
-						border="0" style="height: auto; font-family: sans-serif; font-size: 15px; line-height: 15px; color: #333333; display: block;">
+					<table role="presentation" cellspacing="0" cellpadding="0" border="0">
+						<tr>
+							<td style="vertical-align: middle;">
+								<a href="https://simple-history.com/?utm_source=wpadmin&amp;utm_medium=email&amp;utm_campaign=weekly-report" style="text-decoration: none;">
+									<img src="<?php echo esc_url( SIMPLE_HISTORY_DIR_URL . 'css/simple-history-logo.png' ); ?>"
+										width="200" height="41" alt="<?php echo esc_attr( __( 'Simple History', 'simple-history' ) ); ?>"
+										border="0" style="height: auto; font-family: sans-serif; font-size: 15px; line-height: 15px; color: #333333; display: block;">
+								</a>
+							</td>
+							<?php
+							/**
+							 * Filter to add content after the logo, e.g. a "Premium" badge.
+							 *
+							 * @param string $content HTML content to display after the logo.
+							 */
+							$logo_after_content = apply_filters( 'simple_history/email_summary_report/logo_after', '' );
+							if ( ! empty( $logo_after_content ) ) {
+								?>
+								<td style="vertical-align: middle; padding-left: 10px;">
+									<?php
+									// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from filter, premium is responsible for escaping.
+									echo $logo_after_content;
+									?>
+								</td>
+								<?php
+							}
+							?>
+						</tr>
+					</table>
 				</td>
 			</tr>
 			
@@ -320,7 +405,7 @@ $args = wp_parse_args(
 											$args['history_admin_url']
 										);
 										?>
-										<td style="width: 14.28%; vertical-align: top; text-align: center;<?php echo $day_index < $total_days - 1 ? ' padding-right: 8px;' : ''; ?>" title="<?php echo esc_attr( $day_data['full_date'] ); ?>">
+										<td style="<?php echo esc_attr( 'width: 14.28%; vertical-align: top; text-align: center;' . ( $day_index < $total_days - 1 ? ' padding-right: 8px;' : '' ) ); ?>" title="<?php echo esc_attr( $day_data['full_date'] ); ?>">
 											<a href="<?php echo esc_url( $day_url ); ?>" style="color: #0040FF; text-decoration: none; display: block;">
 												<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 12px; color: #000000; text-align: center; font-weight: 500;">
 													<?php echo esc_html( substr( $day_data['name'], 0, 3 ) ); ?>
@@ -364,6 +449,11 @@ $args = wp_parse_args(
 									</td>
 								</tr>
 							</table>
+							<?php
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from filter, premium is responsible for escaping.
+							echo apply_filters( 'simple_history/email_summary_report/section_content/posts', '', $args );
+							$render_inline_teaser( 'posts', $inline_teaser_section, $inline_teaser_text, $premium_url );
+							?>
 						</div>
 						<?php
 						// Notes Section - only show on WordPress 6.9+ where Notes feature exists.
@@ -396,6 +486,11 @@ $args = wp_parse_args(
 										</td>
 									</tr>
 								</table>
+							<?php
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from filter, premium is responsible for escaping.
+							echo apply_filters( 'simple_history/email_summary_report/section_content/notes', '', $args );
+							$render_inline_teaser( 'notes', $inline_teaser_section, $inline_teaser_text, $premium_url );
+							?>
 							</div>
 							<?php
 						}
@@ -425,11 +520,32 @@ $args = wp_parse_args(
 										</div>
 									</td>
 								</tr>
+								<tr>
+									<td style="width: 50%; vertical-align: top; padding-right: 15px; padding-top: 15px;">
+										<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #000000; text-align: left; font-weight: 500; margin-bottom: 5px;">
+											<?php echo esc_html( __( 'Users created', 'simple-history' ) ); ?>
+										</div>
+										<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 24px; line-height: 28px; color: #000000; font-weight: 700; text-align: left;">
+											<?php echo esc_html( number_format_i18n( $args['users_created'] ) ); ?>
+										</div>
+									</td>
+									<td style="width: 50%; vertical-align: top; padding-left: 15px; padding-top: 15px;">
+										<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 14px; color: #000000; text-align: left; font-weight: 500; margin-bottom: 5px;">
+											<?php echo esc_html( __( 'Profile updates', 'simple-history' ) ); ?>
+										</div>
+										<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 24px; line-height: 28px; color: #000000; font-weight: 700; text-align: left;">
+											<?php echo esc_html( number_format_i18n( $args['users_updated'] ) ); ?>
+										</div>
+									</td>
+								</tr>
 							</table>
+							<?php
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from filter, premium is responsible for escaping.
+							echo apply_filters( 'simple_history/email_summary_report/section_content/users', '', $args );
+							$render_inline_teaser( 'users', $inline_teaser_section, $inline_teaser_text, $premium_url );
+							?>
 						</div>
-						
 
-						
 						<!-- Plugins Section -->
 						<div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 2px solid #000000;">
 							<h2 style="margin: 0 0 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600; text-align: left;">
@@ -456,8 +572,13 @@ $args = wp_parse_args(
 									</td>
 								</tr>
 							</table>
+							<?php
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from filter, premium is responsible for escaping.
+							echo apply_filters( 'simple_history/email_summary_report/section_content/plugins', '', $args );
+							$render_inline_teaser( 'plugins', $inline_teaser_section, $inline_teaser_text, $premium_url );
+							?>
 						</div>
-						
+
 						<!-- WordPress Section -->
 						<div style="margin-bottom: 30px; padding-bottom: 30px; border-bottom: 2px solid #000000;">
 							<h2 style="margin: 0 0 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600; text-align: left;">
@@ -469,9 +590,14 @@ $args = wp_parse_args(
 							<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 36px; line-height: 42px; color: #000000; font-weight: 700; text-align: left;">
 								<?php echo esc_html( number_format_i18n( $args['wordpress_updates'] ) ); ?>
 							</div>
+							<?php
+							// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- HTML from filter, premium is responsible for escaping.
+							echo apply_filters( 'simple_history/email_summary_report/section_content/wordpress', '', $args );
+							?>
 						</div>
 
 						<?php
+						$render_inline_teaser( 'fallback', $inline_teaser_section, $inline_teaser_text, $premium_url );
 					}
 					?>
 					</div>
@@ -494,17 +620,17 @@ $args = wp_parse_args(
 					<?php
 					if ( $show_upsell ) {
 						?>
-						<div style="text-align: center; margin: 60px 0 25px; padding: 25px; background: linear-gradient(135deg, #FFE4EC 0%, #B4EDE2 100%); border-radius: 8px; border: 1px solid #B4EDE2;">
-							<h2 style="margin: 0 0 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600;">
-								<?php echo esc_html( __( 'Want More Insights?', 'simple-history' ) ); ?>
+						<div style="margin: 40px 0 25px; padding: 25px; background: linear-gradient(135deg, #FFE4EC 0%, #B4EDE2 100%); border-radius: 8px; border: 1px solid #B4EDE2;">
+							<h2 style="margin: 0 0 10px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 20px; line-height: 26px; color: #000000; font-weight: 600; text-align: left;">
+								<?php echo esc_html( __( 'Get more from your activity log', 'simple-history' ) ); ?>
 							</h2>
-							<p style="margin: 0 0 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 18px; line-height: 22px; color: #000000;">
-								<?php echo esc_html( __( 'Simple History Premium includes detailed activity breakdowns, user insights, security monitoring, and weekly trends.', 'simple-history' ) ); ?>
+							<p style="margin: 0 0 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 16px; line-height: 24px; color: #000000; text-align: left;">
+								<?php echo esc_html( __( 'Free logs expire after 60 days. Premium lets you keep them longer — and adds real-time alerts, Slack notifications, CSV export, and log forwarding to syslog or external databases.', 'simple-history' ) ); ?>
 							</p>
-							
-							<p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 18px; line-height: 22px; color: #000000;">
-								<a href="https://simple-history.com/add-ons/premium/" style="color: #0040FF; text-decoration: underline; font-weight: 500;">
-									<?php echo esc_html( __( 'Learn More About Premium', 'simple-history' ) ); ?>
+
+							<p style="margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; font-size: 16px; line-height: 24px; text-align: left;">
+								<a href="https://simple-history.com/add-ons/premium/?utm_source=wpadmin&amp;utm_medium=email&amp;utm_campaign=weekly-report&amp;utm_content=upsell-block" style="color: #0040FF; text-decoration: underline; font-weight: 600;">
+									<?php echo esc_html( __( 'See what Premium includes', 'simple-history' ) ); ?>
 								</a>
 							</p>
 						</div>

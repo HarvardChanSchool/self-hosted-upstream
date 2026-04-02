@@ -54,8 +54,8 @@ class Sidebar_Email_Promo_Dropin extends Dropin {
 	 * Called when dropin is loaded.
 	 */
 	public function loaded() {
-		// Priority 3 to show after Black Week sale (priority 1) but before stats (priority 5).
-		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html' ], 3 );
+		// Priority 20 to show after Black Week sale (10) but before insights (30).
+		add_action( 'simple_history/dropin/sidebar/sidebar_html', [ $this, 'on_sidebar_html' ], 20 );
 		add_action( 'simple_history/enqueue_admin_scripts', [ $this, 'enqueue_scripts' ] );
 		add_action( 'wp_ajax_' . self::AJAX_ACTION, [ $this, 'ajax_dismiss_promo' ] );
 	}
@@ -118,8 +118,14 @@ class Sidebar_Email_Promo_Dropin extends Dropin {
 			return;
 		}
 
-		// Settings page URL with anchor to email report settings section.
-		$settings_url = Helpers::get_settings_page_url() . '#simple_history_email_report_section';
+		// Settings page URL pointing to the Email Reports tab.
+		$settings_url = add_query_arg(
+			[
+				'selected-tab'     => 'general_settings_subtab_general',
+				'selected-sub-tab' => 'general_settings_subtab_email_reports',
+			],
+			Helpers::get_settings_page_url()
+		);
 
 		?>
 		<div class="postbox sh-EmailPromoCard sh-PremiumFeaturesPostbox" id="simple-history-email-promo-card" style="--box-bg-color: var(--sh-color-cream);">

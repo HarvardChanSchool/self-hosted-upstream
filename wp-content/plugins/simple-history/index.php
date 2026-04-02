@@ -4,7 +4,7 @@
  * Plugin URI: https://simple-history.com
  * Text Domain: simple-history
  * Description: Plugin that logs various things that occur in WordPress and then presents those events in a very nice GUI.
- * Version: 5.23.1
+ * Version: 5.25.0
  * Requires at least: 6.3
  * Requires PHP: 7.4
  * Author: Pär Thernström
@@ -49,7 +49,7 @@ if (
  * @TODO: make activation multi site aware, as in https://github.com/scribu/wp-proper-network-activation
  * register_activation_hook( trailingslashit(WP_PLUGIN_DIR) . trailingslashit( plugin_basename(__DIR__) ) . "index.php" , array("SimpleHistory", "on_plugin_activate" ) );
  */
-define( 'SIMPLE_HISTORY_VERSION', '5.23.1' );
+define( 'SIMPLE_HISTORY_VERSION', '5.25.0' );
 
 /**
  * Filesystem path to plugin directory.
@@ -77,6 +77,12 @@ define( 'SIMPLE_HISTORY_LICENCES_API_URL', 'https://simple-history.com/wp-json/l
 /** Load required files. */
 require_once __DIR__ . '/inc/class-autoloader.php';
 require_once __DIR__ . '/inc/global-helpers.php';
+
+// Load Strauss autoloader for namespaced vendor dependencies.
+$sh_strauss_autoloader = __DIR__ . '/vendor-prefixed/autoload.php';
+if ( file_exists( $sh_strauss_autoloader ) ) {
+	require_once $sh_strauss_autoloader; // phpcs:ignore WordPressVIPMinimum.Files.IncludingFile.UsingVariable
+}
 
 /** Boot up. */
 $sh_loader = new Simple_History\Autoloader();
