@@ -4,7 +4,7 @@
  * Plugin Name: Disable Comments
  * Plugin URI: https://wordpress.org/plugins/disable-comments/
  * Description: Allows administrators to globally disable comments on their site. Comments can be disabled according to post type. You could bulk delete comments using Tools.
- * Version: 2.6.2
+ * Version: 2.7.0
  * Author: WPDeveloper
  * Author URI: https://wpdeveloper.com
  * License: GPL-3.0+
@@ -38,7 +38,7 @@ class Disable_Comments {
 	}
 
 	function __construct() {
-		define('DC_VERSION', '2.6.2');
+		define('DC_VERSION', '2.7.0');
 		define('DC_PLUGIN_SLUG', 'disable_comments_settings');
 		define('DC_PLUGIN_ROOT_PATH', dirname(__FILE__));
 		define('DC_PLUGIN_VIEWS_PATH', DC_PLUGIN_ROOT_PATH . '/views/');
@@ -61,13 +61,18 @@ class Disable_Comments {
 
 		$this->sitewide_settings = get_site_option('disable_comments_sitewide_settings', false);
 		// Load options.
-		if ($this->networkactive && ($this->is_network_admin() || $this->sitewide_settings !== '1')) {
+		// Uses is_network_admin_ajax_context() (routing hint, not capability
+		// check) because current_user_can() is unavailable during plugin
+		// construction — pluggable.php hasn't loaded yet. This only controls
+		// which options table is READ (site vs blog) — writes are always
+		// gated by capability checks in the AJAX handlers and settings_page().
+		if ($this->networkactive && ($this->is_network_admin_ajax_context() || $this->sitewide_settings !== '1')) {
 			$this->options = get_site_option('disable_comments_options', array());
 			$this->options['disabled_sites'] = $this->get_disabled_sites();
 
 			$blog_id = get_current_blog_id();
 			if (
-				!$this->is_network_admin() && (
+				!$this->is_network_admin_ajax_context() && (
 					empty($this->options['disabled_sites']) ||
 					// if site disabled
 					empty($this->options['disabled_sites']["site_$blog_id"])
@@ -115,13 +120,45 @@ class Disable_Comments {
 		add_filter('debug_information', array($this, 'add_site_health_info'));
 	}
 
-	public function is_network_admin() {
-		$sanitized_referer = isset($_SERVER['HTTP_REFERER']) ? sanitize_text_field(wp_unslash($_SERVER['HTTP_REFERER'])) : '';
-		if (is_network_admin() || !empty($sanitized_referer) && defined('DOING_AJAX') && DOING_AJAX && is_multisite() && preg_match('#^' . network_admin_url() . '#i', $sanitized_referer)) {
+	/**
+	 * Routing hint: is this request from the network-admin screen?
+	 *
+	 * During AJAX, WP's is_network_admin() is always false, so the JS
+	 * appends ?is_network_admin=1 to ajaxurl (value set server-side in
+	 * admin_enqueue_scripts via is_network_admin()). The GET param is
+	 * client-supplied and therefore forgeable — never use this method
+	 * alone for authorization. Always pair with can_network_admin_ajax_context()
+	 * or an explicit current_user_can() check.
+	 */
+	private function is_network_admin_ajax_context() {
+		if (!$this->networkactive) {
+			return false;
+		}
+		if (is_network_admin()) {
 			return true;
+		}
+		if (defined('DOING_AJAX') && DOING_AJAX && is_multisite() && isset($_GET['is_network_admin'])) {
+			$param = sanitize_text_field(wp_unslash($_GET['is_network_admin']));
+			return $param === '1';
 		}
 		return false;
 	}
+
+	/**
+	 * Capability-gated network-admin context check.
+	 *
+	 * Returns true only when the request appears to come from the
+	 * network-admin screen AND the current user holds
+	 * manage_network_plugins. Safe for authorization decisions.
+	 */
+	private function can_network_admin_ajax_context() {
+		if ($this->is_network_admin_ajax_context() && current_user_can('manage_network_plugins')) {
+			return true;
+		}
+
+		return false;
+	}
+
 	/**
 	 * Enable CLI
 	 * @since 2.0.0
@@ -181,9 +218,6 @@ class Disable_Comments {
 	private function check_db_upgrades() {
 		$old_ver = isset($this->options['db_version']) ? $this->options['db_version'] : 0;
 		if ($old_ver < self::DB_VERSION) {
-			if ($this->networkactive) {
-				$this->options['is_network_admin'] = true;
-			}
 			if ($old_ver < 2) {
 				// upgrade options from version 0.2.1 or earlier to 0.3.
 				$this->options['disabled_post_types'] = get_option('disable_comments_post_types', array());
@@ -223,7 +257,7 @@ class Disable_Comments {
 			}
 
 			$this->options['db_version'] = self::DB_VERSION;
-			$this->update_options();
+			$this->update_options($this->networkactive);
 		}
 	}
 
@@ -239,9 +273,8 @@ class Disable_Comments {
 		}
 	}
 
-	private function update_options() {
-		if ($this->networkactive && !empty($this->options['is_network_admin']) && $this->options['is_network_admin']) {
-			unset($this->options['is_network_admin']);
+	private function update_options($is_network_ctx = false) {
+		if ($this->networkactive && $is_network_ctx) {
 			update_site_option('disable_comments_options', $this->options);
 		} else {
 			update_option('disable_comments_options', $this->options);
@@ -793,10 +826,11 @@ class Disable_Comments {
 				'disable-comments-scripts',
 				'disableCommentsObj',
 				array(
-					'save_action' => 'disable_comments_save_settings',
-					'delete_action' => 'disable_comments_delete_comments',
-					'settings_URI' => $this->settings_page_url(),
-					'_nonce' => wp_create_nonce('disable_comments_save_settings')
+					'save_action'      => 'disable_comments_save_settings',
+					'delete_action'    => 'disable_comments_delete_comments',
+					'settings_URI'     => $this->settings_page_url(),
+					'_nonce'           => wp_create_nonce('disable_comments_save_settings'),
+					'is_network_admin' => is_network_admin() ? '1' : '0',
 				)
 			);
 			wp_set_script_translations('disable-comments-scripts', 'disable-comments');
@@ -1119,7 +1153,7 @@ class Disable_Comments {
 		foreach ($editable_roles as $role => $details) {
 			$roles[] = [
 				"id" => esc_attr($role),
-				"text" => translate_user_role($details['name']),
+				"text" => esc_html(translate_user_role($details['name'])),
 				"selected" => in_array($role, (array) $selected),
 			];
 		}
@@ -1131,11 +1165,15 @@ class Disable_Comments {
 	}
 
 	public function settings_page() {
-		// if( isset( $_GET['cancel'] ) && trim( $_GET['cancel'] ) === 'setup' ){
-		// 	$this->update_option('dc_setup_screen_seen', true);
-		// }
+		// Belt-and-suspenders: add_submenu_page already gates on capability,
+		// but verify here too so a direct URL request can never render the page.
+		$required_cap = $this->networkactive && is_network_admin() ? 'manage_network_plugins' : 'manage_options';
+		if (!current_user_can($required_cap)) {
+			wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'disable-comments'), 403);
+		}
+
 		$avatar_status = '-1';
-		if ($this->is_network_admin()) {
+		if ($this->can_network_admin_ajax_context()) {
 			$show_avatars = [];
 			$sites = get_sites([
 				'number' => 0,
@@ -1159,6 +1197,14 @@ class Disable_Comments {
 	public function get_sub_sites() {
 		$nonce = (isset($_REQUEST['nonce']) ? sanitize_text_field(wp_unslash($_REQUEST['nonce'])) : '');
 		if (!wp_verify_nonce($nonce, 'disable_comments_save_settings')) {
+			wp_send_json(['data' => [], 'totalNumber' => 0]);
+		}
+		// Listing subsites is always a network-level operation on multisite —
+		// require manage_network_plugins regardless of how the plugin is activated
+		// (network-wide or per-site). A per-site admin must never enumerate all
+		// network sites. On single-site installs manage_options suffices.
+		$required_cap = is_multisite() ? 'manage_network_plugins' : 'manage_options';
+		if (!current_user_can($required_cap)) {
 			wp_send_json(['data' => [], 'totalNumber' => 0]);
 		}
 
@@ -1217,6 +1263,24 @@ class Disable_Comments {
 	public function disable_comments_settings($_args = array()) {
 		$nonce = (isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '');
 		if (($this->is_CLI && !empty($_args)) || wp_verify_nonce($nonce, 'disable_comments_save_settings')) {
+			// Resolve context ONCE — used for both cap check and save routing.
+			$is_network_ctx = $this->is_network_admin_ajax_context();
+
+			if (!$this->is_CLI) {
+				if ($is_network_ctx) {
+					// Network admin context → must be super admin.
+					$required_cap = 'manage_network_plugins';
+				} elseif ($this->networkactive && $this->sitewide_settings === '1') {
+					// Sitewide lock is on → only super admin may write.
+					$required_cap = 'manage_network_plugins';
+				} else {
+					// Subsite or single-site → manage_options suffices.
+					$required_cap = 'manage_options';
+				}
+				if (!current_user_can($required_cap)) {
+					wp_send_json_error(['message' => 'Insufficient permissions.'], 403);
+				}
+			}
 
 			$formArray = $this->get_form_array_escaped($_args);
 
@@ -1226,20 +1290,18 @@ class Disable_Comments {
 				$this->options = $old_options;
 			}
 
-			$this->options['is_network_admin'] = isset($formArray['is_network_admin']) && $formArray['is_network_admin'] == '1' ? true : false;
-
-			if (!empty($this->options['is_network_admin']) && function_exists('get_sites') && empty($formArray['sitewide_settings'])) {
+			if ($is_network_ctx && function_exists('get_sites') && empty($formArray['sitewide_settings'])) {
 				$formArray['disabled_sites'] = isset($formArray['disabled_sites']) ? $formArray['disabled_sites'] : [];
 				$this->options['disabled_sites'] = isset($old_options['disabled_sites']) ? $old_options['disabled_sites'] : [];
 				$this->options['disabled_sites'] = array_merge($this->options['disabled_sites'], $formArray['disabled_sites']);
-			} elseif (!empty($this->options['is_network_admin']) && !empty($formArray['sitewide_settings'])) {
+			} elseif ($is_network_ctx && !empty($formArray['sitewide_settings'])) {
 				$this->options['disabled_sites'] = $old_options['disabled_sites'];
 			}
 
 			if (isset($formArray['mode'])) {
 				$this->options['remove_everywhere'] = (sanitize_text_field($formArray['mode']) == 'remove_everywhere');
 			}
-			$post_types = $this->get_all_post_types($this->options['is_network_admin']);
+			$post_types = $this->get_all_post_types($is_network_ctx);
 
 			if ($this->options['remove_everywhere']) {
 				$disabled_post_types = array_keys($post_types);
@@ -1256,12 +1318,12 @@ class Disable_Comments {
 				$this->options['extra_post_types'] = array_diff($extra_post_types, array_keys($post_types)); // Make sure we don't double up builtins.
 			}
 
-			if (isset($formArray['sitewide_settings'])) {
+			if ($is_network_ctx && isset($formArray['sitewide_settings'])) {
 				update_site_option('disable_comments_sitewide_settings', $formArray['sitewide_settings']);
 			}
 
 			if (isset($formArray['disable_avatar'])) {
-				if ($this->is_network_admin()) {
+				if ($is_network_ctx) {
 					if ($formArray['disable_avatar'] == '0' || $formArray['disable_avatar'] == '1') {
 						$sites = get_sites([
 							'number' => 0,
@@ -1304,7 +1366,7 @@ class Disable_Comments {
 			$this->options['db_version'] = self::DB_VERSION;
 			$this->options['settings_saved'] = true;
 			// save settings
-			$this->update_options();
+			$this->update_options($is_network_ctx);
 		}
 		if (!$this->is_CLI) {
 			wp_send_json_success(array('message' => __('Saved', 'disable-comments')));
@@ -1327,9 +1389,25 @@ class Disable_Comments {
 		$nonce = (isset($_POST['nonce']) ? sanitize_text_field(wp_unslash($_POST['nonce'])) : '');
 
 		if (($this->is_CLI && !empty($_args)) || wp_verify_nonce($nonce, 'disable_comments_save_settings')) {
+			// Resolve context ONCE — used for both cap check and deletion routing.
+			$is_network_ctx = $this->is_network_admin_ajax_context();
+
+			if (!$this->is_CLI) {
+				if ($is_network_ctx) {
+					$required_cap = 'manage_network_plugins';
+				} elseif ($this->networkactive && $this->sitewide_settings === '1') {
+					$required_cap = 'manage_network_plugins';
+				} else {
+					$required_cap = 'manage_options';
+				}
+				if (!current_user_can($required_cap)) {
+					wp_send_json_error(['message' => 'Insufficient permissions.'], 403);
+				}
+			}
+
 			$formArray = $this->get_form_array_escaped($_args);
 
-			if (!empty($formArray['is_network_admin']) && function_exists('get_sites') && class_exists('WP_Site_Query')) {
+			if ($is_network_ctx && function_exists('get_sites') && class_exists('WP_Site_Query')) {
 				$sites = get_sites([
 					'number' => 0,
 					'fields' => 'ids',
@@ -1338,12 +1416,16 @@ class Disable_Comments {
 					// $formArray['disabled_sites'] ids don't include "site_" prefix.
 					if (!empty($formArray['disabled_sites']) && !empty($formArray['disabled_sites']["site_$blog_id"])) {
 						switch_to_blog($blog_id);
-						$log = $this->delete_comments($_args);
+						if (!is_super_admin() && !current_user_can('manage_options')) {
+							restore_current_blog();
+							continue;
+						}
+						$log = $this->delete_comments($_args, $is_network_ctx);
 						restore_current_blog();
 					}
 				}
 			} else {
-				$log = $this->delete_comments($_args);
+				$log = $this->delete_comments($_args, $is_network_ctx);
 			}
 		}
 		// message
@@ -1357,13 +1439,13 @@ class Disable_Comments {
 		}
 	}
 
-	private function delete_comments($_args) {
+	private function delete_comments($_args, $is_network_ctx = false) {
 		global $wpdb;
 		global $deletedPostTypeNames;
 
 		$formArray = $this->get_form_array_escaped($_args);
 
-		$types = $this->get_all_post_types(!empty($formArray['is_network_admin']));
+		$types = $this->get_all_post_types($is_network_ctx);
 		$commenttypes = $this->get_all_comment_types();
 		$log = "";
 		// comments delete
