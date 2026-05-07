@@ -173,6 +173,53 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 				],
 			],
 		);
+
+		$reaction_type_arg = [
+			'description' => __( 'Reaction type, e.g. "thumbsup".', 'simple-history' ),
+			'type'        => 'string',
+			'required'    => true,
+			'enum'        => $this->get_allowed_reaction_types(),
+		];
+
+		// POST /wp-json/simple-history/v1/events/<event-id>/react.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>[\d]+)/react',
+			[
+				'args' => [
+					'id'   => [
+						'description' => __( 'Unique identifier for the event.', 'simple-history' ),
+						'type'        => 'integer',
+					],
+					'type' => $reaction_type_arg,
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'react_to_event' ],
+					'permission_callback' => [ $this, 'get_item_permissions_check' ],
+				],
+			],
+		);
+
+		// POST /wp-json/simple-history/v1/events/<event-id>/unreact.
+		register_rest_route(
+			$this->namespace,
+			'/' . $this->rest_base . '/(?P<id>[\d]+)/unreact',
+			[
+				'args' => [
+					'id'   => [
+						'description' => __( 'Unique identifier for the event.', 'simple-history' ),
+						'type'        => 'integer',
+					],
+					'type' => $reaction_type_arg,
+				],
+				[
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => [ $this, 'unreact_to_event' ],
+					'permission_callback' => [ $this, 'get_item_permissions_check' ],
+				],
+			],
+		);
 	}
 
 	/**
@@ -499,6 +546,12 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'sanitize_callback' => 'sanitize_text_field',
 		);
 
+		$query_params['ai_only'] = array(
+			'description' => __( 'Limit result set to events triggered via an AI agent (Claude Code, ChatGPT, MCP clients, etc.).', 'simple-history' ),
+			'type'        => 'boolean',
+			'default'     => false,
+		);
+
 		$query_params['ungrouped'] = array(
 			'description' => __( 'Return ungrouped events without occasions grouping.', 'simple-history' ),
 			'type'        => 'boolean',
@@ -675,6 +728,21 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 					'description' => __( 'The context of the event.', 'simple-history' ),
 					'type'        => 'object',
 				),
+				'ai_origin'                  => array(
+					'description' => __( 'AI agent origin information when the event was triggered by an AI tool.', 'simple-history' ),
+					'type'        => array( 'object', 'null' ),
+					'properties'  => array(
+						'agent_name'   => array(
+							'type' => 'string',
+						),
+						'detected_via' => array(
+							'type' => 'string',
+						),
+						'application'  => array(
+							'type' => 'string',
+						),
+					),
+				),
 				'permalink'                  => array(
 					'description' => __( 'The permalink of the event.', 'simple-history' ),
 					'type'        => 'string',
@@ -691,20 +759,27 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 					'description' => __( 'Whether the event was backfilled from existing WordPress data.', 'simple-history' ),
 					'type'        => 'boolean',
 				),
+				'reactions'                  => array(
+					'description' => __( 'Reactions on the event.', 'simple-history' ),
+					'type'        => 'object',
+				),
 				'action_links'               => array(
 					'description' => __( 'Structured action links for the event.', 'simple-history' ),
 					'type'        => 'array',
 					'items'       => array(
 						'type'       => 'object',
 						'properties' => array(
-							'url'    => array(
+							'url'         => array(
 								'type'   => 'string',
 								'format' => 'uri',
 							),
-							'label'  => array(
+							'label'       => array(
 								'type' => 'string',
 							),
-							'action' => array(
+							'action'      => array(
+								'type' => 'string',
+							),
+							'description' => array(
 								'type' => 'string',
 							),
 						),
@@ -794,6 +869,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'ip_address'              => 'ip_address',
 			'context_filters'         => 'context_filters',
 			'metadata_search'         => 'metadata_search',
+			'ai_only'                 => 'ai_only',
 			'ungrouped'               => 'ungrouped',
 			'skip_count_query'        => 'skip_count_query',
 		);
@@ -885,6 +961,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			'ip_address'              => 'ip_address',
 			'context_filters'         => 'context_filters',
 			'metadata_search'         => 'metadata_search',
+			'ai_only'                 => 'ai_only',
 			'ungrouped'               => 'ungrouped',
 			'skip_count_query'        => 'skip_count_query',
 			// Surrounding events parameters.
@@ -1135,6 +1212,46 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			$data['backfilled'] = isset( $item->context[ Existing_Data_Importer::BACKFILLED_CONTEXT_KEY ] );
 		}
 
+		if ( rest_is_field_included( 'reactions', $fields ) && Helpers::experimental_features_is_enabled() ) {
+			$raw            = $item->context['_reactions'] ?? null;
+			$reactions_data = $raw ? (array) json_decode( $raw, true ) : [];
+			$current_user   = get_current_user_id();
+			$formatted      = [];
+
+			foreach ( $reactions_data as $type => $user_ids ) {
+				$user_names = array_map(
+					function ( $user_id ) {
+						$user = get_userdata( $user_id );
+						return $user ? $user->display_name : __( 'Unknown user', 'simple-history' );
+					},
+					$user_ids
+				);
+
+				$formatted[ $type ] = [
+					'count'      => count( $user_ids ),
+					'user_ids'   => $user_ids,
+					'user_names' => $user_names,
+					'reacted'    => in_array( $current_user, $user_ids, true ),
+				];
+			}
+
+			$data['reactions'] = $formatted;
+		}
+
+		if ( rest_is_field_included( 'ai_origin', $fields ) ) {
+			$ai_agent_key = \Simple_History\Services\AI_Initiator_Detector::CONTEXT_KEY_AGENT;
+
+			if ( isset( $context[ $ai_agent_key ] ) ) {
+				$data['ai_origin'] = [
+					'agent_name'   => (string) $context[ $ai_agent_key ],
+					'detected_via' => (string) ( $context[ \Simple_History\Services\AI_Initiator_Detector::CONTEXT_KEY_DETECTED_VIA ] ?? '' ),
+					'application'  => (string) ( $context[ \Simple_History\Services\AI_Initiator_Detector::CONTEXT_KEY_APPLICATION ] ?? '' ),
+				];
+			} else {
+				$data['ai_origin'] = null;
+			}
+		}
+
 		if ( rest_is_field_included( 'context', $fields ) ) {
 			$data['context'] = $item->context;
 		}
@@ -1314,6 +1431,98 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 			return new WP_Error(
 				'rest_unstick_event_failed',
 				__( 'Failed to unstick event.', 'simple-history' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$data = $this->prepare_item_for_response( $event->get_data(), $request );
+		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Get allowed reaction types. Filterable so premium can add more.
+	 *
+	 * @return array List of allowed reaction type strings.
+	 */
+	private function get_allowed_reaction_types(): array {
+		return apply_filters(
+			'simple_history/reactions/allowed_types',
+			[ 'thumbsup' ]
+		);
+	}
+
+	/**
+	 * Add a reaction to an event.
+	 *
+	 * @param \WP_REST_Request $request Full details about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function react_to_event( $request ) {
+		if ( ! Helpers::experimental_features_is_enabled() ) {
+			return new WP_Error(
+				'rest_reactions_disabled',
+				__( 'Reactions are an experimental feature that is not enabled.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$event = new Event( $request['id'] );
+
+		if ( ! $event->exists() ) {
+			return new WP_Error(
+				'rest_event_not_found',
+				__( 'Event not found.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$type    = $request->get_param( 'type' );
+		$user_id = get_current_user_id();
+
+		if ( ! $event->add_reaction( $type, $user_id ) ) {
+			return new WP_Error(
+				'rest_react_failed',
+				__( 'Failed to add reaction.', 'simple-history' ),
+				array( 'status' => 500 )
+			);
+		}
+
+		$data = $this->prepare_item_for_response( $event->get_data(), $request );
+		return rest_ensure_response( $data );
+	}
+
+	/**
+	 * Remove a reaction from an event.
+	 *
+	 * @param \WP_REST_Request $request Full details about the request.
+	 * @return \WP_REST_Response|\WP_Error Response object on success, or WP_Error object on failure.
+	 */
+	public function unreact_to_event( $request ) {
+		if ( ! Helpers::experimental_features_is_enabled() ) {
+			return new WP_Error(
+				'rest_reactions_disabled',
+				__( 'Reactions are an experimental feature that is not enabled.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$event = new Event( $request['id'] );
+
+		if ( ! $event->exists() ) {
+			return new WP_Error(
+				'rest_event_not_found',
+				__( 'Event not found.', 'simple-history' ),
+				array( 'status' => 404 )
+			);
+		}
+
+		$type    = $request->get_param( 'type' );
+		$user_id = get_current_user_id();
+
+		if ( ! $event->remove_reaction( $type, $user_id ) ) {
+			return new WP_Error(
+				'rest_unreact_failed',
+				__( 'Failed to remove reaction.', 'simple-history' ),
 				array( 'status' => 500 )
 			);
 		}

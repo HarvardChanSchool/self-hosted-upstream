@@ -209,6 +209,38 @@ class WP_CLI_List_Command extends WP_CLI_Command {
 	 *     # Show 10 events before and after event ID 456
 	 *     wp simple-history list --surrounding_event_id=456 --surrounding_count=10
 	 *
+	 *     # Show events with reactions
+	 *     wp simple-history list --fields=ID,date,description,reactions
+	 *
+	 *     # Show events with relative date ("5 minutes ago") for easier scanning
+	 *     wp simple-history list --fields=ID,date_relative,initiator,description
+	 *
+	 *     # On multisite: include site name in output
+	 *     wp simple-history list --fields=ID,date,site,description
+	 *
+	 *     # Show which events were initiated via an AI tool (e.g. Claude Code, ChatGPT)
+	 *     wp simple-history list --fields=ID,date,ai_agent,description
+	 *
+	 * [--fields=<fields>]
+	 * : Limit output to specific fields. Comma-separated list.
+	 * ---
+	 * default: ID,date,initiator,description,via,level,count
+	 * options:
+	 *   - ID
+	 *   - date
+	 *   - date_relative
+	 *   - initiator
+	 *   - logger
+	 *   - level
+	 *   - who_when
+	 *   - description
+	 *   - via
+	 *   - count
+	 *   - reactions
+	 *   - site
+	 *   - ai_agent
+	 * ---
+	 *
 	 * @when after_wp_load
 	 *
 	 * @param array $args Positional arguments.
@@ -413,6 +445,10 @@ class WP_CLI_List_Command extends WP_CLI_Command {
 		// A cleaned version of the events, formatted for wp cli table output.
 		$eventsCleaned = array();
 
+		$blog_name  = get_bloginfo( 'name' );
+		$site_url   = wp_parse_url( home_url(), PHP_URL_HOST );
+		$site_label = $site_url ? sprintf( '%s (%s)', $blog_name, $site_url ) : $blog_name;
+
 		foreach ( $events['log_rows'] as $row ) {
 			$header_output = $this->simple_history->get_log_row_header_output( $row );
 			$header_output = wp_strip_all_tags( html_entity_decode( $header_output, ENT_QUOTES, 'UTF-8' ) );
@@ -429,29 +465,51 @@ class WP_CLI_List_Command extends WP_CLI_Command {
 				$id_display = '>>> ' . $row->id;
 			}
 
+			// Format reactions as "thumbsup:2,heart:1" for CLI output.
+			$reactions_display = '';
+			if ( isset( $row->context['_reactions'] ) ) {
+				$reactions_data = json_decode( $row->context['_reactions'], true );
+				if ( is_array( $reactions_data ) ) {
+					$parts = array();
+					foreach ( $reactions_data as $type => $user_ids ) {
+						$parts[] = $type . ':' . count( $user_ids );
+					}
+					$reactions_display = implode( ',', $parts );
+				}
+			}
+
+			$row_timestamp = strtotime( $row->date . ' UTC' );
+			$date_relative = $row_timestamp
+				? sprintf(
+					/* translators: %s: human-readable time difference, e.g. "5 mins" */
+					__( '%s ago', 'simple-history' ),
+					human_time_diff( $row_timestamp )
+				)
+				: '';
+
+			$ai_agent = isset( $row->context[ \Simple_History\Services\AI_Initiator_Detector::CONTEXT_KEY_AGENT ] )
+				? (string) $row->context[ \Simple_History\Services\AI_Initiator_Detector::CONTEXT_KEY_AGENT ]
+				: '';
+
 			$eventsCleaned[] = array(
-				'ID'          => $id_display,
-				'date'        => get_date_from_gmt( $row->date ),
-				'initiator'   => Log_Initiators::get_initiator_text_from_row( $row ),
-				'logger'      => $row->logger,
-				'level'       => $row->level,
-				'who_when'    => $header_output,
-				'description' => $text_output,
-				'via'         => $row_logger ? $row_logger->get_info_value_by_key( 'name_via' ) : '',
+				'ID'            => $id_display,
+				'date'          => get_date_from_gmt( $row->date ),
+				'date_relative' => $date_relative,
+				'initiator'     => Log_Initiators::get_initiator_text_from_row( $row ),
+				'logger'        => $row->logger,
+				'level'         => $row->level,
+				'who_when'      => $header_output,
+				'description'   => $text_output,
+				'via'           => $row_logger ? $row_logger->get_info_value_by_key( 'name_via' ) : '',
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-				'count'       => $row->subsequentOccasions,
+				'count'         => $row->subsequentOccasions,
+				'reactions'     => $reactions_display,
+				'site'          => $site_label,
+				'ai_agent'      => $ai_agent,
 			);
 		}
 
-		$fields = array(
-			'ID',
-			'date',
-			'initiator',
-			'description',
-			'via',
-			'level',
-			'count',
-		);
+		$fields = explode( ',', $assoc_args['fields'] );
 
 		WP_CLI\Utils\format_items( $assoc_args['format'], $eventsCleaned, $fields );
 	}

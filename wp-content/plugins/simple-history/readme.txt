@@ -4,7 +4,7 @@ Contributors: eskapism, wpsimplehistory
 Donate link: https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_donate_link
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 6.9
-Stable tag: 5.25.0
+Stable tag: 5.27.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -249,6 +249,70 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
 -   [Add a 5-star review so other users know it's good.](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5)
 -   [Get the premium add-on for more features.](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium)
 
+🧪 **Experimental** entries are gated behind the experimental features setting (Settings → Simple History → Experimental). Enable it to try them, then share feedback so we know what to ship for everyone.
+
+### 5.27.0 (May 2026)
+
+🤖 This release adds AI agent attribution to log events, so you can see when an action was triggered through Claude Code, ChatGPT, or other AI tools. Also, Action links are now front-and-center for media, plugins, users, menus, and failed plugin installs.
+[Read more about all changes in the release post](https://simple-history.com/2026/simple-history-5-27-0-released/)
+
+**Added**
+
+-   Plugin active/inactive status is now recorded when plugins are updated, shown in event details when the plugin was inactive at update time.
+-   Success confirmation and automatic log refresh after manually adding a log entry.
+-   Action links for media attachments (Edit, View), plugins ("View changelog"), user profiles ("Edit user"), menu edits ("Edit menu" and "Manage menu locations".
+-   "Show error message" action link on plugin install/update failure events — opens the event details modal where the underlying error message and diagnostic context are shown.
+-   `wp simple-history info` WP-CLI command — prints the installed version, premium add-on status, and a list of useful subcommands.
+-   New opt-in columns for `wp simple-history list` via `--fields=`: `date_relative` ("5 minutes ago" style timestamps), `site` (blog name and host, useful when comparing output across installs), and `ai_agent` (detected AI tool name when an event was initiated through an AI agent).
+-   AI agent attribution on event log rows: when an event is triggered by an AI tool (Claude Code, ChatGPT, MCP clients, the Abilities API, etc.), a sparkle icon and the agent name appear next to the user who initiated the event. The signed-in user remains the actual initiator — this is additional audit context, not an authentication signal.
+-   "AI-initiated events only" filter in the expanded filters panel — quickly narrow the log to actions triggered via AI tools.
+-   New "Copy as JSON" menu item for each event, that copies the full event payload — including all context data — for scripting and debugging.
+-   🧪 **Experimental** — "History" column on post and page list tables showing recent activity at a glance, with "View history" row action links.
+-   🧪 **Experimental** — Failed application password authentication on REST API and XML-RPC requests is now logged as a warning, with the attempted user, error code and message, request URI, request method, and user agent. Closes a visibility gap where wrong app password attempts left no trace in the log, while wp-login failures already did. Can also be toggled directly via the new `simple_history/log_failed_app_password_auth` filter.
+
+**Changed**
+
+-   Event details for 12 loggers are now more consistent across the UI and structured in the REST API (migrated from manual HTML output to the Event Details API).
+-   Navigational links in comment and plugin events (e.g. "Edit comment", "View plugin info") moved from event details to the action links bar for better discoverability.
+-   Date filter dropdown reorganized: "All dates" moved to the top as the reset option, presets grouped under "Recent" (Today through Last 60 days, plus "Custom range…"), and specific months grouped under "By month" — easier to scan and matches how users think about date ranges.
+-   "Copy detailed event message" action menu item renamed to "Copy as Markdown" with a richer Markdown layout (heading + properties table + structured details + context table) suitable for pasting into a ticket, Slack, or notes app. The Details section reflects what the event row shows (e.g. plugin description / version / author for plugin install events).
+-   Stats page "Events overview" chart and sidebar "History Insights" daily activity chart switched from line charts to bar charts, with today highlighted in a contrasting accent color for at-a-glance recency.
+
+**Security**
+
+-   Event reaction endpoints now enforce per-event read permissions to prevent logged in users to be able to read events they shouldn't have access to. Reactions are experimental and off by default. Many thanks to Ly Hoang at Wordfence for responsibly disclosing this vulnerability.
+-   Password reset request events no longer store the full reset email body, which contained the activation URL. User, email, and origin are still logged.
+-   Removed the `simple_history/comments_logger/log_failed_password` and `simple_history/comments_logger/log_not_existing_user_password` filters, which could log plaintext passwords from failed logins. Both defaulted to off.
+
+**Fixed**
+
+-   Retention upsell message showing "deleted in 0 days" when event deletion is imminent. Now shows "scheduled for deletion" instead.
+-   Menu logger flagging unrelated items as "Renamed" on every menu save. Items with HTML in their label, and items inheriting their label from a linked page, are no longer reported as renamed when nothing was actually changed.
+-   Menu logger not surfacing renames of the menu itself — the previous and new menu name are now shown in the event details when the "Menu Name" field is changed.
+
+### 5.26.0 (April 2026)
+
+This version makes the log actions more discoverable by moving them out of the dropdown menu and into inline buttons. It also contains a new experimental feature: reactions!
+
+[Read more about it in the release post](https://simple-history.com/2026/simple-history-5-26-0-released/)
+
+**Added**
+
+-   Media, Comments, and Themes sections to the weekly email summary report. Comments section only appears when comments are enabled on the site.
+-   `--fields` support for `wp simple-history list` WP-CLI command, including a `reactions` field showing reaction counts.
+-   🧪 **Experimental** — Event reactions: react to log events with a thumbs up emoji, with a Slack-style emoji picker in the actions bar.
+
+**Changed**
+
+-   Control bar actions are now inline buttons instead of a dropdown menu, making Export, Create Alert, Create Log Entry, and Share View more visible and accessible.
+-   Expanded filters panel: reordered filters with Users first, moved "Hide my own events" into the Users row, replaced initiators help link with an icon, and trimmed helper text for a cleaner layout.
+
+**Fixed**
+
+-   Memory exhaustion when exporting large event logs by reducing batch size and eliminating redundant database queries.
+-   Layout shift in control bar action buttons while search options are loading.
+-   Oversized file type icon for non-image attachments (e.g. DOCX, PDF) in the event log.
+
 ### 5.25.0 (March 2026)
 
 This release focuses on keeping your database lean. Three features that reduce log storage size are now active for all users: smarter default retention for new installs, failed login rate limiting, and compact diff storage for post content changes.
@@ -264,8 +328,8 @@ This release focuses on keeping your database lean. Three features that reduce l
 -   "/" keyboard shortcut to focus the search input, with a visual hint badge. Pressing Escape returns focus to the previously focused element.
 -   Settings and Premium/Get Premium buttons in the top-right header, replacing the Add-ons link.
 -   Email Reports settings moved to their own sub-tab under Settings for better discoverability.
--   Feature discovery bar in the page header showing active features and settings status with dot indicators. Each item links directly to its settings section for quick access. (experimental)
 -   New installs default to 30-day retention (existing installs keep 60 days), keeping your database lean from day one.
+-   🧪 **Experimental** — Feature discovery bar in the page header showing active features and settings status with dot indicators. Each item links directly to its settings section for quick access.
 
 **Changed**
 
