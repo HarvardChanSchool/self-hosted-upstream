@@ -97,6 +97,12 @@ This is an outline of tasks that should be performed by maintainers during month
   terminus env:clear-cache <site>.live
   ```
 
+  or
+  
+  ```
+  terminus env:clear-cache "$(basename "$PWD")".live
+  ```
+
 11. Verify production site.
 
 ### Site list for monthly maintenance
@@ -342,7 +348,7 @@ This is an outline of tasks that should be performed by maintainers during month
 
     Verification URLs:
     - https://popcenter.harvard.edu/
-    - https://popcenter.harvard.edu/about-us/
+    - https://popcenter.harvard.edu/about/
     - https://popcenter.harvard.edu/news-media/news-and-announcements/
     - https://popcenter.harvard.edu/postdoctoral-fellowships/bell-fellowship/profiles/
     - https://haalsi.org/
@@ -357,7 +363,7 @@ This is an outline of tasks that should be performed by maintainers during month
 
     boone.cool/hsph/popcenter versions:
     - http://boone.cool/hsph/popcenter/
-    - http://boone.cool/hsph/popcenter/about-us/
+    - http://boone.cool/hsph/popcenter/about/
     - http://boone.cool/hsph/popcenter/news-media/news-and-announcements/
     - http://boone.cool/hsph/popcenter/postdoctoral-fellowships/bell-fellowship/profiles/
     - http://boone.cool/hsph/popcenter/haalsi/
@@ -373,8 +379,8 @@ This is an outline of tasks that should be performed by maintainers during month
     chromium --incognito --new-window \
       https://popcenter.harvard.edu/ \
       http://boone.cool/hsph/popcenter/ \
-      https://popcenter.harvard.edu/about-us/ \
-      http://boone.cool/hsph/popcenter/about-us/ \
+      https://popcenter.harvard.edu/about/ \
+      http://boone.cool/hsph/popcenter/about/ \
       https://popcenter.harvard.edu/news-media/news-and-announcements/ \
       http://boone.cool/hsph/popcenter/news-media/news-and-announcements/ \
       https://popcenter.harvard.edu/postdoctoral-fellowships/bell-fellowship/profiles/ \
