@@ -37,7 +37,7 @@ jobs:
               git add -f "$dir" # Force add the directory
             fi
           done
-          git commit -m "Add built assets"
+          git diff --cached --quiet || git commit -m "Add built assets"
       - name: Replace composer.json with composer.json.dist, and rebuild composer.lock
         run: |
           cp composer.json.dist composer.json
