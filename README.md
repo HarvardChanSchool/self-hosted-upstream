@@ -64,7 +64,7 @@ This is an outline of tasks that should be performed by maintainers during month
 
     ```
     git fetch upstream
-    git merge upstream/build # Important! Always pull from the build branch
+    git merge --strategy=recursive -Xtheirs upstream/build # Important! Always pull from the build branch
     # Now verify local site
     ```
 
