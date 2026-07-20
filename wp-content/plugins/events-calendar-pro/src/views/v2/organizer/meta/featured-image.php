@@ -3,7 +3,7 @@
  * View: Organizer - Single Organizer Featured Image
  *
  * Override this template in your own theme by creating a file at:
- * [your-theme]/tribe/events/v2/organizer/meta/featured-image.php
+ * [your-theme]/tribe/events-pro/v2/organizer/meta/featured-image.php
  *
  * See more documentation about our views templating system.
  *

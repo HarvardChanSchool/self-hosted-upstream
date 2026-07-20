@@ -3,9 +3,9 @@
 Contributors: theeventscalendar, borkweb, bordoni, brianjessee, aguseo, camwynsp, GeoffBel, jentheo, leahkoerper, lucatume, neillmcshea, vicskf, zbtirrell, juanfra
 Tags: events, calendar, event, venue, organizer, dates, date, google maps, conference, workshop, concert, meeting, seminar, summit, class, the events calendar, widget, pro
 Donate link: https://evnt.is/29
-Stable tag: 7.3.0
-Requires at least: 6.3
-Tested up to: 6.6.2
+Stable tag: 7.4.2
+Requires at least: 6.5
+Tested up to: 6.7.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -213,6 +213,51 @@ Previous versions of Events Calendar Pro are not cross-compatible with 6.X add-o
 Remember to always make a backup of your database and files before updating!
 
 == Changelog ==
+
+= [7.4.2] 2025-03-04 =
+
+* Tweak - Update calls to DateTime that are passing null for PHP 8+ compatibility. [TEC-5086]
+* Fix - Fix past events shortcode attribute [TEC-5348]
+* Fix - Stop the noindex conflict by changing the View Title class to only get posts for list-type views. [TEC-5354]
+* Compatibility - Added 404 handling for week view when disabled or accessed outside the range of earliest and latest events, with an exception for the current month when no events exist. [TEC-5356]
+* Language - 0 new strings added, 3 updated, 0 fuzzied, and 0 obsoleted.
+
+= [7.4.1] 2025-02-10 =
+
+* Fix - Preemtively update postmeta before 3rd parties to prevent metadata duplication. [ECP-1879]
+* Fix - Validating post object before accessing post_type on Widget Manager. [ECP-1886]
+* Tweak - Add caching to Zoom method to get alternative hosts to prevent accessing the API on every load of event editor. [VE-591]
+* Tweak - Move file index.umd.js from node_modules to `src/resources/includes/`. [TCMN-175]
+* Tweak - Added filters: `tec_events_pro_virtual_alternative_hosts_cache_duration`
+* Language - 0 new strings added, 51 updated, 0 fuzzied, and 0 obsoleted.
+
+= [7.4.0] 2025-01-30 =
+
+* Fix - Update asset, dependencies, customizations to align with WordPress 6.7 and React 18. [TEC-5322]
+* Language - 0 new strings added, 2 updated, 0 fuzzied, and 0 obsoleted.
+
+= [7.3.2] 2025-01-22 =
+
+* Feature - Adding Display setting option to allow forcing the Photo View to show images in a Grid, at a 16:9 aspect ratio. [TEC-5320]
+* Fix - A notice will now show when deleting your YouTube Live Channel ID within the integration settings. [ECP-1838]
+* Fix - Correct some a11y markup on the venues list. [ECP-1880]
+* Fix - Redirects no longer error when editing and updating recurring events. [ECP-1878]
+* Fix - Updated recurring events setting label for clarity.
+* Language - 2 new strings added, 27 updated, 1 fuzzied, and 0 obsoleted.
+
+= [7.3.1] 2024-12-17 =
+
+* Feature - Added the `tec_events_pro_use_geocode_results` filter, allowing users to retain entered venue details (default) or save geocoded address results when manually creating a venue using a custom Google Maps API key.
+* Tweak - Added filters: `tec_events_pro_use_geocode_results`
+* Tweak - Changed views: `v2/organizer/meta/featured-image`
+* Tweak - Corrected template override path for featured image for organizers [ECP-1681]
+* Fix - Added function `pass_overwritten_template_files_through_hierarchy_filters` to pass the overwritten template files through the hierarchy filters. [ECP-1873]
+* Fix - Load the correct settings page when clicking the "Fix venues data" button. [ECP-1869]
+* Fix - Provinces/States for non-US countries are now saved to the correct field when importing events from Google Calendar with a custom Google Maps API key. [ECP-1877]
+* Fix - Removed leading slash from `set_template_folder` for `custom-tables-v1` directory. [ECP-1477]
+* Fix - When manually creating a venue with a custom Google Maps API key, the entered details are now preserved. [ECP-1874]
+* Fix - When using "Move to trash events older than", trashed imported events are now ignored. [TEC-5319]
+* Language - 0 new strings added, 26 updated, 0 fuzzied, and 0 obsoleted.
 
 = [7.3.0] 2024-10-30 =
 
@@ -636,7 +681,7 @@ Remember to always make a backup of your database and files before updating!
 * Fix - Ensure all the Virtual Event assets required by the Elementor Event widget load correctly. [ECP-1255]
 * Fix - Remove strict type hinting from Custom Tables v1 code that could cause fatals in some environments. [ECP-1343]
 * Fix - Avoid post ID related issues in Custom Tables v1 queries. [TEC-4770]
-* Fix - Solve issues with unregistred Series post type during migration. [ECP-1321]
+* Fix - Solve issues with unregistered Series post type during migration. [ECP-1321]
 * Fix - Redirect was failing on edge case where RDATE would be split to new event. Centralized redirection. [ECP-1366]
 * Fix - Language fix. A typo in evaluating whether an occurrence update notice message was for a recurring event or not, would cause to evaluate incorrectly. [ECP-1366]
 * Fix - Editing an RDATE occurrence > Issue when saving for "This and following events". The events would be split but the RDATEs were not moved properly and the date would not adjust correctly. [ECP-1361]

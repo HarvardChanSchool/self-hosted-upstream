@@ -1,0 +1,11 @@
+{
+  "name": "harvardchanschool/plugin-social",
+  "type": "wordpress-plugin",
+  "description": "Everything social media related at HSPH.",
+  "homepage": "http://www.hsph.harvard.edu/information-technology/",
+  "authors": [{
+      "name": "HSPH Webteam",
+      "email": "webteam@hsph.harvard.edu",
+      "homepage": "http://www.hsph.harvard.edu/information-technology/"
+  }]
+}

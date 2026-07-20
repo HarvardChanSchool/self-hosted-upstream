@@ -1839,7 +1839,7 @@ class Tribe__Events__Pro__Recurrence__Meta {
 				'hideSubsequentRecurrencesDefault' => [
 					'type'            => 'checkbox_bool',
 					'label'           => __( 'Recurring event instances', 'tribe-events-calendar-pro' ),
-					'tooltip'         => __( 'Show only the first instance of each recurring event (only affects list-style views).', 'tribe-events-calendar-pro' ),
+					'tooltip'         => __( 'Show only the next instance of each recurring event (only affects list-style views).', 'tribe-events-calendar-pro' ),
 					'default'         => false,
 					'validation_type' => 'boolean',
 				],

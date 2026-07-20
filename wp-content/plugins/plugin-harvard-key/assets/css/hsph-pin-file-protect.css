@@ -1,0 +1,11 @@
+.hsph_key_protected_file{
+    display: inline-block;
+    border: 1px solid rgba(220, 216, 204, 0.8);
+    background-color: rgba(220, 216, 204, 0.4);
+    line-height: 1.4;
+    padding: 5px 9px 6px 6px;
+}
+
+.hsph_key_protected_file .genericon{
+    line-height: 1.3;
+}
