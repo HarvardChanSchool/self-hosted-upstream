@@ -1,28 +1,31 @@
-# Copyright (C) 2024 The Events Calendar
+# Copyright (C) 2025 The Events Calendar
 # This file is distributed under the GPLv2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: The Events Calendar Pro 7.2.1\n"
+"Project-Id-Version: The Events Calendar Pro 7.4.2\n"
 "Report-Msgid-Bugs-To: https://evnt.is/191x\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2024-10-16T10:27:21-07:00\n"
-"PO-Revision-Date: 2024-10-16 17:27\n"
-"X-Generator: WP-CLI 2.7.1\n"
+"POT-Creation-Date: 2025-02-27T17:26:04+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.11.0\n"
 "X-Domain: tribe-events-calendar-pro\n"
 
 #. Plugin Name of the plugin
+#: events-calendar-pro.php
 msgid "The Events Calendar Pro"
 msgstr ""
 
 #. Description of the plugin
+#: events-calendar-pro.php
 msgid "The Events Calendar Pro, a premium add-on to the open source The Events Calendar plugin (required), enables recurring events, custom attributes, venue pages, new widgets and a host of other premium features."
 msgstr ""
 
 #. Author of the plugin
+#: events-calendar-pro.php
 #: events-calendar-pro.php:172
 #: events-calendar-pro.php:173
 #: src/Tribe/Integrations/Elementor/Service_Provider.php:126
@@ -31,6 +34,7 @@ msgid "The Events Calendar"
 msgstr ""
 
 #. Author URI of the plugin
+#: events-calendar-pro.php
 msgid "https://evnt.is/20"
 msgstr ""
 
@@ -59,7 +63,7 @@ msgstr ""
 #: src/Events_Pro/Integrations/Plugins/Elementor/Widgets/Event_Additional_Fields.php:257
 #: src/Tribe/Editor.php:212
 #: src/Tribe/Editor.php:250
-#: src/Tribe/Main.php:723
+#: src/Tribe/Main.php:726
 #: src/modules/blocks/additional-fields/elements/settings/template.js:31
 msgid "Additional Fields"
 msgstr ""
@@ -270,7 +274,7 @@ msgstr ""
 
 #: src/admin-views/event-recurrence.php:224
 #: src/admin-views/event-recurrence.php:630
-#: src/Tribe/Main.php:1810
+#: src/Tribe/Main.php:1813
 #: src/Tribe/Rewrite/Provider.php:162
 #: src/modules/custom-tables-v1/data/shared/constants.js:9
 #: src/resources/js/custom-tables-v1/app/ct1.js:590
@@ -1544,62 +1548,70 @@ msgid "Zoom"
 msgstr ""
 
 #: src/Events_Pro/Admin/Settings.php:40
-#: src/Tribe/Main.php:762
+#: src/Tribe/Main.php:765
 msgid "Hide related events"
 msgstr ""
 
 #: src/Events_Pro/Admin/Settings.php:41
-#: src/Tribe/Main.php:763
+#: src/Tribe/Main.php:766
 msgid "Remove related events from the single event view (with classic editor)"
 msgstr ""
 
 #: src/Events_Pro/Admin/Settings.php:47
-#: src/Tribe/Main.php:769
+#: src/Tribe/Main.php:772
 msgid "Hide weekends on Week View"
 msgstr ""
 
 #: src/Events_Pro/Admin/Settings.php:48
-#: src/Tribe/Main.php:770
+#: src/Tribe/Main.php:773
 msgid "Check this to only show weekdays on Week View. This also affects the Events by Week widget."
 msgstr ""
 
-#: src/Events_Pro/Admin/Settings.php:99
-#: src/Tribe/Main.php:809
+#: src/Events_Pro/Admin/Settings.php:54
+msgid "Display images as a grid on Photo View"
+msgstr ""
+
+#: src/Events_Pro/Admin/Settings.php:55
+msgid "Check this to enforce an aspect ratio of 16:9 for photos on the photo view."
+msgstr ""
+
+#: src/Events_Pro/Admin/Settings.php:106
+#: src/Tribe/Main.php:812
 msgid "Week day format"
 msgstr ""
 
 #. Translators: %1$s: Example date
-#: src/Events_Pro/Admin/Settings.php:102
-#: src/Tribe/Main.php:812
+#: src/Events_Pro/Admin/Settings.php:109
+#: src/Tribe/Main.php:815
 msgid "Enter the format to use for week days. Used when showing days of the week in Week view. Example: %1$s"
 msgstr ""
 
-#: src/Events_Pro/Admin/Settings.php:129
-#: src/Tribe/Main.php:782
+#: src/Events_Pro/Admin/Settings.php:136
+#: src/Tribe/Main.php:785
 msgid "Enable the Before HTML (below) on shortcodes."
 msgstr ""
 
-#: src/Events_Pro/Admin/Settings.php:130
-#: src/Tribe/Main.php:783
+#: src/Events_Pro/Admin/Settings.php:137
+#: src/Tribe/Main.php:786
 msgid "Check this to show the Before HTML from the text area below on events displayed via shortcode."
 msgstr ""
 
-#: src/Events_Pro/Admin/Settings.php:143
-#: src/Tribe/Main.php:795
+#: src/Events_Pro/Admin/Settings.php:150
+#: src/Tribe/Main.php:798
 msgid "Enable the After HTML (below) on shortcodes."
 msgstr ""
 
-#: src/Events_Pro/Admin/Settings.php:144
-#: src/Tribe/Main.php:796
+#: src/Events_Pro/Admin/Settings.php:151
+#: src/Tribe/Main.php:799
 msgid "Check this to show the After HTML from the text area below on events displayed via shortcode."
 msgstr ""
 
 #. Translators: %s:post_type slug for tribe_events. This line starts with a space as this sentence is appended to the existing one.
-#: src/Events_Pro/Admin/Settings.php:170
+#: src/Events_Pro/Admin/Settings.php:177
 msgid " Please note that you are using The Events Calendar's default Google Maps API key, which will limit the Map View's functionality. Visit <a href=\"edit.php?page=tribe-common&tab=addons&post_type=%s\">the Integrations Settings page</a> to learn more and add your own Google Maps API key."
 msgstr ""
 
-#: src/Events_Pro/Admin/Settings.php:188
+#: src/Events_Pro/Admin/Settings.php:195
 msgid "The number of events per page on the List, Photo, and Map Views. Does not affect other views."
 msgstr ""
 
@@ -1866,7 +1878,7 @@ msgid "RSVPs"
 msgstr ""
 
 #: src/Events_Pro/Custom_Tables/V1/Editors/Event.php:135
-#: src/modules/elements/series-ends/template.js:124
+#: src/modules/elements/series-ends/template.js:83
 msgid "Ends"
 msgstr ""
 
@@ -3803,7 +3815,7 @@ msgid "Add Rule"
 msgstr ""
 
 #: src/Tribe/Geo_Loc.php:123
-#: src/Tribe/Geo_Loc.php:604
+#: src/Tribe/Geo_Loc.php:605
 #: src/Tribe/Rewrite/Provider.php:164
 msgid "map"
 msgstr ""
@@ -3812,113 +3824,113 @@ msgstr ""
 msgid "Distance"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:200
+#: src/Tribe/Geo_Loc.php:201
 msgid "Map view search distance limit"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:202
+#: src/Tribe/Geo_Loc.php:203
 msgid "Set the distance that the location search covers (find events within X distance units of location search input)."
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:209
+#: src/Tribe/Geo_Loc.php:210
 msgid "Distance unit"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:216
+#: src/Tribe/Geo_Loc.php:217
 #: src/Tribe/Geo_Loc_Filter.php:23
 #: src/Tribe/Views/V2/Views/Map_View.php:563
 msgid "Miles"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:217
+#: src/Tribe/Geo_Loc.php:218
 #: src/Tribe/Geo_Loc_Filter.php:26
 #: src/Tribe/Views/V2/Views/Map_View.php:559
 msgid "Kilometers"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:235
+#: src/Tribe/Geo_Loc.php:236
 msgid "Hide location search"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:236
+#: src/Tribe/Geo_Loc.php:237
 msgid "Removes location search field from the Events Bar on all views."
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:341
+#: src/Tribe/Geo_Loc.php:342
 #: src/Tribe/Integrations/Elementor/Widgets/Widget_Event_Single_Legacy.php:531
 msgid "Map"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:379
+#: src/Tribe/Geo_Loc.php:380
 msgid "Venue Overwrite Coordinates"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:410
+#: src/Tribe/Geo_Loc.php:411
 msgid "Near"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:411
+#: src/Tribe/Geo_Loc.php:412
 #: src/Tribe/Integrations/Elementor/Widgets/Widget_Event_Single_Legacy.php:528
 #: src/Tribe/Integrations/Elementor/Widgets/Widget_Event_Single_Legacy.php:1765
 msgid "Location"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:438
+#: src/Tribe/Geo_Loc.php:439
 msgid "Use latitude + longitude"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:449
+#: src/Tribe/Geo_Loc.php:450
 msgid "Latitude"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:450
+#: src/Tribe/Geo_Loc.php:451
 msgid "Longitude"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:471
+#: src/Tribe/Geo_Loc.php:472
 msgid "Enter a custom Google Maps API key"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:472
+#: src/Tribe/Geo_Loc.php:473
 msgid "for latitude and longitude to be auto-generated; otherwise, you'll only be able to enter the values manually."
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:790
+#: src/Tribe/Geo_Loc.php:813
 msgid "The latitude and longitude for your venue could not be fetched. The Google Maps API daily query limit has been reached!. %1$s "
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:794
+#: src/Tribe/Geo_Loc.php:817
 msgid "Enter your API Key"
 msgstr ""
 
 #. translators: 1: Error response text, 2: URL
-#: src/Tribe/Geo_Loc.php:1341
+#: src/Tribe/Geo_Loc.php:1364
 msgctxt "debug geodata"
 msgid "Geocode request failed (%1$s - %2$s)"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:1370
+#: src/Tribe/Geo_Loc.php:1393
 msgid "There was an error while trying to fix the Venues geolocation information: %s"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:1462
+#: src/Tribe/Geo_Loc.php:1488
 msgid "Fix venues data"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:1517
+#: src/Tribe/Geo_Loc.php:1543
 msgid "You have venues for which we don't have geolocation information. <a href='%s'>Click here to generate it</a>."
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:1553
+#: src/Tribe/Geo_Loc.php:1579
 msgid "Fixed geolocation data for %d venues"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:1696
+#: src/Tribe/Geo_Loc.php:1723
 msgctxt "The text of the link that will take the user to the Venue edit screen."
 msgid "update the venue address or use latitude & longitude"
 msgstr ""
 
-#: src/Tribe/Geo_Loc.php:1706
+#: src/Tribe/Geo_Loc.php:1733
 msgctxt "The text of the link that will trigger an attempt to fix the Venues geolocation information."
 msgid "try again"
 msgstr ""
@@ -4829,168 +4841,168 @@ msgid "%1$s could not be activated. The %1$s functionality has been merged into 
 msgstr ""
 
 #. Translators: 1: Plural event label, 2: Title of the current page
-#: src/Tribe/Main.php:436
+#: src/Tribe/Main.php:437
 #: src/Tribe/Views/V2/Template/Title.php:60
 msgid "All %1$s for %2$s"
 msgstr ""
 
 #. Translators: 1: Plural event label, 2: Date of the current view
-#: src/Tribe/Main.php:446
+#: src/Tribe/Main.php:447
 #: src/Tribe/Views/V2/Template/Title.php:78
 msgid "%1$s for week of %2$s"
 msgstr ""
 
-#: src/Tribe/Main.php:525
+#: src/Tribe/Main.php:528
 msgctxt "debug recurrence"
 msgid "Unknown"
 msgstr ""
 
-#: src/Tribe/Main.php:543
+#: src/Tribe/Main.php:546
 msgctxt "debug recurrence"
 msgid "invalid date"
 msgstr ""
 
-#: src/Tribe/Main.php:574
-#: src/Tribe/Main.php:587
+#: src/Tribe/Main.php:577
+#: src/Tribe/Main.php:590
 msgctxt "debug recurrence"
 msgid "incorrect slug"
 msgstr ""
 
 #. Translators: 1: Error message, 2: URL
-#: src/Tribe/Main.php:611
+#: src/Tribe/Main.php:614
 msgctxt "debug recurrence"
 msgid "Invalid instance of a recurring event was requested (%1$s) redirecting to %2$s"
 msgstr ""
 
 #. Translators: %1$s: PHP date function, %2$s: Link to WordPress.org
-#: src/Tribe/Main.php:828
+#: src/Tribe/Main.php:831
 msgid "The first four fields accept the date format options available to the PHP %1$s function. <a href=\"%2$s\" target=\"_blank\">Learn how to make your own date format here</a>."
 msgstr ""
 
-#: src/Tribe/Main.php:857
+#: src/Tribe/Main.php:860
 msgid "Thanks for buying Events Calendar PRO! From all of us at The Events Calendar, we sincerely appreciate it. If you're looking for help with Events Calendar PRO, you've come to the right place. We are committed to helping make your calendar be spectacular... and hope the resources provided below will help get you there."
 msgstr ""
 
-#: src/Tribe/Main.php:872
+#: src/Tribe/Main.php:875
 msgid "If this is your first time using The Events Calendar Pro, you're in for a treat and are already well on your way to creating a first event. Here are some basics we've found helpful for users jumping into it for the first time:"
 msgstr ""
 
 #. Translators: %1$s: Opening anchor tag, %2$s: Closing anchor tag
-#: src/Tribe/Main.php:877
+#: src/Tribe/Main.php:880
 msgid "%1$sOur New User Primer%2$s was designed for folks in your exact position. Featuring both step-by-step videos and written walkthroughs that feature accompanying screenshots, the primer aims to take you from zero to hero in no time."
 msgstr ""
 
 #. Translators: %1$s: Opening anchor tag, %2$s: Closing anchor tag
-#: src/Tribe/Main.php:887
+#: src/Tribe/Main.php:890
 msgid "%1$sInstallation/Setup FAQs%2$s from our support page can help give an overview of what the plugin can and cannot do. This section of the FAQs may be helpful as it aims to address any basic install questions not addressed by the new user primer."
 msgstr ""
 
 #. Translators: %1$s: Opening anchor tag, %2$s: Closing anchor tag
-#: src/Tribe/Main.php:897
+#: src/Tribe/Main.php:900
 msgid "Take care of your license key. Though not required to create your first event, you'll want to get it in place as soon as possible to guarantee your access to support and upgrades. %1$sHere's how to find your license key%2$s, if you don't have it handy."
 msgstr ""
 
-#: src/Tribe/Main.php:905
+#: src/Tribe/Main.php:908
 msgid "Otherwise, if you're feeling adventurous, you can get started by heading to the Events menu and adding your first event."
 msgstr ""
 
 #. Translators: %1$s: Opening anchor tag, %2$s: Closing anchor tag
-#: src/Tribe/Main.php:922
+#: src/Tribe/Main.php:925
 msgid "Written documentation can only take things so far...sometimes, you need help from a real person. This is where our %1$ssupport forums%2$s come into play."
 msgstr ""
 
 #. Translators: %1$s: Opening anchor tag, %2$s: Closing anchor tag, %3$s: Opening anchor tag, %4$s: Closing anchor tag
-#: src/Tribe/Main.php:931
+#: src/Tribe/Main.php:934
 msgid "Users who have purchased an Events Calendar PRO license are granted total access to our %1$spremium support forums%2$s. Unlike at the %3$sWordPress.org support forum%4$s, where our involvement is limited to identifying and patching bugs, we have a dedicated support team for PRO users. We're on the PRO forums daily throughout the business week, and no thread should go more than 24-hours without a response."
 msgstr ""
 
-#: src/Tribe/Main.php:940
+#: src/Tribe/Main.php:943
 msgid "Our number one goal is helping you succeed, and to whatever extent possible, we'll help troubleshoot and guide your customizations or tweaks. While we won't build your site for you, and we can't guarantee we'll be able to get you 100% integrated with every theme or plugin out there, we'll do all we can to point you in the right direction and to make you -- and your client, as is often more importantly the case -- satisfied."
 msgstr ""
 
-#: src/Tribe/Main.php:944
+#: src/Tribe/Main.php:947
 msgid "Before posting a new thread, please do a search to make sure your issue hasn't already been addressed. When posting please make sure to provide as much detail about the problem as you can (with screenshots or screencasts if feasible), and make sure that you've identified whether a plugin / theme conflict could be at play in your initial message."
 msgstr ""
 
-#: src/Tribe/Main.php:1203
+#: src/Tribe/Main.php:1206
 msgid "Settings"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1234
+#: src/Tribe/Main.php:1237
 msgid "Venue updated. <a href=\"%1$s\">View venue</a>"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1243
+#: src/Tribe/Main.php:1246
 msgid "Venue published. <a href=\"%1$s\">View venue</a>"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1251
+#: src/Tribe/Main.php:1254
 msgid "Venue submitted. <a target=\"_blank\" href=\"%1$s\">Preview venue</a>"
 msgstr ""
 
 #. Translators: %1$s: date and time of the revision, %2$s: URL to the post
-#: src/Tribe/Main.php:1259
+#: src/Tribe/Main.php:1262
 msgid "Venue scheduled for: <strong>%1$s</strong>. <a target=\"_blank\" href=\"%2$s\">Preview venue</a>"
 msgstr ""
 
 #. Translators: Publish box date format, see http://php.net/date.
 #. Translators: Publish box date format, see http://php.net/date
-#: src/Tribe/Main.php:1261
-#: src/Tribe/Main.php:1304
+#: src/Tribe/Main.php:1264
+#: src/Tribe/Main.php:1307
 msgid "M j, Y @ G:i"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1266
+#: src/Tribe/Main.php:1269
 msgid "Venue draft updated. <a target=\"_blank\" href=\"%1$s\">Preview venue</a>"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1275
+#: src/Tribe/Main.php:1278
 msgid "Organizer updated. <a href=\"%1$s\">View organizer</a>"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1283
+#: src/Tribe/Main.php:1286
 msgid "Organizer published. <a href=\"%1$s\">View organizer</a>"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1291
+#: src/Tribe/Main.php:1294
 msgid "Organizer submitted. <a target=\"_blank\" href=\"%1$s\">Preview organizer</a>"
 msgstr ""
 
 #. Translators: %1$s: date and time of the revision, %2$s: URL to the post
-#: src/Tribe/Main.php:1299
+#: src/Tribe/Main.php:1302
 msgid "Organizer scheduled for: <strong>%1$s</strong>. <a target=\"_blank\" href=\"%2$s\">Preview organizer</a>"
 msgstr ""
 
 #. Translators: %1$s: URL to the post
-#: src/Tribe/Main.php:1309
+#: src/Tribe/Main.php:1312
 msgid "Organizer draft updated. <a target=\"_blank\" href=\"%1$s\">Preview organizer</a>"
 msgstr ""
 
-#: src/Tribe/Main.php:1366
+#: src/Tribe/Main.php:1369
 msgid "Support"
 msgstr ""
 
-#: src/Tribe/Main.php:1368
+#: src/Tribe/Main.php:1371
 msgid "View All Add-Ons"
 msgstr ""
 
-#: src/Tribe/Main.php:1705
+#: src/Tribe/Main.php:1708
 msgid "Events Calendar PRO"
 msgstr ""
 
-#: src/Tribe/Main.php:1809
+#: src/Tribe/Main.php:1812
 #: src/Tribe/Rewrite/Provider.php:161
 msgid "all"
 msgstr ""
 
-#: src/Tribe/Main.php:1811
+#: src/Tribe/Main.php:1814
 #: src/Tribe/Rewrite/Provider.php:163
 msgid "photo"
 msgstr ""
@@ -5279,7 +5291,7 @@ msgid "Recurring event instances"
 msgstr ""
 
 #: src/Tribe/Recurrence/Meta.php:1842
-msgid "Show only the first instance of each recurring event (only affects list-style views)."
+msgid "Show only the next instance of each recurring event (only affects list-style views)."
 msgstr ""
 
 #: src/Tribe/Recurrence/Meta.php:1848
@@ -5938,12 +5950,12 @@ msgstr ""
 msgid "Google Maps API response is missing some data."
 msgstr ""
 
-#: src/Tribe/Views/V2/Hooks.php:906
+#: src/Tribe/Views/V2/Hooks.php:923
 msgctxt "The default text label for the \"today\" button on the Week View."
 msgid "This Week"
 msgstr ""
 
-#: src/Tribe/Views/V2/Hooks.php:926
+#: src/Tribe/Views/V2/Hooks.php:943
 msgctxt "The default text for the 'today' button's title and aria-label on the Week View."
 msgid "Click to select the current week"
 msgstr ""
@@ -6006,15 +6018,15 @@ msgctxt "featured events title"
 msgid "Featured %s"
 msgstr ""
 
-#: src/Tribe/Views/V2/Template/Title.php:93
+#: src/Tribe/Views/V2/Template/Title.php:95
 msgid "Display of %1$s from %2$s"
 msgstr ""
 
-#: src/Tribe/Views/V2/Template/Title.php:100
+#: src/Tribe/Views/V2/Template/Title.php:102
 msgid "Summary of %1$s from %2$s"
 msgstr ""
 
-#: src/Tribe/Views/V2/Template/Title.php:107
+#: src/Tribe/Views/V2/Template/Title.php:109
 msgid "Map of %1$s from %2$s"
 msgstr ""
 
@@ -7372,87 +7384,87 @@ msgctxt "The name of the autodetect source."
 msgid "Webex"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:167
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:169
 msgctxt "YouTube default setting"
 msgid "Autoplay Video"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:172
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:174
 msgctxt "YouTube default setting tooltip"
 msgid "Autoplay is being deprecated by most browsers and is prevented in Chrome and Safari, it maybe removed in all the browsers soon."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:183
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:185
 msgctxt "YouTube default setting"
 msgid "Include live chat"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:195
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:197
 msgctxt "YouTube default setting"
 msgid "Mute Video"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:200
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:202
 msgctxt "YouTube default setting tooltip"
 msgid "Best used with autoplay."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:211
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:213
 msgctxt "YouTube default setting"
 msgid "Modest Branding"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:216
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:218
 msgctxt "YouTube default setting tooltip"
 msgid "Hides the YouTube logo in the control bar."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:227
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:229
 msgctxt "YouTube default setting"
 msgid "Restrict Related Videos"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:232
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:234
 msgctxt "YouTube default setting tooltip"
 msgid "Restricts related videos to only come from your channel."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:243
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:245
 msgctxt "YouTube default setting"
 msgid "Hide Controls"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:248
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:250
 msgctxt "YouTube default setting tooltip"
 msgid "Hides the video control bar."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:303
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:305
 msgctxt "Settings help text for finding a YouTube channel id."
 msgid "Click here to find channel ID"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:312
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:314
 msgctxt "The field label for the default YouTube channel ID"
 msgid "Default YouTube Live Channel ID"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:313
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:315
 msgctxt "The field placeholder for the default YouTube channel ID"
 msgid "Enter your YouTube Live ID"
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:353
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:355
 msgctxt "YouTube channel ID is missing on delete error message."
 msgid "The YouTube channel ID field is missing."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:362
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:364
 msgctxt "The message after a YouTube channel ID has been deleted from the Website."
 msgid "The YouTube channel ID was successfully deleted."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:372
+#: src/Tribe/Virtual/Meetings/YouTube/Settings.php:374
 msgctxt "The message to display if a YouTube channel ID could not be deleted."
 msgid "The YouTube channel ID could not be deleted."
 msgstr ""
@@ -7629,27 +7641,27 @@ msgctxt "The migration notice to authorize the new Zoom App."
 msgid "Thank you for updating to the latest version of Virtual Events. You will need to <a href=\"%1$s\">reconnect your Zoom account</a> for the plugin to work as intended."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/Zoom/Users.php:145
+#: src/Tribe/Virtual/Meetings/Zoom/Users.php:182
 msgctxt "The event is missing error message for Zoom user validation."
 msgid "User validation failed because no event was found."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/Zoom/Users.php:157
+#: src/Tribe/Virtual/Meetings/Zoom/Users.php:194
 msgctxt "Host ID is missing error message for Zoom user validation."
 msgid "The Zoom Host ID is missing to access the API, please select a host from the dropdown and try again."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/Zoom/Users.php:169
+#: src/Tribe/Virtual/Meetings/Zoom/Users.php:206
 msgctxt "Account ID is missing error message for Zoom user validation."
 msgid "The Zoom Account ID is missing to access the API."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/Zoom/Users.php:181
+#: src/Tribe/Virtual/Meetings/Zoom/Users.php:218
 msgctxt "Zoom account loading error message for Zoom user validation."
 msgid "The Zoom Account could not be loaded to access the API. Please try refreshing the account in the Events API Settings."
 msgstr ""
 
-#: src/Tribe/Virtual/Meetings/Zoom/Users.php:193
+#: src/Tribe/Virtual/Meetings/Zoom/Users.php:230
 msgctxt "Zoom API loading error message for Zoom user validation."
 msgid "The Zoom API did not return the user settings. Please try refreshing the account in the Events Integration Settings."
 msgstr ""
@@ -8192,7 +8204,7 @@ msgstr ""
 msgid "List divider"
 msgstr ""
 
-#: src/modules/blocks/additional-fields/checkbox/settings/template.js:36
+#: src/modules/blocks/additional-fields/checkbox/settings/template.js:37
 msgid "List ender"
 msgstr ""
 

@@ -150,6 +150,23 @@ class Hooks extends Service_Provider {
 
 		add_filter( 'tribe_is_by_date', [ $this, 'filter_tribe_is_by_date' ], 10, 2 );
 		add_filter( 'tribe_events_views_v2_cached_views', [ $this, 'filter_tribe_events_views_v2_cached_views' ], 10, 2 );
+		add_filter( 'tribe_events_views_v2_photo_view_html_classes', [ $this, 'filter_grid_photo_classes' ], 10, 1 );
+	}
+
+	/**
+	 * Checks if our Photo Grid View option is selected and applies classes appropriately.
+	 *
+	 * @since 7.3.2
+	 *
+	 * @param array $classes List of container classes.
+	 * @return mixed The modified list of classes.
+	 */
+	public function filter_grid_photo_classes( $classes ) {
+		if ( tribe_get_option( 'photo_view_force_grid' ) ) {
+			$classes[] = 'tribe-events-pro-photo--grid';
+		}
+
+		return $classes;
 	}
 
 	/**

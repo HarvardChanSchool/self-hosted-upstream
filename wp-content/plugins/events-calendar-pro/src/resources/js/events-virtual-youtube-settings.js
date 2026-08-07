@@ -36,6 +36,19 @@ tribe.events.youtubeSettingsAdmin = tribe.events.youtubeSettingsAdmin || {};
 	};
 
 	/**
+	 * Create the message container for the YouTube settiungs.
+	 *
+	 * @since 7.3.2
+	 */
+	obj.createMessageContainer = function() {
+		if ( ! $( obj.selectors.youtubeMessageContainer ).length ) {
+			$( obj.selectors.youtubeChannelIdContainer )
+				.find( '.tribe-field-label' )
+				.after( $( '<div>', { class: 'tec-youtube-accounts-messages' } ) );
+		}
+	}
+
+	/**
 	 * Bind the YouTube events.
 	 *
 	 * @since 1.6.0
@@ -114,10 +127,12 @@ tribe.events.youtubeSettingsAdmin = tribe.events.youtubeSettingsAdmin || {};
 	 * Handles the initialization of the admin when Document is ready
 	 *
 	 * @since 1.6.0
+	 * @since 7.3.2 Added the creation of the message container.
 	 *
 	 * @return {void}
 	 */
 	obj.ready = function() {
+		obj.createMessageContainer();
 		obj.bindEvents();
 		obj.initSettingsAccordion();
 	};
