@@ -14,6 +14,7 @@ if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
 // Add mu-plugins here.
 $pantheon_mu_plugins = [
 	'pantheon-mu-plugin/pantheon.php',
+	'hsph-wordpress-toolkit/plugin.php',
 ];
 
 if ( ! defined( 'HSPH_SKIP_SAML' ) || ! HSPH_SKIP_SAML ) {
