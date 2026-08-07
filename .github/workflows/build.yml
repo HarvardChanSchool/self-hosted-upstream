@@ -29,6 +29,13 @@ jobs:
         run: |
           composer config -g github-oauth.github.com ${{ secrets.COMPOSER_AUTH }}
           composer install --no-dev
+          composer install \
+            --working-dir=wp-content/mu-plugins/hsph-wordpress-toolkit \
+            --no-dev \
+            --prefer-dist \
+            --optimize-autoloader \
+            --no-interaction
+          test -f wp-content/mu-plugins/hsph-wordpress-toolkit/vendor/autoload.php
       - name: Commit built assets to build branch
         run: |
           for dir in wp-content/plugins/*; do
