@@ -11,6 +11,11 @@ if ( defined( 'WP_INSTALLING' ) && WP_INSTALLING ) {
 	return;
 }
 
+// Make Composer-installed MU plugin dependencies available before loading them.
+if ( file_exists( ABSPATH . 'vendor/autoload.php' ) ) {
+	require_once ABSPATH . 'vendor/autoload.php';
+}
+
 // Add mu-plugins here.
 $pantheon_mu_plugins = [
 	'pantheon-mu-plugin/pantheon.php',
