@@ -7,7 +7,8 @@
 		"harvardchanschool/plugin-ui-shortcodes": "dev-main",
 		"the-events-calendar/events-calendar-pro": "^7.4.2",
 		"rankmath/seo-by-rank-math-pro": "^3.0.80",
-		"harvardchanschool/hsph-wordpress-toolkit": "dev-main"
+		"harvardchanschool/hsph-wordpress-toolkit": "dev-main",
+    "composer/installers": "^2.3"
 	},
 	"repositories": [
 		{
@@ -53,7 +54,7 @@
 	],
 	"extra": {
 		"installer-paths": {
-			"mu-plugins/{$name}": [
+			"wp-content/mu-plugins/{$name}": [
 				"type:wordpress-muplugin"
 			]
 		}
