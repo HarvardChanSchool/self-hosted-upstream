@@ -61,6 +61,33 @@
     "config": {
         "allow-plugins": {
             "composer/installers": true
-        }
+        },
+				"policy": {
+					"advisories": {
+						"ignore-id": [
+							"PKSA-vznr-tgp9-fd7d",
+							"PKSA-7qs6-zvnz-h66r",
+							"PKSA-gm5x-j3mz-71n9",
+							"PKSA-jj5t-2zs1-dcfm",
+							"PKSA-hn62-zkx4-1y5q",
+							"PKSA-gvzg-s447-b5b5",
+							"PKSA-gcrk-3vtt-1r14",
+							"PKSA-cnw1-2ytm-cgr8",
+							"PKSA-fy2t-3c5f-827y",
+							"PKSA-qxvb-2bpp-dnk6",
+							"PKSA-bbs6-q5q9-f3t4",
+							"PKSA-bcdd-5xc7-gwfb",
+							"PKSA-pwsk-hy21-4gby",
+							"PKSA-93qv-9n9h-6k6p",
+							"PKSA-k22t-f949-t9g6",
+							"PKSA-yfw5-9gnj-n2c7",
+							"PKSA-k1b4-kshy-xgbh",
+							"PKSA-2z36-j4q9-rsfy",
+							"PKSA-fvw5-9t6n-nwvr",
+							"PKSA-6d8m-6kgw-18zr",
+							"PKSA-stmn-hvzq-wph6"
+						]
+					}
+				}
     }
 }

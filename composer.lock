@@ -134,16 +134,16 @@
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.5.0",
+            "version": "2.5.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e"
+                "reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/4360e982f87f5f258bf872d094647791db2f4c8e",
-                "reference": "4360e982f87f5f258bf872d094647791db2f4c8e",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
+                "reference": "2823687acff28b2dbe67b2508a6b300e2c3fa4ce",
                 "shasum": ""
             },
             "require": {
@@ -198,7 +198,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.5.0"
+                "source": "https://github.com/guzzle/promises/tree/2.5.2"
             },
             "funding": [
                 {
@@ -214,7 +214,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-06-02T12:23:43+00:00"
+            "time": "2026-08-05T19:30:54+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
@@ -327,12 +327,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:HarvardChanSchool/hsph-wordpress-toolkit.git",
-                "reference": "7f7d72d4699ac663a8ced02d9d19cc7e3c39c02a"
+                "reference": "88f26464847fa17e875c88cbfd195cab5d473da3"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/HarvardChanSchool/hsph-wordpress-toolkit/zipball/7f7d72d4699ac663a8ced02d9d19cc7e3c39c02a",
-                "reference": "7f7d72d4699ac663a8ced02d9d19cc7e3c39c02a",
+                "url": "https://api.github.com/repos/HarvardChanSchool/hsph-wordpress-toolkit/zipball/88f26464847fa17e875c88cbfd195cab5d473da3",
+                "reference": "88f26464847fa17e875c88cbfd195cab5d473da3",
                 "shasum": ""
             },
             "require": {
@@ -343,7 +343,7 @@
             "support": {
                 "source": "https://github.com/HarvardChanSchool/hsph-wordpress-toolkit/tree/main"
             },
-            "time": "2026-05-22T21:49:07+00:00"
+            "time": "2026-08-05T19:39:55+00:00"
         },
         {
             "name": "harvardchanschool/plugin-design-system",
@@ -938,16 +938,16 @@
         },
         {
             "name": "symfony/deprecation-contracts",
-            "version": "v3.7.0",
+            "version": "v3.7.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/symfony/deprecation-contracts.git",
-                "reference": "50f59d1f3ca46d41ac911f97a78626b6756af35b"
+                "reference": "f3202fa1b5097b0af062dc978b32ecf63404e31d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/symfony/deprecation-contracts/zipball/50f59d1f3ca46d41ac911f97a78626b6756af35b",
-                "reference": "50f59d1f3ca46d41ac911f97a78626b6756af35b",
+                "url": "https://api.github.com/repos/symfony/deprecation-contracts/zipball/f3202fa1b5097b0af062dc978b32ecf63404e31d",
+                "reference": "f3202fa1b5097b0af062dc978b32ecf63404e31d",
                 "shasum": ""
             },
             "require": {
@@ -985,7 +985,7 @@
             "description": "A generic function and convention to trigger deprecation notices",
             "homepage": "https://symfony.com",
             "support": {
-                "source": "https://github.com/symfony/deprecation-contracts/tree/v3.7.0"
+                "source": "https://github.com/symfony/deprecation-contracts/tree/v3.7.1"
             },
             "funding": [
                 {
@@ -1005,7 +1005,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2026-04-13T15:52:40+00:00"
+            "time": "2026-06-05T06:23:12+00:00"
         },
         {
             "name": "the-events-calendar/events-calendar-pro",
