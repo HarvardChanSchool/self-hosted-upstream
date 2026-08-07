@@ -38,7 +38,7 @@ jobs:
             fi
           done
           # Do the same for wp-content/mu-plugins/hsph-wordpress-toolkit
-          rm -rf wp-content/mu-plugins/hsph-wordpress-toolkit
+          rm -rf wp-content/mu-plugins/hsph-wordpress-toolkit/.git
           git add -f wp-content/mu-plugins/hsph-wordpress-toolkit
           git diff --cached --quiet || git commit -m "Add built assets"
       - name: Replace composer.json with composer.json.dist, and rebuild composer.lock
