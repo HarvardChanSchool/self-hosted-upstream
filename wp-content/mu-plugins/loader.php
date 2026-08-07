@@ -22,6 +22,10 @@ $pantheon_mu_plugins = [
 	'hsph-wordpress-toolkit/plugin.php',
 ];
 
+if ( defined( 'WP_ENVIRONMENT_TYPE' ) && 'local' === WP_ENVIRONMENT_TYPE ) {
+	$pantheon_mu_plugins[] = 'local/disable-upgrade-insecure-requests.php';
+}
+
 foreach ( $pantheon_mu_plugins as $file ) {
 	require_once WPMU_PLUGIN_DIR . '/' . $file;
 }

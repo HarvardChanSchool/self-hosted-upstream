@@ -27,6 +27,8 @@ define( 'WP_DEBUG', true );
 define( 'WP_DEBUG_LOG', true );
 define( 'WP_DEBUG_DISPLAY', true );
 
+define( 'WP_ENVIRONMENT_TYPE', 'local' );
+
 define( 'WP_HOME', '<YOUR LOCAL DOMAIN>' );
 define( 'WP_SITEURL', '<YOUR LOCAL DOMAIN>' );
 
