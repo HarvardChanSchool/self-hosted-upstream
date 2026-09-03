@@ -1,5 +1,18 @@
 # Changelog
 
+### [6.17.3.1] 2026-08-26
+
+* Security - Harden capability checks on REST API archive endpoints.
+* Security - Harden validation of copied widget instance data.
+
+### [6.17.3] 2026-08-20
+
+* Security - Hardened validation of copied legacy widget instances.
+* Tweak - Switched changelog tooling from jetpack-changelogger to @stellarwp/changelogger.
+* Fix - Resolved an issue where the events archive page title showed the date range of the oldest events in the calendar rather than the events listed on the page.
+* Fix - Resolved an issue where Events archive pages could return a fatal error when the request included non-numeric or array pagination parameters.
+* Language - 0 new strings added, 99 updated, 0 fuzzied, and 5 obsoleted.
+
 ### [6.17.2] 2026-08-05
 
 * Language - 5 new strings added, 95 updated, 0 fuzzied, and 0 obsoleted.
