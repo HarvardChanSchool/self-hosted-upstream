@@ -507,8 +507,8 @@ class Comments_Logger extends Logger {
 	/**
 	 * Fires immediately after a comment is inserted into the database.
 	 *
-	 * @param int $comment_ID The comment ID.
-	 * @param int $comment_approved 1 if the comment is approved, 0 if not, 'spam' if spam.
+	 * @param int        $comment_ID The comment ID.
+	 * @param int|string $comment_approved 1 if the comment is approved, 0 if not, 'spam' if spam.
 	 */
 	public function on_comment_post( $comment_ID, $comment_approved ) {
 
@@ -633,7 +633,13 @@ class Comments_Logger extends Logger {
 		if ( isset( $context['comment_content'] ) && $context['comment_content'] ) {
 			$comment_text = $context['comment_content'];
 			$comment_text = wp_trim_words( $comment_text, 20 );
-			$comment_text = wpautop( $comment_text );
+
+			// Escape before wpautop() so the only HTML left is the paragraph markup
+			// wpautop() adds. Comment content is unauthenticated input and this string
+			// goes to the RAW formatter, which the admin UI renders with
+			// dangerouslySetInnerHTML. wp_trim_words() happens to strip tags today, but
+			// that is an implementation detail of an unrelated helper — do not rely on it.
+			$comment_text = wpautop( esc_html( $comment_text ) );
 		}
 
 		// Keys to show.

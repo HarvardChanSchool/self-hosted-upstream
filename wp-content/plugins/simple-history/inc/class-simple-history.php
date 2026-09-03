@@ -143,6 +143,7 @@ class Simple_History {
 	 */
 	private function get_services() {
 		$services = array(
+			Services\Abilities_Service::class,
 			Services\AddOns_Licences::class,
 			Services\Admin_Page_Premium_Promo::class,
 			Services\Admin_Pages::class,
@@ -516,6 +517,7 @@ class Simple_History {
 			Loggers\Plugin_User_Switching_Logger::class,
 			Loggers\Plugin_WP_Crontrol_Logger::class,
 			Loggers\Plugin_Jetpack_Logger::class,
+			Loggers\Plugin_WP_AI_Logger::class,
 			Loggers\Privacy_Logger::class,
 			Loggers\Translations_Logger::class,
 			Loggers\Categories_Logger::class,
@@ -531,6 +533,7 @@ class Simple_History {
 			Loggers\Options_Logger::class,
 			Loggers\Plugin_Logger::class,
 			Loggers\Post_Logger::class,
+			Loggers\Site_Editor_Logger::class,
 			Loggers\Theme_Logger::class,
 			Loggers\User_Logger::class,
 			Loggers\Simple_History_Logger::class,
