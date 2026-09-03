@@ -3,7 +3,7 @@
         'name' => 'pantheon-systems/wp-saml-auth',
         'pretty_version' => 'dev-release',
         'version' => 'dev-release',
-        'reference' => 'baab1862f2fc9db92ac4c254060dbee1bd5ce73e',
+        'reference' => '02b7847036a8e08d4a50aee5ef04eeda90cd7ba1',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'pantheon-systems/wp-saml-auth' => array(
             'pretty_version' => 'dev-release',
             'version' => 'dev-release',
-            'reference' => 'baab1862f2fc9db92ac4c254060dbee1bd5ce73e',
+            'reference' => '02b7847036a8e08d4a50aee5ef04eeda90cd7ba1',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
