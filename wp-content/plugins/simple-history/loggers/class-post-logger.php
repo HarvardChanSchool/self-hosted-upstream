@@ -6,6 +6,8 @@ use Simple_History\Event_Details\Event_Details_Container;
 use Simple_History\Event_Details\Event_Details_Group;
 use Simple_History\Event_Details\Event_Details_Group_Diff_Table_Formatter;
 use Simple_History\Event_Details\Event_Details_Item;
+use Simple_History\Event_Details\Event_Details_Item_Image_Diff_Table_Row_Formatter;
+use Simple_History\Event_Details\Event_Details_Item_Table_Row_RAW_Formatter;
 use Simple_History\Helpers;
 use Simple_History\Vendor\Jfcherng\Diff\DiffHelper;
 
@@ -15,6 +17,16 @@ use Simple_History\Vendor\Jfcherng\Diff\DiffHelper;
 class Post_Logger extends Logger {
 	/** @var string Logger slug */
 	public $slug = 'SimplePostLogger';
+
+	/**
+	 * How many custom field names to store per bucket in the context.
+	 *
+	 * The count stays the truth; the names are a sample, capped so a page builder
+	 * save touching hundreds of meta rows does not bloat the context table.
+	 *
+	 * @var int
+	 */
+	const MAX_META_KEYS_IN_CONTEXT = 20;
 
 	/**
 	 * Array that will contain previous post data, before data is updated.
@@ -49,6 +61,37 @@ class Post_Logger extends Logger {
 	 * @var array<int, bool>
 	 */
 	protected $events_given_a_revision_id = [];
+
+	/**
+	 * Posts and revisions already looked up while rendering this request,
+	 * including the ones that turned out not to exist.
+	 *
+	 * @var array<int, \WP_Post|null>
+	 */
+	private $looked_up_posts = [];
+
+	/**
+	 * "Before" snapshot for a meta-box-loader request, taken on
+	 * admin_action_editpost, before edit_post() writes the submitted meta.
+	 *
+	 * Keyed by post id. Only populated for requests with $_GET['meta-box-loader']
+	 * set — classic editor single-request saves already log from
+	 * on_transition_post_status() and don't need this.
+	 *
+	 * @var array<int, array{user_id: int, post_modified_gmt: string, post_meta: array}>
+	 */
+	protected $meta_box_loader_snapshots = [];
+
+	/**
+	 * Context handed over by a meta box's own save logic (e.g. Plugin_ACF_Logger)
+	 * for the post currently being saved, to merge into the same append/new-event
+	 * decision as the core meta diff in on_wp_after_insert_post_meta_box_loader().
+	 *
+	 * Keyed by post id.
+	 *
+	 * @var array<int, array>
+	 */
+	protected $meta_box_save_context = [];
 
 	/**
 	 * Get array with information about this logger.
@@ -127,6 +170,14 @@ class Post_Logger extends Logger {
 		// double-logging; these two hooks handle the prev/new snapshot + log instead.
 		add_action( 'pre_post_update', array( $this, 'on_pre_post_update' ), 10, 1 );
 		add_action( 'wp_after_insert_post', array( $this, 'on_wp_after_insert_post' ), 10, 4 );
+
+		// Block editor meta-box-loader path. maybe_log_post_change() deliberately
+		// bails for this request (see the meta-box-loader check there) so the
+		// REST API save isn't logged twice. These two hooks snapshot before/after
+		// so the custom field changes it makes can still be attached to (or, if
+		// nothing matches, logged as) a post_updated event.
+		add_action( 'admin_action_editpost', array( $this, 'on_admin_action_editpost_meta_box_loader' ) );
+		add_action( 'wp_after_insert_post', array( $this, 'on_wp_after_insert_post_meta_box_loader' ), 10, 4 );
 
 		add_action( 'update_option_page_on_front', array( $this, 'on_update_option_page_on_front' ), 10, 2 );
 		add_action( 'update_option_page_for_posts', array( $this, 'on_update_option_page_for_posts' ), 10, 2 );
@@ -513,6 +564,469 @@ class Post_Logger extends Logger {
 		}
 
 		$this->save_prev_post_data( $post_ID );
+	}
+
+	/**
+	 * Snapshot the "before" state for a block editor meta-box-loader request,
+	 * before edit_post() writes the meta box values that were submitted.
+	 *
+	 * Only meta-box-loader requests are handled here — the classic editor's
+	 * single-request save already logs everything it needs from
+	 * on_transition_post_status(), and on_admin_action_editpost_save_prev_post()
+	 * already covers its "before" snapshot.
+	 *
+	 * The recorded post_modified_gmt is still the value the earlier REST API
+	 * save (request 2 of the block editor's Update) wrote — see the
+	 * post_modified_gmt context key added in maybe_log_post_change() — which
+	 * is what on_wp_after_insert_post_meta_box_loader() uses to find that
+	 * event again.
+	 *
+	 * @since 5.34.0
+	 */
+	public function on_admin_action_editpost_meta_box_loader() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( empty( $_GET['meta-box-loader'] ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$post_id = isset( $_POST['post_ID'] ) ? (int) $_POST['post_ID'] : 0;
+
+		if ( $post_id === 0 ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof \WP_Post ) {
+			return;
+		}
+
+		// Cheap early exit — no point snapshotting meta for a post type this
+		// logger will never log anyway. See maybe_log_post_change(), which
+		// applies the same check for every other save path.
+		if ( ! $this->ok_to_log_post_posttype( $post ) ) {
+			return;
+		}
+
+		$this->meta_box_loader_snapshots[ $post_id ] = [
+			'user_id'           => get_current_user_id(),
+			'post_modified_gmt' => $post->post_modified_gmt,
+			'post_meta'         => get_post_custom( $post_id ),
+		];
+	}
+
+	/**
+	 * Finish a block editor meta-box-loader request: diff the meta snapshot
+	 * taken on admin_action_editpost against the meta as it is now, merge in
+	 * any context a meta box handed over via add_meta_box_save_context(), and
+	 * either attach the result to the post_updated event the earlier REST API
+	 * save logged, or — if that event can't be found — log a new one.
+	 *
+	 * Runs on wp_after_insert_post so it sees ACF's and other meta boxes'
+	 * saves, which happen on save_post (fired earlier in edit_post(), from
+	 * inside wp_update_post()).
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param int           $post_id     Post ID.
+	 * @param \WP_Post      $post        Post object.
+	 * @param bool          $update      Whether this is an existing post being updated.
+	 * @param \WP_Post|null $post_before Post object before the update.
+	 */
+	public function on_wp_after_insert_post_meta_box_loader( $post_id, $post, $update, $post_before ) {
+		if ( ! isset( $this->meta_box_loader_snapshots[ $post_id ] ) ) {
+			return;
+		}
+
+		$snapshot = $this->meta_box_loader_snapshots[ $post_id ];
+		unset( $this->meta_box_loader_snapshots[ $post_id ] );
+
+		$new_meta = get_post_custom( $post_id );
+
+		$context = $this->add_post_meta_diff_to_context( [], $snapshot['post_meta'], $new_meta );
+
+		// Merge in context a meta box handed over via add_meta_box_save_context(),
+		// e.g. Plugin_ACF_Logger's own richer, labelled diff of its fields.
+		if ( isset( $this->meta_box_save_context[ $post_id ] ) ) {
+			$context = array_merge( $context, $this->meta_box_save_context[ $post_id ] );
+
+			unset( $this->meta_box_save_context[ $post_id ] );
+		}
+
+		// Nothing changed (or everything that changed is ignored) — do nothing.
+		if ( empty( $context ) ) {
+			return;
+		}
+
+		$matched_event_id = $this->find_matching_post_updated_event_id(
+			$post_id,
+			$snapshot['post_modified_gmt'],
+			$snapshot['user_id']
+		);
+
+		if ( $matched_event_id ) {
+			// The matched event may already have rows for some of these keys —
+			// e.g. post_meta_changed_keys, if the earlier REST API save also
+			// changed custom fields (footnotes, saved through the block
+			// editor's own REST call, in addition to color here). append_context()
+			// would add a second row for the same key, and only one of the two
+			// survives on read. Merge the meta buckets and replace existing
+			// rows instead of duplicating them.
+			$existing_values = $this->get_existing_context_values( $matched_event_id, array_keys( $context ) );
+			$context         = $this->merge_post_meta_buckets( $context, $existing_values );
+
+			$this->replace_context( $matched_event_id, $context, array_keys( $existing_values ) );
+
+			return;
+		}
+
+		// No matching event — e.g. only meta changed here and the earlier
+		// REST API save had nothing to log, or another save happened in
+		// between. Log a new post_updated event with just the meta changes.
+		//
+		// This is the same gating maybe_log_post_change() applies before
+		// logging a post_updated event: the post type filter, and the
+		// ok_to_log/context filters. There is no status transition here — a
+		// meta-box-loader-only save only changes custom fields — so
+		// $new_status and $old_status are both the post's current status.
+		if ( ! $this->ok_to_log_post_posttype( $post ) ) {
+			return;
+		}
+
+		$context['post_id']           = $post_id;
+		$context['post_type']         = get_post_type( $post );
+		$context['post_title']        = get_the_title( $post );
+		$context['post_modified_gmt'] = $post->post_modified_gmt;
+
+		/**
+		 * Filter to control logging. Same filter maybe_log_post_change() applies.
+		 *
+		 * @param bool $ok_to_log
+		 * @param string|null $new_status
+		 * @param string|null $old_status
+		 * @param \WP_Post $post
+		 *
+		 * @return bool True to log, false to not log.
+		 */
+		$ok_to_log = apply_filters(
+			'simple_history/post_logger/post_updated/ok_to_log',
+			true,
+			$post->post_status,
+			$post->post_status,
+			$post
+		);
+
+		if ( ! $ok_to_log ) {
+			return;
+		}
+
+		/**
+		 * Modify the context saved. Same filter maybe_log_post_change() applies.
+		 *
+		 * @param array $context
+		 * @param \WP_Post $post
+		 */
+		$context = apply_filters( 'simple_history/post_logger/post_updated/context', $context, $post );
+
+		$this->info_message( 'post_updated', $context );
+	}
+
+	/**
+	 * Accept context computed by a meta box's own save logic — e.g. ACF's
+	 * field diff — to attach to the post_updated event for $post_id.
+	 *
+	 * Called from Plugin_ACF_Logger::on_acf_save_post() so the ACF logger no
+	 * longer has to know whether it is appending to an event already logged
+	 * in this request, or one that will be logged (or found) later. Two
+	 * callers, both handled here:
+	 *
+	 * - Classic editor / single-request saves have already logged the
+	 *   post_updated event for $post_id by the time save_post fires (this is
+	 *   $this->last_insert_id), so the context is appended immediately —
+	 *   same as before this method existed.
+	 * - The block editor's meta-box-loader request logs (or appends to) its
+	 *   event later, from on_wp_after_insert_post_meta_box_loader(), so the
+	 *   context is held until then.
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param int   $post_id Post the context belongs to.
+	 * @param array $context Context to attach.
+	 */
+	public function add_meta_box_save_context( $post_id, array $context ) {
+		if ( empty( $context ) ) {
+			return;
+		}
+
+		$post_id = (int) $post_id;
+
+		$already_logged_this_request =
+			$this->last_insert_id
+			&& (int) ( $this->last_insert_context['post_id'] ?? 0 ) === $post_id;
+
+		if ( $already_logged_this_request ) {
+			$this->append_context( $this->last_insert_id, $context );
+
+			return;
+		}
+
+		$this->meta_box_save_context[ $post_id ] = array_merge(
+			$this->meta_box_save_context[ $post_id ] ?? [],
+			$context
+		);
+	}
+
+	/**
+	 * Find the most recent post_updated event for a post, logged for a given
+	 * user, at a given post_modified_gmt.
+	 *
+	 * Used to attach a meta-box-loader request's changes to the event the
+	 * preceding REST API save (of the same block editor "Update" click)
+	 * logged — see on_wp_after_insert_post_meta_box_loader(). Matching by
+	 * post_modified_gmt rather than time proximity means a save that happens
+	 * to land close in time to an unrelated edit is not mismatched.
+	 *
+	 * Plain joins and placeholders only, no MySQL-specific SQL, so this works
+	 * against both MySQL/MariaDB and SQLite.
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param int    $post_id           Post ID.
+	 * @param string $post_modified_gmt post_modified_gmt value recorded on the wanted event.
+	 * @param int    $user_id           User id the wanted event was logged for.
+	 * @return int Event id, or 0 if no match was found.
+	 */
+	protected function find_matching_post_updated_event_id( $post_id, $post_modified_gmt, $user_id ) {
+		global $wpdb;
+
+		$events_table   = $this->simple_history->get_events_table_name();
+		$contexts_table = $this->simple_history->get_contexts_table_name();
+
+		// The event was logged in the same request that set post_modified_gmt,
+		// so it cannot be older than that. Event dates are stored in GMT too.
+		// Bounding on date lets the query use the logger + date index and look
+		// at a handful of rows, instead of every post_modified_gmt context row
+		// ever stored. One minute of slack covers a slow request.
+		$date_cutoff = gmdate( 'Y-m-d H:i:s', (int) strtotime( $post_modified_gmt . ' UTC' ) - MINUTE_IN_SECONDS );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table names, not user input.
+		$sql = "
+			SELECT h.id
+			FROM {$events_table} AS h
+			INNER JOIN {$contexts_table} AS c_msg  ON ( c_msg.history_id = h.id  AND c_msg.key  = '_message_key' AND c_msg.value = %s )
+			INNER JOIN {$contexts_table} AS c_post ON ( c_post.history_id = h.id AND c_post.key = 'post_id' AND c_post.value = %s )
+			INNER JOIN {$contexts_table} AS c_mod  ON ( c_mod.history_id = h.id  AND c_mod.key  = 'post_modified_gmt' AND c_mod.value = %s )
+			INNER JOIN {$contexts_table} AS c_user ON ( c_user.history_id = h.id AND c_user.key = '_user_id' AND c_user.value = %s )
+			WHERE h.logger = %s
+			AND h.date >= %s
+			ORDER BY h.date DESC, h.id DESC
+			LIMIT 1
+		";
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$event_id = $wpdb->get_var(
+			$wpdb->prepare(
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is the literal built above; phpcs can't see through the variable.
+				$sql,
+				'post_updated',
+				(string) $post_id,
+				(string) $post_modified_gmt,
+				(string) $user_id,
+				$this->slug,
+				$date_cutoff
+			)
+		);
+
+		return $event_id ? (int) $event_id : 0;
+	}
+
+	/**
+	 * Read the current context values for a set of keys on an already logged
+	 * event.
+	 *
+	 * Used by on_wp_after_insert_post_meta_box_loader() to find out which of
+	 * the keys it is about to write already exist on the matched event, so
+	 * merge_post_meta_buckets() and replace_context() can merge/overwrite
+	 * instead of appending duplicate rows.
+	 *
+	 * Plain SELECT with placeholders only, no MySQL-specific SQL, so this
+	 * works against both MySQL/MariaDB and SQLite.
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param int           $event_id Event to read context for.
+	 * @param array<string> $keys     Context keys to look for.
+	 * @return array<string, string> Existing value for each key found, keyed by context key.
+	 */
+	protected function get_existing_context_values( $event_id, array $keys ) {
+		if ( empty( $keys ) ) {
+			return [];
+		}
+
+		global $wpdb;
+
+		$contexts_table = $this->simple_history->get_contexts_table_name();
+
+		$placeholders = implode( ', ', array_fill( 0, count( $keys ), '%s' ) );
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name and a %s placeholder list, not user input.
+		$sql = "
+			SELECT `key`, value
+			FROM {$contexts_table}
+			WHERE history_id = %d
+			AND `key` IN ({$placeholders})
+			ORDER BY context_id ASC
+		";
+
+		$params = array_merge( [ $event_id ], $keys );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$rows = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $sql is the literal built above; phpcs can't see through the variable.
+			$wpdb->prepare( $sql, $params ),
+			ARRAY_A
+		);
+
+		$values = [];
+
+		foreach ( (array) $rows as $row ) {
+			// If a key somehow already has more than one row (e.g. left over
+			// from before this method existed), the last one is what reads
+			// back today — see Log_Query::add_contexts_to_log_rows() — so
+			// match that here too.
+			$values[ $row['key'] ] = $row['value'];
+		}
+
+		return $values;
+	}
+
+	/**
+	 * Merge this request's post_meta_added/changed/removed buckets into the
+	 * matching buckets already stored on an event, so an event that already
+	 * has e.g. post_meta_changed_keys (set by the REST API save that ran
+	 * moments earlier) ends up with a merged, deduplicated set of names and a
+	 * consistent count — not a second row that hides the first on read.
+	 *
+	 * Names are unioned in order (existing names first) and capped at
+	 * MAX_META_KEYS_IN_CONTEXT, same as get_meta_keys_sample(). The count is
+	 * the true union size when both sides still have their full name list
+	 * (i.e. neither was capped — count equals the number of names stored).
+	 * If either side was already capped, the names that didn't make the cut
+	 * aren't known any more, so an accurate union can't be computed; the two
+	 * counts are simply added instead. That can double-count a name that
+	 * changed on both sides, but undercounting (keeping only one side's
+	 * count) would silently lose changes, which is worse.
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param array<string, mixed>  $context         Context this request wants to write.
+	 * @param array<string, string> $existing_values Existing context values for the
+	 *                               matched event, from get_existing_context_values().
+	 * @return array<string, mixed> $context with the post_meta_* buckets merged in.
+	 */
+	protected function merge_post_meta_buckets( array $context, array $existing_values ) {
+		foreach ( [ 'post_meta_added', 'post_meta_changed', 'post_meta_removed' ] as $count_key ) {
+			$keys_key = "{$count_key}_keys";
+
+			if ( ! isset( $context[ $count_key ] ) || ! isset( $existing_values[ $count_key ] ) ) {
+				continue;
+			}
+
+			$existing_count = (int) $existing_values[ $count_key ];
+			$existing_names = json_decode( (string) ( $existing_values[ $keys_key ] ?? '' ), true );
+			$existing_names = is_array( $existing_names ) ? $existing_names : [];
+
+			$new_count = (int) $context[ $count_key ];
+			$new_names = json_decode( (string) ( $context[ $keys_key ] ?? '' ), true );
+			$new_names = is_array( $new_names ) ? $new_names : [];
+
+			$either_side_was_capped = count( $existing_names ) < $existing_count || count( $new_names ) < $new_count;
+
+			$merged_names = array_slice(
+				array_values( array_unique( array_merge( $existing_names, $new_names ) ) ),
+				0,
+				self::MAX_META_KEYS_IN_CONTEXT
+			);
+
+			$context[ $count_key ] = $either_side_was_capped
+				? $existing_count + $new_count
+				: count( array_unique( array_merge( $existing_names, $new_names ) ) );
+
+			$context[ $keys_key ] = (string) wp_json_encode( $merged_names );
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Write context values for an already logged event, updating any row
+	 * that already exists for a key instead of appending a duplicate one.
+	 *
+	 * append_context() is insert-only, so calling it twice for the same key
+	 * on the same event produces two rows for that key, and only one of them
+	 * survives on read (see Log_Query::add_contexts_to_log_rows()). This is
+	 * for the meta-box-loader path, where the matched event's context may
+	 * already contain some of the keys being written — both the merged
+	 * post_meta_* buckets (see merge_post_meta_buckets()) and, e.g., an ACF
+	 * context key from a previous save of the same field on the same event.
+	 *
+	 * Plain UPDATE/INSERT, no upsert syntax, so this works against both
+	 * MySQL/MariaDB and SQLite. There's no dedicated update-context helper
+	 * on the base Logger class to reuse — append_context() is the only
+	 * existing one, and it's insert-only by design.
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param int                  $event_id      Event to update.
+	 * @param array<string, mixed> $context       Context to write.
+	 * @param array<string>        $existing_keys Keys that already have a row for
+	 *                             this event (from get_existing_context_values()).
+	 */
+	protected function replace_context( $event_id, array $context, array $existing_keys ) {
+		if ( empty( $context ) ) {
+			return;
+		}
+
+		global $wpdb;
+
+		$contexts_table = $this->simple_history->get_contexts_table_name();
+
+		$context_to_append = [];
+
+		foreach ( $context as $key => $value ) {
+			if ( ! in_array( $key, $existing_keys, true ) ) {
+				$context_to_append[ $key ] = $value;
+
+				continue;
+			}
+
+			// Match append_context_batched()'s value handling so a row
+			// updated here looks the same as one it would have inserted.
+			$db_value = is_string( $value ) ? $value : Helpers::json_encode( $value );
+			$db_value = Helpers::strip_4_byte_chars( $db_value );
+
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->query(
+				$wpdb->prepare(
+					// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- table name, not user input.
+					"UPDATE {$contexts_table} SET value = %s WHERE history_id = %d AND `key` = %s",
+					$db_value,
+					$event_id,
+					$key
+				)
+			);
+		}
+
+		if ( ! empty( $context_to_append ) ) {
+			$this->append_context( $event_id, $context_to_append );
+		}
+
+		Helpers::clear_cache();
 	}
 
 	/**
@@ -903,6 +1417,13 @@ class Post_Logger extends Logger {
 		} else {
 			// Existing post was updated.
 
+			// Store the post's modified date right after this update, so a
+			// later request — the block editor's meta-box-loader save, which
+			// never reaches this method (see the meta-box-loader bail above) —
+			// can find this exact event again and attach its own changes to
+			// it. See on_wp_after_insert_post_meta_box_loader().
+			$context['post_modified_gmt'] = $post->post_modified_gmt;
+
 			// Also add diff between previous saved data and new data.
 			// Now we have both old and new post data, including custom fields, in the same format
 			// So let's compare!
@@ -914,7 +1435,7 @@ class Post_Logger extends Logger {
 			 * Modify the context saved.
 			 *
 			 * @param array $context
-			 * @param WP_Post $post
+			 * @param \WP_Post $post
 			 */
 			$context = apply_filters( 'simple_history/post_logger/post_updated/context', $context, $post );
 
@@ -1122,36 +1643,6 @@ class Post_Logger extends Logger {
 		}
 
 		// Compare custom fields.
-		// Array with custom field keys to ignore because changed every time or very internal.
-		$arr_meta_keys_to_ignore = array(
-			'_edit_lock',
-			'_edit_last',
-			'_post_restored_from',
-			'_wp_page_template',
-			'_thumbnail_id',
-
-			// _encloseme is added to a post when it's published. The wp-cron process should get scheduled shortly thereafter to process the post to look for enclosures.
-			// https://wordpress.stackexchange.com/questions/20904/the-encloseme-meta-key-conundrum
-			'_encloseme',
-		);
-
-		/**
-		 * Filters the array with custom field keys to ignore.
-		 *
-		 * @param  array $arr_meta_keys_to_ignore Array with custom field keys to ignore.
-		 * @param  array $context                 Array with context.
-		 * @return array                          Filtered array with custom field keys to ignore.
-		 *
-		 * @since 5.8.2
-		 */
-		$arr_meta_keys_to_ignore = apply_filters( 'simple_history/post_logger/meta_keys_to_ignore', $arr_meta_keys_to_ignore, $context );
-
-		$meta_changes = array(
-			'added'   => array(),
-			'removed' => array(),
-			'changed' => array(),
-		);
-
 		$old_meta = isset( $old_post_data['post_meta'] ) ? (array) $old_post_data['post_meta'] : array();
 		$new_meta = isset( $new_post_data['post_meta'] ) ? (array) $new_post_data['post_meta'] : array();
 
@@ -1176,51 +1667,11 @@ class Post_Logger extends Logger {
 			}
 		}
 
-		// Remove fields that we have checked already and other that should be ignored.
-		foreach ( $arr_meta_keys_to_ignore as $key_to_ignore ) {
-			unset( $old_meta[ $key_to_ignore ] );
-			unset( $new_meta[ $key_to_ignore ] );
-		}
-
-		// Look for added custom fields/meta.
-		foreach ( $new_meta as $meta_key => $meta_value ) {
-			if ( isset( $old_meta[ $meta_key ] ) ) {
-				continue;
-			}
-
-			$meta_changes['added'][ $meta_key ] = true;
-		}
-
-		// Look for changed custom fields/meta.
-		foreach ( $old_meta as $meta_key => $meta_value ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
-			if ( ! isset( $new_meta[ $meta_key ] ) || json_encode( $old_meta[ $meta_key ] ) === json_encode( $new_meta[ $meta_key ] ) ) {
-				continue;
-			}
-
-			$meta_changes['changed'][ $meta_key ] = true;
-		}
-
-		// Look for removed custom fields/meta.
-		foreach ( $old_meta as $meta_key => $meta_value ) {
-			if ( isset( $new_meta[ $meta_key ] ) ) {
-				continue;
-			}
-
-			$meta_changes['removed'][ $meta_key ] = true;
-		}
-
-		if ( $meta_changes['added'] ) {
-			$context['post_meta_added'] = count( $meta_changes['added'] );
-		}
-
-		if ( $meta_changes['removed'] ) {
-			$context['post_meta_removed'] = count( $meta_changes['removed'] );
-		}
-
-		if ( $meta_changes['changed'] ) {
-			$context['post_meta_changed'] = count( $meta_changes['changed'] );
-		}
+		// Added/changed/removed custom field buckets. Extracted to its own
+		// method so the meta-box-loader request — which never reaches this
+		// method because maybe_log_post_change() bails for it — can run the
+		// exact same diff. See add_post_meta_diff_to_context().
+		$context = $this->add_post_meta_diff_to_context( $context, $old_meta, $new_meta );
 
 		// Check for changes in post visibility and post password usage and store in context.
 		// publish = public
@@ -1321,6 +1772,129 @@ class Post_Logger extends Logger {
 		 * @since 2.36.0
 		 */
 		return apply_filters( 'simple_history/post_logger/context', $context, $old_data, $new_data, $old_meta, $new_meta );
+	}
+
+	/**
+	 * Diff two post meta snapshots and add the added/changed/removed custom
+	 * field buckets to $context — same shape used elsewhere in this logger's
+	 * context: post_meta_added/post_meta_added_keys, post_meta_changed/
+	 * post_meta_changed_keys, post_meta_removed/post_meta_removed_keys.
+	 *
+	 * Extracted out of add_post_data_diff_to_context() so the meta-box-loader
+	 * request (see on_wp_after_insert_post_meta_box_loader()) can run the
+	 * exact same diff — that request never reaches
+	 * add_post_data_diff_to_context() because maybe_log_post_change()
+	 * deliberately bails for it.
+	 *
+	 * @since 5.34.0
+	 *
+	 * @param array $context  Context to add the buckets to.
+	 * @param array $old_meta Post meta before the save, in get_post_custom() shape (meta_key => array of values).
+	 * @param array $new_meta Post meta after the save, in get_post_custom() shape.
+	 * @return array $context with post_meta_* keys added, if there were changes.
+	 */
+	protected function add_post_meta_diff_to_context( $context, $old_meta, $new_meta ) {
+		// Array with custom field keys to ignore because changed every time or very internal.
+		$arr_meta_keys_to_ignore = array(
+			'_edit_lock',
+			'_edit_last',
+			'_post_restored_from',
+			'_wp_page_template',
+			'_thumbnail_id',
+
+			// _encloseme is added to a post when it's published. The wp-cron process should get scheduled shortly thereafter to process the post to look for enclosures.
+			// https://wordpress.stackexchange.com/questions/20904/the-encloseme-meta-key-conundrum
+			'_encloseme',
+		);
+
+		$meta_changes = array(
+			'added'   => array(),
+			'removed' => array(),
+			'changed' => array(),
+		);
+
+		/**
+		 * Filters the array with custom field keys to ignore.
+		 *
+		 * An entry can be an exact meta key, or a simple prefix wildcard ending
+		 * in "*", e.g. "_seopress_social_*" ignores every key starting with
+		 * that prefix.
+		 *
+		 * Old and new meta added in 5.34.0, so a callback can decide what to
+		 * ignore based on what is actually there, e.g. a plugin's own
+		 * bookkeeping keys.
+		 *
+		 * @param  array $arr_meta_keys_to_ignore Array with custom field keys (or "prefix*" wildcards) to ignore.
+		 * @param  array $context                 Array with context.
+		 * @param  array $old_meta                Post meta before the save, keyed by meta key.
+		 * @param  array $new_meta                Post meta after the save, keyed by meta key.
+		 * @return array                          Filtered array with custom field keys to ignore.
+		 *
+		 * @since 5.8.2
+		 */
+		$arr_meta_keys_to_ignore = apply_filters( 'simple_history/post_logger/meta_keys_to_ignore', $arr_meta_keys_to_ignore, $context, $old_meta, $new_meta );
+
+		// Remove fields that we have checked already and other that should be ignored.
+		$old_meta = $this->remove_ignored_meta_keys( $old_meta, $arr_meta_keys_to_ignore );
+		$new_meta = $this->remove_ignored_meta_keys( $new_meta, $arr_meta_keys_to_ignore );
+
+		// Look for added custom fields/meta.
+		foreach ( $new_meta as $meta_key => $meta_value ) {
+			if ( isset( $old_meta[ $meta_key ] ) ) {
+				continue;
+			}
+
+			// A key that appears with an empty value is not an addition a user
+			// would recognise. SEOPress, for example, creates ~30 meta keys with
+			// empty string values on a post's first save.
+			if ( $this->is_meta_value_empty( $meta_value ) ) {
+				continue;
+			}
+
+			$meta_changes['added'][ $meta_key ] = true;
+		}
+
+		// Look for changed custom fields/meta.
+		foreach ( $old_meta as $meta_key => $meta_value ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+			if ( ! isset( $new_meta[ $meta_key ] ) || json_encode( $old_meta[ $meta_key ] ) === json_encode( $new_meta[ $meta_key ] ) ) {
+				continue;
+			}
+
+			$meta_changes['changed'][ $meta_key ] = true;
+		}
+
+		// Look for removed custom fields/meta.
+		foreach ( $old_meta as $meta_key => $meta_value ) {
+			if ( isset( $new_meta[ $meta_key ] ) ) {
+				continue;
+			}
+
+			// A key that only ever held an empty value is not a removal a user
+			// would recognise.
+			if ( $this->is_meta_value_empty( $meta_value ) ) {
+				continue;
+			}
+
+			$meta_changes['removed'][ $meta_key ] = true;
+		}
+
+		if ( $meta_changes['added'] ) {
+			$context['post_meta_added']      = count( $meta_changes['added'] );
+			$context['post_meta_added_keys'] = $this->get_meta_keys_sample( $meta_changes['added'] );
+		}
+
+		if ( $meta_changes['removed'] ) {
+			$context['post_meta_removed']      = count( $meta_changes['removed'] );
+			$context['post_meta_removed_keys'] = $this->get_meta_keys_sample( $meta_changes['removed'] );
+		}
+
+		if ( $meta_changes['changed'] ) {
+			$context['post_meta_changed']      = count( $meta_changes['changed'] );
+			$context['post_meta_changed_keys'] = $this->get_meta_keys_sample( $meta_changes['changed'] );
+		}
+
+		return $context;
 	}
 
 	/**
@@ -1532,18 +2106,11 @@ class Post_Logger extends Logger {
 				}
 			}
 
-			// `wp_revisions_enabled()` is a constant-time check (post-type
-			// support + WP_POST_REVISIONS); skipping it would issue a WP_Query
-			// per post_updated event on sites that have revisions disabled.
-			if ( $message_key === 'post_updated' && wp_revisions_enabled( $post ) ) {
-				$revisions = wp_get_post_revisions( $post_id, [ 'numberposts' => 1 ] );
-				if ( ! empty( $revisions ) ) {
-					$latest_revision = reset( $revisions );
-					$action_links[]  = [
-						'url'    => admin_url( 'revision.php?revision=' . $latest_revision->ID ),
-						'label'  => __( 'Revisions', 'simple-history' ),
-						'action' => 'revisions',
-					];
+			if ( $message_key === 'post_updated' && $has_edit_cap ) {
+				$revision_link = $this->get_revision_action_link( $context, $post_id );
+
+				if ( $revision_link ) {
+					$action_links[] = $revision_link;
 				}
 			}
 		}
@@ -1572,6 +2139,222 @@ class Post_Logger extends Logger {
 	}
 
 	/**
+	 * Get the revision action link for an event.
+	 *
+	 * Two shapes, and the label distinguishes them so neither claims more than
+	 * it can deliver:
+	 *
+	 * - **"View revision"** when we know which revision the event produced and
+	 *   it still exists. Phrased per event, so its absence reads as a fact
+	 *   about that event rather than as a broken capability.
+	 * - **"Revisions"** for events logged before we recorded the revision id,
+	 *   which cannot say which revision they made. These keep the original
+	 *   behaviour — the post's newest revision — under the original generic
+	 *   label, so nothing is taken away from older history.
+	 *
+	 * Where we know the specific revision and it has been pruned, there is
+	 * still no link: falling back to the newest one there would be exactly the
+	 * silent mislead this replaced, and the details panel says it is gone.
+	 *
+	 * @param array $context Event context.
+	 * @param int   $post_id ID of the post the event belongs to.
+	 * @return array|null Action link array, or null when there is nothing to link to.
+	 */
+	protected function get_revision_action_link( $context, $post_id ) {
+		$state = $this->get_event_revision_state( $context, $post_id );
+
+		if ( $state['status'] === 'available' ) {
+			return [
+				'url'    => $this->get_revision_admin_url( $state['revision']->ID, $post_id ),
+				'label'  => __( 'View revision', 'simple-history' ),
+				'action' => 'revisions',
+			];
+		}
+
+		if ( $state['status'] === 'unknown' ) {
+			return $this->get_latest_revision_action_link( $post_id );
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get a link to the post's newest revision, for events that never recorded
+	 * which revision they created.
+	 *
+	 * `wp_revisions_enabled()` is a constant-time check (post-type support plus
+	 * WP_POST_REVISIONS); running it first keeps sites with revisions disabled
+	 * from issuing a WP_Query per event.
+	 *
+	 * @param int $post_id ID of the post the event belongs to.
+	 * @return array|null Action link array, or null when the post has no revisions.
+	 */
+	protected function get_latest_revision_action_link( $post_id ) {
+		$post = $this->get_cached_post( $post_id );
+
+		if ( ! $post instanceof \WP_Post || ! wp_revisions_enabled( $post ) ) {
+			return null;
+		}
+
+		$revisions = wp_get_post_revisions( $post_id, [ 'numberposts' => 1 ] );
+
+		if ( empty( $revisions ) ) {
+			return null;
+		}
+
+		$latest_revision = reset( $revisions );
+
+		return [
+			'url'    => $this->get_revision_admin_url( $latest_revision->ID, $post_id ),
+			'label'  => __( 'Revisions', 'simple-history' ),
+			'action' => 'revisions',
+		];
+	}
+
+	/**
+	 * Work out what became of the revision this event created.
+	 *
+	 * WordPress prunes revisions on its own schedule (WP_POST_REVISIONS) and
+	 * deletes them with their parent post, while our events outlive both. The
+	 * cases have to be told apart rather than lumped into "no link", because
+	 * only one of them can honestly be reported to the user as gone:
+	 *
+	 * - `unknown`      no revision id stored — an old event, or none was made.
+	 * - `available`    stored, still present, and WordPress will display it.
+	 * - `gone`         stored, and the row no longer exists. Safe to report.
+	 * - `unverifiable` the id points at something that is not this post's
+	 *                  revision, which happens after a restore or migration.
+	 *                  The revision may well still exist, so claiming it is
+	 *                  gone would be a false statement.
+	 * - `disabled`     the row exists but revisions were turned off since, and
+	 *                  revision.php now refuses to render it.
+	 *
+	 * @param array $context Event context.
+	 * @param int   $post_id ID of the post the event belongs to.
+	 * @return array{status:string,revision:\WP_Post|null}
+	 */
+	protected function get_event_revision_state( $context, $post_id ) {
+		$revision_id = (int) ( $context['post_revision_id'] ?? 0 );
+
+		if ( $revision_id === 0 ) {
+			return [
+				'status'   => 'unknown',
+				'revision' => null,
+			];
+		}
+
+		$revision = $this->get_cached_post( $revision_id );
+
+		// Nothing at that id at all: the revision really has been deleted, and
+		// saying so is accurate.
+		if ( ! $revision instanceof \WP_Post ) {
+			return [
+				'status'   => 'gone',
+				'revision' => null,
+			];
+		}
+
+		// Something is there, but it is not a revision. After a restore or
+		// migration an id can just as easily land on an ordinary post as on
+		// another post's revision, and the revision this event made may be
+		// perfectly intact under a different id — so this cannot be reported
+		// as deleted either.
+		if ( $revision->post_type !== 'revision' ) {
+			return [
+				'status'   => 'unverifiable',
+				'revision' => null,
+			];
+		}
+
+		if ( (int) $revision->post_parent !== $post_id ) {
+			return [
+				'status'   => 'unverifiable',
+				'revision' => null,
+			];
+		}
+
+		// A site can turn revisions off after the fact, leaving rows that
+		// WordPress now refuses to display: revision.php redirects to the post
+		// list rather than render one. Mirror its check so we do not offer a
+		// link into that dead end. Autosaves stay viewable, as they do there.
+		$parent = $this->get_cached_post( $post_id );
+
+		if (
+			$parent instanceof \WP_Post
+			&& ! wp_revisions_enabled( $parent )
+			&& ! wp_is_post_autosave( $revision )
+		) {
+			return [
+				'status'   => 'disabled',
+				'revision' => $revision,
+			];
+		}
+
+		return [
+			'status'   => 'available',
+			'revision' => $revision,
+		];
+	}
+
+	/**
+	 * get_post() wrapper that also remembers misses.
+	 *
+	 * Each rendered row asks about its revision twice — once for the action
+	 * link, once for the details panel. WP_Post::get_instance() caches hits but
+	 * not misses, and a miss is the common case here: an old event whose
+	 * revision WordPress has long since pruned. Without this, a page of such
+	 * events issues two uncached queries per row.
+	 *
+	 * @param int $post_id Post ID to look up.
+	 * @return \WP_Post|null
+	 */
+	private function get_cached_post( $post_id ) {
+		if ( array_key_exists( $post_id, $this->looked_up_posts ) ) {
+			return $this->looked_up_posts[ $post_id ];
+		}
+
+		$post = get_post( $post_id );
+
+		$this->looked_up_posts[ $post_id ] = $post instanceof \WP_Post ? $post : null;
+
+		return $this->looked_up_posts[ $post_id ];
+	}
+
+	/**
+	 * Get the admin URL for viewing a single revision.
+	 *
+	 * WordPress 7.1 renders revisions visually in the editor, with added,
+	 * modified and removed blocks marked up in place, and accepts the revision
+	 * id as a query arg. Older versions get the classic comparison screen.
+	 *
+	 * The upgrade is deliberately silent — same label either way — because we
+	 * cannot tell from the server whether the visual view will actually open.
+	 * WordPress disables it whenever the post has active meta boxes, which any
+	 * SEO or custom fields plugin adds, and then redirects to the classic
+	 * screen. Both destinations show the correct revision, so the fallback is
+	 * harmless; a label promising a visual comparison would not be.
+	 *
+	 * @param int $revision_id ID of the revision to view.
+	 * @param int $post_id     ID of the revision's parent post.
+	 * @return string Admin URL.
+	 */
+	protected function get_revision_admin_url( $revision_id, $post_id ) {
+		global $wp_version;
+
+		if ( version_compare( $wp_version, '7.1', '>=' ) ) {
+			return admin_url(
+				sprintf(
+					'post.php?post=%1$d&action=edit&revision=%2$d',
+					$post_id,
+					$revision_id
+				)
+			);
+		}
+
+		return admin_url( 'revision.php?revision=' . $revision_id );
+	}
+
+	/**
 	 * Get details output for row.
 	 *
 	 * @param object $row Row data.
@@ -1594,8 +2377,15 @@ class Post_Logger extends Logger {
 				// Skip some context keys.
 				$keys_to_skip = [];
 
-				// Skip post author because we manually output the change already.
-				$keys_to_skip = [ 'post_author/user_login', 'post_author/user_email', 'post_author/display_name' ];
+				// Skip post author and featured image keys because we output
+				// those changes manually further down.
+				$keys_to_skip = [
+					'post_author/user_login',
+					'post_author/user_email',
+					'post_author/display_name',
+					'thumb_id',
+					'thumb_title',
+				];
 
 				if ( strpos( $key, 'post_prev_' ) === false ) {
 					continue;
@@ -1628,7 +2418,7 @@ class Post_Logger extends Logger {
 					$label           = __( 'Title', 'simple-history' );
 
 					$diff_table_output .= sprintf(
-						'<tr><td>%1$s</td><td>%2$s</td></tr>',
+						'<dt>%1$s</dt><dd>%2$s</dd>',
 						$this->label_for( $key_to_diff, $label, $context ),
 						helpers::text_diff( $post_old_value, $post_new_value )
 					);
@@ -1644,7 +2434,7 @@ class Post_Logger extends Logger {
 
 					if ( $key_text_diff ) {
 						$diff_table_output .= sprintf(
-							'<tr><td>%1$s</td><td>%2$s</td></tr>',
+							'<dt>%1$s</dt><dd>%2$s</dd>',
 							$this->label_for( $key_to_diff, $label, $context ),
 							$key_text_diff
 						);
@@ -1664,10 +2454,8 @@ class Post_Logger extends Logger {
 					$label           = __( 'Permalink', 'simple-history' );
 
 					$diff_table_output .= sprintf(
-						'<tr>
-							<td>%1$s</td>
-							<td>%2$s</td>
-						</tr>',
+						'<dt>%1$s</dt>
+							<dd>%2$s</dd>',
 						$this->label_for( $key_to_diff, $label, $context ),
 						helpers::text_diff( $post_old_value, $post_new_value )
 					);
@@ -1730,60 +2518,12 @@ class Post_Logger extends Logger {
 					$has_diff_values = true;
 
 					$diff_table_output .= $this->extra_diff_record(
-						$this->label_for( $key_to_diff, $key_to_diff, $context ),
+						$this->label_for( $key_to_diff, $this->get_human_label_for_diff_key( $key_to_diff ), $context ),
 						$post_old_value,
 						$post_new_value
 					);
 				}
 			}
-
-			if (
-				isset( $context['post_meta_added'] ) ||
-				isset( $context['post_meta_removed'] ) ||
-				isset( $context['post_meta_changed'] )
-			) {
-				$meta_changed_out = '';
-				$has_diff_values  = true;
-
-				if ( isset( $context['post_meta_added'] ) ) {
-					$meta_changed_out .=
-						"<span class='SimpleHistoryLogitem__inlineDivided'>" .
-						(int) $context['post_meta_added'] .
-						' added</span> ';
-				}
-
-				if ( isset( $context['post_meta_removed'] ) ) {
-					$meta_changed_out .=
-						"<span class='SimpleHistoryLogitem__inlineDivided'>" .
-						(int) $context['post_meta_removed'] .
-						' removed</span> ';
-				}
-
-				if ( isset( $context['post_meta_changed'] ) ) {
-					$meta_changed_out .=
-						"<span class='SimpleHistoryLogitem__inlineDivided'>" .
-						(int) $context['post_meta_changed'] .
-						' changed</span> ';
-				}
-
-				$diff_table_output .= sprintf(
-					'<tr>
-						<td>%1$s</td>
-						<td>%2$s</td>
-					</tr>',
-					esc_html( __( 'Custom fields', 'simple-history' ) ),
-					$meta_changed_out
-				);
-			}
-
-			// Changed terms.
-			$diff_table_output .= $this->get_log_row_details_output_for_post_terms( $context, 'added' );
-			$diff_table_output .= $this->get_log_row_details_output_for_post_terms( $context, 'removed' );
-
-			// Changed post thumb/featured image.
-			// post_prev_thumb, int of prev thumb, empty if not prev thumb.
-			// post_new_thumb, int of new thumb, empty if no new thumb.
-			$diff_table_output .= $this->get_log_row_details_output_for_post_thumb( $context );
 
 			// Render compact JSON diff for post_content if available.
 			if ( isset( $context['post_content_diff'] ) ) {
@@ -1792,15 +2532,29 @@ class Post_Logger extends Logger {
 				if ( $json_diff_html !== '' ) {
 					$has_diff_values    = true;
 					$diff_table_output .= sprintf(
-						'<tr><td>%1$s</td><td>%2$s</td></tr>',
+						'<dt>%1$s</dt><dd>%2$s</dd>',
 						esc_html( __( 'Content', 'simple-history' ) ),
 						$json_diff_html
 					);
 				}
 			}
 
+			$rows_before_filter = substr_count( strtolower( $diff_table_output ), '<tr' );
+
 			/**
-			 * Modify the formatted diff output of a saved/modified post
+			 * Modify the formatted diff output of a saved/modified post.
+			 *
+			 * The output is a string of <dt>label</dt><dd>value</dd> pairs that is
+			 * wrapped in a <dl class="SimpleHistoryLogitem__keyValueTable">.
+			 * Before 5.33 the pairs were <tr><td></td><td></td></tr> rows. A
+			 * callback that still appends such rows is detected below and the
+			 * whole list is then rendered in the old table form instead.
+			 *
+			 * Since the next version, custom field changes and added/removed
+			 * taxonomy terms are no longer part of this string. They moved to
+			 * their own Event_Details_Group (see
+			 * get_details_group_for_post_meta_and_terms()) so REST, CLI, and
+			 * abilities consumers get structured data for them instead of HTML.
 			 *
 			 * @param string $diff_table_output
 			 * @param array $context
@@ -1813,8 +2567,52 @@ class Post_Logger extends Logger {
 			);
 
 			if ( $has_diff_values || $diff_table_output ) {
-				$diff_table_output =
-					'<table class="SimpleHistoryLogitem__keyValueTable">' . $diff_table_output . '</table>';
+				$legacy_rows_added = substr_count( strtolower( $diff_table_output ), '<tr' ) > $rows_before_filter;
+
+				if ( $legacy_rows_added ) {
+					// Browsers drop <tr>/<td> tags inside a <dl>, so the rows a
+					// pre-5.33 callback appended would turn into loose text and
+					// shift every pair after them. Fall back to the table form,
+					// which the stylesheet lays out identically. Our own pairs
+					// translate with plain replacement: <dt>/<dd> never nest
+					// and never occur inside a value.
+					$diff_table_output = str_replace(
+						[ '<dt>', '</dt>', '<dd>', '</dd>' ],
+						[ '<tr><td>', '</td>', '<td>', '</td></tr>' ],
+						$diff_table_output
+					);
+
+					$diff_table_output =
+						'<table class="SimpleHistoryLogitem__keyValueTable"><tbody>' . $diff_table_output . '</tbody></table>';
+				} else {
+					$diff_table_output =
+						'<dl class="SimpleHistoryLogitem__keyValueTable">' . $diff_table_output . '</dl>';
+				}
+			}
+
+			// Explain a missing "View this revision" link, but only when we can
+			// do so truthfully. Without this the link's absence invites the
+			// wrong conclusion — that the edit did not produce a revision —
+			// which is a false statement about the user's own history.
+			//
+			// Only the 'gone' state earns the note. 'unverifiable' means the id
+			// no longer resolves to this post's revision after a restore or
+			// migration, where the revision may well still exist; 'unknown'
+			// means we never recorded one. Neither can be reported as deleted.
+			//
+			// Gated on the same capability as the link itself, so we never
+			// explain the absence of something the reader could not have seen.
+			$post_id_for_revision = (int) ( $context['post_id'] ?? 0 );
+
+			if ( $post_id_for_revision && current_user_can( 'edit_post', $post_id_for_revision ) ) {
+				$revision_state = $this->get_event_revision_state( $context, $post_id_for_revision );
+
+				if ( $revision_state['status'] === 'gone' ) {
+					$inline_group->add_item(
+						( new Event_Details_Item( null, __( 'Revision', 'simple-history' ) ) )
+							->set_new_value( __( 'No longer stored by WordPress', 'simple-history' ) )
+					);
+				}
 			}
 
 			$groups = [];
@@ -1825,6 +2623,25 @@ class Post_Logger extends Logger {
 
 			if ( $diff_table_output !== '' ) {
 				$groups[] = Event_Details_Group::create_raw( $diff_table_output );
+			}
+
+			// Changed custom fields and taxonomy terms. Their own group rather
+			// than rows in the raw table above, so the change also reaches
+			// details_data (REST, CLI, abilities), which a raw HTML group
+			// cannot describe.
+			$meta_and_terms_group = $this->get_details_group_for_post_meta_and_terms( $context );
+
+			if ( $meta_and_terms_group ) {
+				$groups[] = $meta_and_terms_group;
+			}
+
+			// Changed featured image. Its own group rather than a row in the raw
+			// table above, so the change also reaches details_data (REST, CLI,
+			// abilities), which a raw HTML group cannot describe.
+			$thumb_group = $this->get_details_group_for_post_thumb( $context );
+
+			if ( $thumb_group ) {
+				$groups[] = $thumb_group;
 			}
 
 			if ( empty( $groups ) ) {
@@ -1862,6 +2679,148 @@ class Post_Logger extends Logger {
 	}
 
 	/**
+	 * Summarise one bucket of changed custom fields, by name where we have them.
+	 *
+	 * Events logged before the names were stored only carry a count, so those
+	 * fall back to "Added: 3". Where more fields changed than we stored names
+	 * for, the remainder is reported rather than silently dropped.
+	 *
+	 * @param string $bucket_label What happened to the fields, e.g. "Changed".
+	 * @param int    $count        How many fields it happened to.
+	 * @param string $keys_json    JSON array of field names, or empty for older events.
+	 * @return string Summary to show after the "Custom fields" label.
+	 */
+	protected function get_custom_fields_summary( $bucket_label, $count, $keys_json ) {
+		$keys = json_decode( $keys_json, true );
+		$keys = is_array( $keys ) ? array_filter( $keys, 'is_string' ) : [];
+
+		if ( $keys === [] ) {
+			return sprintf(
+				/* translators: 1: what happened to the custom fields, e.g. "Added". 2: how many fields. */
+				__( '%1$s: %2$d', 'simple-history' ),
+				$bucket_label,
+				$count
+			);
+		}
+
+		$summary = sprintf(
+			/* translators: 1: what happened to the custom fields, e.g. "Changed". 2: comma separated field names. */
+			__( '%1$s: %2$s', 'simple-history' ),
+			$bucket_label,
+			implode( ', ', $keys )
+		);
+
+		$not_named = $count - count( $keys );
+
+		if ( $not_named > 0 ) {
+			$summary .= ' ' . sprintf(
+				/* translators: %d: number of custom fields not listed by name. */
+				_n( 'and %d more', 'and %d more', $not_named, 'simple-history' ),
+				$not_named
+			);
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Store a sample of custom field names for the context.
+	 *
+	 * Encoded as JSON rather than a comma separated string because a meta key may
+	 * itself contain a comma, which would split one name into two on output.
+	 *
+	 * @param array<string, bool> $meta_keys Changed keys, as key => true.
+	 * @return string JSON array of key names, capped at MAX_META_KEYS_IN_CONTEXT.
+	 */
+	protected function get_meta_keys_sample( $meta_keys ) {
+		$keys = array_slice( array_keys( $meta_keys ), 0, self::MAX_META_KEYS_IN_CONTEXT );
+
+		return (string) wp_json_encode( $keys );
+	}
+
+	/**
+	 * Check whether a meta value, as returned by get_post_meta() without
+	 * $single, is empty.
+	 *
+	 * A meta key with an empty value is not something a user added or
+	 * removed on purpose. SEOPress, for example, creates ~30 meta keys with
+	 * empty string values the first time a post is saved.
+	 *
+	 * @param mixed $meta_value Value for one meta key, normally an array of strings.
+	 * @return bool True if the array is empty or every value in it is ''.
+	 */
+	private function is_meta_value_empty( $meta_value ) {
+		if ( empty( $meta_value ) ) {
+			return true;
+		}
+
+		foreach ( (array) $meta_value as $single_value ) {
+			if ( $single_value !== '' ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Remove keys from a post meta array that match the ignore list.
+	 *
+	 * An entry in $keys_to_ignore can be an exact meta key, or a simple
+	 * prefix wildcard ending in "*", e.g. "_seopress_social_*" removes every
+	 * key starting with that prefix.
+	 *
+	 * @param array<string, mixed> $meta_array     Meta array to filter, keyed by meta key.
+	 * @param array<string>        $keys_to_ignore Keys and wildcard patterns to remove.
+	 * @return array<string, mixed>
+	 */
+	private function remove_ignored_meta_keys( $meta_array, $keys_to_ignore ) {
+		foreach ( $keys_to_ignore as $key_to_ignore ) {
+			if ( substr( $key_to_ignore, -1 ) === '*' ) {
+				$prefix = substr( $key_to_ignore, 0, -1 );
+
+				foreach ( array_keys( $meta_array ) as $meta_key ) {
+					if ( strpos( $meta_key, $prefix ) !== 0 ) {
+						continue;
+					}
+
+					unset( $meta_array[ $meta_key ] );
+				}
+
+				continue;
+			}
+
+			unset( $meta_array[ $key_to_ignore ] );
+		}
+
+		return $meta_array;
+	}
+
+	/**
+	 * Get a human readable label for a diffed post field.
+	 *
+	 * Fields with their own branch in the diff loop get their label there. This
+	 * covers the rest, so a row does not show the raw database column name, for
+	 * example "post_excerpt" instead of "Excerpt".
+	 *
+	 * Unknown keys, like the ones added through the
+	 * `simple_history/post_logger/keys_to_diff` filter, keep the key as label.
+	 *
+	 * @param string $key Key that is diffed, without the "post_prev_" prefix.
+	 * @return string Label to show, or the key itself if we have no label for it.
+	 */
+	protected function get_human_label_for_diff_key( $key ) {
+		$labels = [
+			'post_excerpt' => __( 'Excerpt', 'simple-history' ),
+			'menu_order'   => __( 'Menu order', 'simple-history' ),
+			'ping_status'  => __( 'Ping status', 'simple-history' ),
+			'post_parent'  => __( 'Parent', 'simple-history' ),
+		];
+
+		return $labels[ $key ] ?? $key;
+	}
+
+	/**
 	 * Modify the label for a key.
 	 *
 	 * @param string $key Key.
@@ -1890,7 +2849,7 @@ class Post_Logger extends Logger {
 	 * @return string
 	 */
 	public function extra_diff_record( $key, $old_value, $new_value ) {
-		return sprintf( '<tr><td>%1$s</td><td>%2$s</td></tr>', $key, helpers::text_diff( $old_value, $new_value ) );
+		return sprintf( '<dt>%1$s</dt><dd>%2$s</dd>', $key, helpers::text_diff( $old_value, $new_value ) );
 	}
 
 	/**
@@ -1973,23 +2932,124 @@ class Post_Logger extends Logger {
 	}
 
 	/**
-	 * Get the HTML output for context that contains modified post meta.
+	 * Get the details group for changed custom fields and taxonomy terms, or
+	 * null when the context holds none of those changes.
 	 *
-	 * @param array  $context Context that may contains prev- and new thumb ids.
-	 * @param string $type Type of meta change, "added" or "removed".
-	 * @return string HTML to be used in keyvale table.
+	 * @param array $context Context that may contain post meta and term changes.
+	 * @return Event_Details_Group|null
 	 */
-	private function get_log_row_details_output_for_post_terms( $context = [], $type = 'added' ) {
+	private function get_details_group_for_post_meta_and_terms( $context ) {
+		$group = new Event_Details_Group();
+
+		$custom_fields_item = $this->get_details_item_for_custom_fields( $context );
+
+		if ( $custom_fields_item ) {
+			$group->add_item( $custom_fields_item );
+		}
+
+		$added_terms_item = $this->get_details_item_for_post_terms( $context, 'added' );
+
+		if ( $added_terms_item ) {
+			$group->add_item( $added_terms_item );
+		}
+
+		$removed_terms_item = $this->get_details_item_for_post_terms( $context, 'removed' );
+
+		if ( $removed_terms_item ) {
+			$group->add_item( $removed_terms_item );
+		}
+
+		if ( empty( $group->items ) ) {
+			return null;
+		}
+
+		return $group;
+	}
+
+	/**
+	 * Build the "Custom fields" details item summarising added/removed/changed
+	 * post meta, or null when the context holds no meta changes.
+	 *
+	 * HTML keeps the existing bullet separated "Added: a, b and 3 more" style
+	 * used before the migration to the Event Details API. JSON exposes, per
+	 * bucket, the count and the sample of field names so REST/CLI/abilities
+	 * consumers get something structured instead of prose.
+	 *
+	 * @param array $context Context that may contain post_meta_* keys.
+	 * @return Event_Details_Item|null
+	 */
+	private function get_details_item_for_custom_fields( $context ) {
+		if (
+			! isset( $context['post_meta_added'] ) &&
+			! isset( $context['post_meta_removed'] ) &&
+			! isset( $context['post_meta_changed'] )
+		) {
+			return null;
+		}
+
+		$meta_buckets = [
+			'added'   => __( 'Added', 'simple-history' ),
+			'removed' => __( 'Removed', 'simple-history' ),
+			'changed' => __( 'Changed', 'simple-history' ),
+		];
+
+		$html_output = '';
+		$json_output = [
+			'name' => __( 'Custom fields', 'simple-history' ),
+		];
+
+		foreach ( $meta_buckets as $meta_bucket => $meta_bucket_label ) {
+			$meta_count_key = 'post_meta_' . $meta_bucket;
+
+			if ( ! isset( $context[ $meta_count_key ] ) ) {
+				continue;
+			}
+
+			$count     = (int) $context[ $meta_count_key ];
+			$keys_json = (string) ( $context[ $meta_count_key . '_keys' ] ?? '' );
+
+			// Events logged before the names were stored only carry a count.
+			$keys = json_decode( $keys_json, true );
+			$keys = is_array( $keys ) ? array_values( array_filter( $keys, 'is_string' ) ) : [];
+
+			$html_output .=
+				"<span class='SimpleHistoryLogitem__inlineDivided SimpleHistoryLogitem__inlineDivided--wrap'>" .
+				esc_html( $this->get_custom_fields_summary( $meta_bucket_label, $count, $keys_json ) ) .
+				'</span> ';
+
+			$json_output[ $meta_bucket ] = [
+				'count' => $count,
+				'names' => $keys,
+			];
+		}
+
+		$formatter = ( new Event_Details_Item_Table_Row_RAW_Formatter() )
+			->set_html_output( $html_output )
+			->set_json_output( $json_output );
+
+		return ( new Event_Details_Item( null, __( 'Custom fields', 'simple-history' ) ) )
+			->set_formatter( $formatter );
+	}
+
+	/**
+	 * Build the "Added terms" / "Removed terms" details item, or null when
+	 * the context holds no term changes of that type.
+	 *
+	 * @param array  $context Context that may contain post_terms_added/post_terms_removed.
+	 * @param string $type    Type of term change, "added" or "removed".
+	 * @return Event_Details_Item|null
+	 */
+	private function get_details_item_for_post_terms( $context, $type ) {
 		// Bail if type is not added or removed.
 		if ( ! in_array( $type, [ 'added', 'removed' ], true ) ) {
-			return '';
+			return null;
 		}
 
 		$post_terms = json_decode( $context[ "post_terms_{$type}" ] ?? '' ) ?? null;
 
 		// Bail if no terms.
 		if ( $post_terms === null || sizeof( $post_terms ) === 0 ) {
-			return '';
+			return null;
 		}
 
 		if ( $type === 'added' ) {
@@ -1999,7 +3059,7 @@ class Post_Logger extends Logger {
 				sizeof( $post_terms ),
 				'simple-history'
 			);
-		} elseif ( $type === 'removed' ) {
+		} else {
 			$label = _n(
 				'Removed term',
 				'Removed terms',
@@ -2009,117 +3069,109 @@ class Post_Logger extends Logger {
 		}
 
 		$terms_values = [];
+		$terms_json   = [];
+
 		foreach ( $post_terms as $term ) {
-			$taxonomy_name  = get_taxonomy( $term->taxonomy )->labels->singular_name ?? '';
+			$taxonomy_name = get_taxonomy( $term->taxonomy )->labels->singular_name ?? '';
+
 			$terms_values[] = sprintf(
 				'%1$s (%2$s)',
 				$term->name,
 				$taxonomy_name,
 			);
+
+			$terms_json[] = [
+				'name'     => $term->name,
+				'taxonomy' => $term->taxonomy,
+			];
 		}
 
-		$term_added_values_as_comma_separated_list = wp_sprintf(
+		$term_values_as_comma_separated_list = wp_sprintf(
 			'%l',
 			$terms_values
 		);
 
-		return sprintf(
-			'<tr>
-				<td>%1$s</td>
-				<td>%2$s</td>
-			</tr>',
-			esc_html( $label ),
-			esc_html( $term_added_values_as_comma_separated_list ),
-		);
+		$formatter = ( new Event_Details_Item_Table_Row_RAW_Formatter() )
+			->set_html_output( esc_html( $term_values_as_comma_separated_list ) )
+			->set_json_output(
+				[
+					'name'  => $label,
+					'terms' => $terms_json,
+				]
+			);
+
+		return ( new Event_Details_Item( null, $label ) )
+			->set_formatter( $formatter );
 	}
 
 	/**
-	 * Get the HTML output for context that contains a modified post thumb.
+	 * Get the details group for a changed featured image, or null when the
+	 * context holds no featured image change.
 	 *
-	 * @param array $context Context that may contains prev- and new thumb ids.
-	 * @return string HTML to be used in keyvale table.
+	 * @param array $context Context that may contain prev- and new thumb ids.
+	 * @return Event_Details_Group|null
 	 */
-	private function get_log_row_details_output_for_post_thumb( $context = null ) {
-		$out = '';
+	private function get_details_group_for_post_thumb( $context ) {
+		$prev_thumb_id = empty( $context['post_prev_thumb_id'] ) ? 0 : (int) $context['post_prev_thumb_id'];
+		$new_thumb_id  = empty( $context['post_new_thumb_id'] ) ? 0 : (int) $context['post_new_thumb_id'];
 
-		if ( ! empty( $context['post_prev_thumb_id'] ) || ! empty( $context['post_new_thumb_id'] ) ) {
-			// Check if images still exists and if so get their thumbnails.
-			$prev_thumb_id         = empty( $context['post_prev_thumb_id'] ) ? null : $context['post_prev_thumb_id'];
-			$new_thumb_id          = empty( $context['post_new_thumb_id'] ) ? null : $context['post_new_thumb_id'];
-			$post_new_thumb_title  = empty( $context['post_new_thumb_title'] ) ? null : $context['post_new_thumb_title'];
-			$post_prev_thumb_title = empty( $context['post_prev_thumb_title'] )
-				? null
-				: $context['post_prev_thumb_title'];
-
-			$prev_attached_file = get_attached_file( $prev_thumb_id );
-			$prev_thumb_src     = wp_get_attachment_image_src( $prev_thumb_id, 'small' );
-
-			$new_attached_file = get_attached_file( $new_thumb_id );
-			$new_thumb_src     = wp_get_attachment_image_src( $new_thumb_id, 'small' );
-
-			if ( file_exists( $prev_attached_file ) && $prev_thumb_src ) {
-				$prev_thumb_html = sprintf(
-					'
-						<div>%2$s</div>
-						<div class="SimpleHistoryLogitemThumbnail">
-							<img src="%1$s" alt="">
-						</div>
-					',
-					$prev_thumb_src[0],
-					esc_html( $post_prev_thumb_title )
-				);
-			} else {
-				// Fallback if image does not exist.
-				$prev_thumb_html = sprintf( '<div>%1$s</div>', esc_html( $post_prev_thumb_title ) );
-			}
-
-			$new_thumb_html = '';
-			if ( file_exists( $new_attached_file ) && $new_thumb_src ) {
-				$new_thumb_html = sprintf(
-					'
-						<div>%2$s</div>
-						<div class="SimpleHistoryLogitemThumbnail">
-							<img src="%1$s" alt="">
-						</div>
-					',
-					$new_thumb_src[0],
-					esc_html( $post_new_thumb_title )
-				);
-			} else {
-				// Fallback if image does not exist.
-				$new_thumb_html = sprintf( '<div>%1$s</div>', esc_html( $post_new_thumb_title ) );
-			}
-
-			$out .= sprintf(
-				'<tr>
-					<td>%1$s</td>
-					<td>
-
-						<div class="SimpleHistory__diff__contents SimpleHistory__diff__contents--noContentsCrop" tabindex="0">
-						    <div class="SimpleHistory__diff__contentsInner">
-						        <table class="diff SimpleHistory__diff">
-						            <tr>
-						                <td class="diff-deletedline">
-						                    %2$s
-						                </td>
-						                <td>&nbsp;</td>
-						                <td class="diff-addedline">
-						                    %3$s
-						                </td>
-						            </tr>
-						        </table>
-						    </div>
-						</div>
-
-					</td>
-				</tr>',
-				esc_html( __( 'Featured image', 'simple-history' ) ), // 1
-				$prev_thumb_html, // 2
-				$new_thumb_html // 3
-			);
+		if ( ! $prev_thumb_id && ! $new_thumb_id ) {
+			return null;
 		}
 
-		return $out;
+		$prev = $this->get_post_thumb_value( $prev_thumb_id, $context['post_prev_thumb_title'] ?? '' );
+		$new  = $this->get_post_thumb_value( $new_thumb_id, $context['post_new_thumb_title'] ?? '' );
+
+		$item = new Event_Details_Item( null, __( 'Featured image', 'simple-history' ) );
+		$item->set_values( $new['plain'], $prev['plain'] );
+
+		$formatter = new Event_Details_Item_Image_Diff_Table_Row_Formatter();
+		$formatter->set_prev_image( $prev['src'], $prev['caption'] );
+		$formatter->set_new_image( $new['src'], $new['caption'] );
+
+		$item->set_formatter( $formatter );
+
+		$group = new Event_Details_Group();
+		$group->add_item( $item );
+
+		return $group;
+	}
+
+	/**
+	 * Resolve one featured image to an image URL, a caption, and a plain
+	 * text representation for JSON.
+	 *
+	 * @param int    $thumb_id Attachment ID, 0 when there was no image on this side.
+	 * @param string $title    Attachment title captured when the event was logged.
+	 * @return array{src: string, caption: string, plain: string}
+	 */
+	private function get_post_thumb_value( $thumb_id, $title ) {
+		// No image on this side. Empty src and caption make the formatter print "None".
+		if ( ! $thumb_id ) {
+			return [
+				'src'     => '',
+				'caption' => '',
+				'plain'   => __( 'None', 'simple-history' ),
+			];
+		}
+
+		$attached_file = get_attached_file( $thumb_id );
+		$thumb_src     = wp_get_attachment_image_src( $thumb_id, 'thumbnail' );
+
+		if ( $attached_file && file_exists( $attached_file ) && $thumb_src ) {
+			return [
+				'src'     => $thumb_src[0],
+				'caption' => $title,
+				'plain'   => $thumb_src[0],
+			];
+		}
+
+		// Attachment is gone. Show the title captured at log time.
+		return [
+			'src'     => '',
+			'caption' => $title !== '' ? $title : (string) $thumb_id,
+			'plain'   => $title !== '' ? $title : (string) $thumb_id,
+		];
 	}
 
 	/**
