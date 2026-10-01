@@ -1,0 +1,39 @@
+// Bootstrap vars
+@import '_hsph-vars.scss';
+@import '_bootstrap-vars.scss';
+
+// Fonts : Merriweather
+@import url('https://fonts.googleapis.com/css?family=Merriweather&display=swap');
+// Fonts : Proxima Nova
+@import url("https://use.typekit.net/zts7uzj.css");
+
+// No conflict wrapper class
+.hsph-bootstrap {
+    // Build Bootstrap from sources
+    // Instead of @import "../../../node_modules/bootstrap/scss/bootstrap" we use
+    // a custom loader to be able to remove colors from maps and do some extra overides.
+    @import "_hsph-bootstrap-loader.scss";
+    // Addons, improvements and customization to existing bootstrap components
+    @import "_background.scss";
+    @import "_type.scss";
+    @import "_buttons.scss";
+    @import "_badges.scss";
+    @import "_jumbotron.scss";
+    @import "_cards.scss";
+    @import "_forms.scss";
+    @import "_filters.scss";
+    @import "_list-group.scss";
+    @import "_collapse.scss";
+    @import "_nav.scss";
+    @import "_pagination.scss";
+}
+
+// Adding hint.css for tooltip features
+@import "_gravity-forms.scss";
+
+// Adding hint.css for tooltip features
+@import "../../../node_modules/hint.css/src/hint.scss";
+
+
+//Fixing a few minor issues with the no conflict wrapper class
+@import '_fixes.scss';

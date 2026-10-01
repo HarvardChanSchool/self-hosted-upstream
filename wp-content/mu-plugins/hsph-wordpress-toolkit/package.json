@@ -1,0 +1,11 @@
+{
+  "name": "hsph-wordpress-toolkit",
+  "version": "1.0.0",
+  "scripts": {
+    "composer-install:local": "composer install",
+    "composer-install": "composer install --no-dev --optimize-autoloader"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

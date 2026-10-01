@@ -1,0 +1,20 @@
+.nav-pills {
+    .nav-link {
+        line-height: $btn-line-height;
+        background-color: $light;
+        margin: $hsph-btn-squared-margin;
+        margin-left: 0;
+    }
+}
+
+
+.tab-content{
+    padding: map-get($spacers, 4) 0;
+    border-top: $border-width solid $border-color;
+    border-bottom: $border-width solid $border-color;
+    margin: map-get($spacers, 4) 0 map-get($spacers, 7) 0;
+
+    :last-child{
+        margin-bottom: 0;
+    }
+}

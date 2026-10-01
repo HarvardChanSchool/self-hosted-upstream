@@ -1,0 +1,31 @@
+{
+  "name": "@harvardchanschool/plugin-design-system",
+  "version": "1.4.11",
+  "description": "Libraries and resources to implement the HSPH design system.",
+  "dependencies": {
+    "bootstrap": "4.4.1",
+    "font-awesome": "^4.7.0",
+    "hint.css": "^2.6.0",
+    "select2": "^4.0.13"
+  },
+  "devDependencies": {
+    "node-sass": "^5.0.0"
+  },
+  "scripts": {
+    "prebootstrap": "cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js ./assets/js/hsph-bootstrap.bundle.min.js && cp node_modules/bootstrap/dist/js/bootstrap.bundle.min.js.map ./assets/js/hsph-bootstrap.bundle.min.js.map",
+    "bootstrap": "node-sass -o ./assets/css/ assets/sass/hsph-bootstrap/hsph-bootstrap.scss && node-sass -o ./assets/css/ assets/sass/hsph-bootstrap/hsph-bootstrap-no-conflict.scss",
+    "postbootstrap": "cp ./assets/css/* ./docs/ && cp ./assets/js/* ./docs/",
+    "fontawesome": "node-sass -o ./assets/css/ assets/sass/hsph-fontawesome.scss",
+    "select2": "node-sass -o ./assets/css/ assets/sass/hsph-select2/hsph-select2.scss"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HarvardChanSchool/plugin-design-system.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://hsph-it.atlassian.net/"
+  },
+  "homepage": "https://github.com/HarvardChanSchool/plugin-design-system#readme"
+}
