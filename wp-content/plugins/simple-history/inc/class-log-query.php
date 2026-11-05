@@ -122,6 +122,45 @@ class Log_Query {
 	const METADATA_SEARCH_EXCLUDED_KEYS = [ '_annotation' ];
 
 	/**
+	 * Get the exact context keys the current user may not search or filter on.
+	 *
+	 * The keys in METADATA_SEARCH_EXCLUDED_KEYS for everyone, plus the keys
+	 * from Helpers::get_ip_address_context_keys() for users who can't see them
+	 * in the REST response, for the reason given above.
+	 *
+	 * IP address keys are matched by prefix rather than listed here, see
+	 * get_unsearchable_context_key_prefixes().
+	 *
+	 * @return array<string>
+	 */
+	private static function get_unsearchable_context_keys() {
+		$keys = self::METADATA_SEARCH_EXCLUDED_KEYS;
+
+		if ( ! Helpers::current_user_can_view_ip_addresses() ) {
+			$keys = array_merge( $keys, Helpers::get_ip_address_context_keys() );
+		}
+
+		return $keys;
+	}
+
+	/**
+	 * Get the context key prefixes the current user may not search or filter on.
+	 *
+	 * The IP address keys, for users without the view IP address capability.
+	 * The REST API withholds them from those users, so searching them would
+	 * hand the addresses out one guess at a time.
+	 *
+	 * @return array<string>
+	 */
+	private static function get_unsearchable_context_key_prefixes() {
+		if ( Helpers::current_user_can_view_ip_addresses() ) {
+			return [];
+		}
+
+		return Helpers::get_ip_address_context_key_prefixes();
+	}
+
+	/**
 	 * Send a database error to the error log rather than to the client.
 	 *
 	 * Every caller of this class that can fail is reachable over REST by
@@ -848,6 +887,12 @@ class Log_Query {
 		 * 1 = where clause.
 		 * 2 = limit clause.
 		 * 3 = table name for events.
+		 *
+		 * subsequentOccasions is hard coded because the column exists in the
+		 * overview query. The join adds the context message key.
+		 *
+		 * No "#" comments inside the SQL: this query also runs on SQLite, and
+		 * the SQLite driver fails on them, so no occasions were returned there.
 		 */
 		$sql_statement_template = '
 			SELECT 
@@ -859,36 +904,45 @@ class Log_Query {
 				h.initiator,
 				h.occasionsID,
 				c1.value AS context_message_key,
-				# Hard code subsequentOccasions column that exist in overview query
 				1 as subsequentOccasions
 			FROM %3$s AS h
-			
-			# Add context message key
 			LEFT OUTER JOIN %4$s AS c1 ON (c1.history_id = h.id AND c1.key = "_message_key")
-			
-			# Where
 			%1$s
 			
 			ORDER BY date DESC, id DESC
 			%2$s
 		';
 
+		global $wpdb;
+
 		/** @var array Where clauses for outer query. */
 		$outer_where = [];
+
+		// Only include loggers that the current user can view, same as get_inner_where().
+		// Occasion IDs are predictable, so without this a user could read events
+		// from loggers they have no access to by guessing an occasion ID.
+		if ( empty( $args['ignore_logger_capabilities'] ) ) {
+			$sql_loggers_user_can_view = $simpe_history->get_loggers_that_user_can_read( get_current_user_id(), 'sql' );
+			$outer_where[]             = "h.logger IN {$sql_loggers_user_can_view}";
+		}
 
 		// Get rows with id lower than logRowID, i.e. previous rows.
 		$outer_where[] = 'h.id < ' . (int) $args['logRowID'];
 
 		// Get rows with occasionsID equal to occasionsID.
-		$outer_where[] = "h.occasionsID = '" . esc_sql( $args['occasionsID'] ) . "'";
+		$outer_where[] = $wpdb->prepare( 'h.occasionsID = %s', (string) $args['occasionsID'] );
 
-		if ( isset( $args['occasionsCountMaxReturn'] ) && $args['occasionsCountMaxReturn'] < $args['occasionsCount'] ) {
+		// Clamp the number of occasions to a sane range.
+		// A missing or negative value would otherwise give invalid SQL.
+		$occasions_count = max( 0, min( 1000, (int) $args['occasionsCount'] ) );
+
+		if ( isset( $args['occasionsCountMaxReturn'] ) && $args['occasionsCountMaxReturn'] < $occasions_count ) {
 			// Limit to max nn events if occasionsCountMaxReturn is set.
 			// Used for example in GUI to prevent to many events returned, that can stall the browser.
-			$limit = 'LIMIT ' . $args['occasionsCountMaxReturn'];
+			$limit = 'LIMIT ' . max( 0, (int) $args['occasionsCountMaxReturn'] );
 		} else {
 			// Regular limit that gets all occasions.
-			$limit = 'LIMIT ' . $args['occasionsCount'];
+			$limit = 'LIMIT ' . $occasions_count;
 		}
 
 		// Create where string.
@@ -907,8 +961,6 @@ class Log_Query {
 			$events_table_name, // 3
 			$contexts_table_name // 4
 		);
-
-		global $wpdb;
 
 		/** @var array<string,object> Log rows matching where queries. */
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
@@ -2563,7 +2615,12 @@ class Log_Query {
 		// header, so matching only the former would make the filter useless on
 		// exactly the sites that need it most. The UI shows all of an event's
 		// addresses, so all of them are filterable.
-		if ( ! empty( $args['ip_address'] ) ) {
+		if ( ! empty( $args['ip_address'] ) && ! Helpers::current_user_can_view_ip_addresses() ) {
+			// Filtering on an address is reading it, one guess at a time. Match
+			// nothing rather than ignoring the filter, so the result does not
+			// pretend to be filtered.
+			$inner_where[] = '1 = 0';
+		} elseif ( ! empty( $args['ip_address'] ) ) {
 			$ip_address = $args['ip_address'];
 
 			// Replace ".x" octets (anonymized IP) with ".%" for LIKE matching.
@@ -2597,12 +2654,41 @@ class Log_Query {
 
 		// Add where clause for context filters.
 		if ( ! empty( $args['context_filters'] ) && is_array( $args['context_filters'] ) ) {
+			$unsearchable_keys     = self::get_unsearchable_context_keys();
+			$unsearchable_prefixes = self::get_unsearchable_context_key_prefixes();
+
+			// esc_like() because "_" is a single character wildcard in LIKE.
+			$unsearchable_patterns = array_map(
+				static fn( $prefix ) => $wpdb->esc_like( $prefix ) . '%',
+				$unsearchable_prefixes
+			);
+
+			$unsearchable_keys_sql = ' AND c.key NOT IN ( ' . implode( ', ', array_fill( 0, count( $unsearchable_keys ), '%s' ) ) . ' )'
+				. str_repeat( ' AND c.key NOT LIKE %s', count( $unsearchable_patterns ) );
+
 			foreach ( $args['context_filters'] as $context_key => $context_value ) {
+				// Filtering on a value is reading it, one guess at a time.
+				if ( in_array( (string) $context_key, $unsearchable_keys, true ) ) {
+					continue;
+				}
+
+				foreach ( $unsearchable_prefixes as $unsearchable_prefix ) {
+					if ( str_starts_with( (string) $context_key, $unsearchable_prefix ) ) {
+						continue 2;
+					}
+				}
+
+				// The checks above compare exactly, but `c.key = %s` uses the
+				// table's collation, which usually ignores case and trailing
+				// spaces: "_SERVER_REMOTE_ADDR" gets past them and still
+				// matches. So the database excludes the same keys itself, with
+				// the same collation, and such a filter matches nothing.
+				// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Placeholders in $unsearchable_keys_sql match the merged array.
 				$inner_where[] = $wpdb->prepare(
-					'id IN ( SELECT history_id FROM ' . $contexts_table_name . ' AS c WHERE c.key = %s AND c.value = %s )', // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-					$context_key,
-					$context_value
+					'id IN ( SELECT history_id FROM ' . $contexts_table_name . ' AS c WHERE c.key = %s AND c.value = %s' . $unsearchable_keys_sql . ' )',
+					array_merge( [ $context_key, $context_value ], $unsearchable_keys, $unsearchable_patterns )
 				);
+				// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 			}
 		}
 
@@ -2620,27 +2706,37 @@ class Log_Query {
 		// this searches ALL context values (for advanced users who need to
 		// find events by IP address, email, etc.).
 		//
-		// All of them except the ones listed in
-		// self::METADATA_SEARCH_EXCLUDED_KEYS, which are context rows the
+		// All of them except the ones from
+		// self::get_unsearchable_context_keys(), which are context rows the
 		// REST API deliberately does not hand out whole. Searching a value
 		// is reading it: a reader who can ask "does any event contain this
 		// phrase" and get a yes can recover the phrase itself, one guess at
 		// a time, from a field the API took care to withhold.
 		if ( ! empty( $args['metadata_search'] ) ) {
 			$metadata_words = $this->get_sanitized_search_words( $args['metadata_search'] );
+			$excluded_keys  = self::get_unsearchable_context_keys();
 
 			$excluded_keys_placeholders = implode(
 				', ',
-				array_fill( 0, count( self::METADATA_SEARCH_EXCLUDED_KEYS ), '%s' )
+				array_fill( 0, count( $excluded_keys ), '%s' )
 			);
+
+			// esc_like() because "_" is a single character wildcard in LIKE.
+			$excluded_prefix_patterns = array_map(
+				static fn( $prefix ) => $wpdb->esc_like( $prefix ) . '%',
+				self::get_unsearchable_context_key_prefixes()
+			);
+
+			$excluded_prefixes_sql = str_repeat( ' AND c.`key` NOT LIKE %s', count( $excluded_prefix_patterns ) );
 
 			foreach ( $metadata_words as $word ) {
 				// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$inner_where[] = $wpdb->prepare(
-					"id IN ( SELECT history_id FROM {$contexts_table_name} AS c WHERE c.value LIKE %s AND c.`key` NOT IN ( {$excluded_keys_placeholders} ) )",
+					"id IN ( SELECT history_id FROM {$contexts_table_name} AS c WHERE c.value LIKE %s AND c.`key` NOT IN ( {$excluded_keys_placeholders} ){$excluded_prefixes_sql} )",
 					array_merge(
 						[ '%' . $wpdb->esc_like( $word ) . '%' ],
-						self::METADATA_SEARCH_EXCLUDED_KEYS
+						$excluded_keys,
+						$excluded_prefix_patterns
 					)
 				);
 				// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared

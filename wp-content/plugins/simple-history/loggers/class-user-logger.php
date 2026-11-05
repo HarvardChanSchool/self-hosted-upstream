@@ -52,6 +52,10 @@ class User_Logger extends Logger {
 					'Failed to login with username "{failed_username}" (username does not exist)',
 					'simple-history'
 				),
+				'user_two_factor_login_failed'             => __(
+					'Failed to login with username "{login}" (two-factor verification failed)',
+					'simple-history'
+				),
 				'user_logged_in'                           => __( 'Logged in', 'simple-history' ),
 				'user_unknown_logged_in'                   => __( 'Unknown user logged in', 'simple-history' ),
 				'user_logged_out'                          => __( 'Logged out', 'simple-history' ),
@@ -137,11 +141,13 @@ class User_Logger extends Logger {
 						_x( 'Failed user logins', 'User logger: search', 'simple-history' ) => array(
 							'user_login_failed',
 							'user_unknown_login_failed',
+							'user_two_factor_login_failed',
 							'user_application_password_login_failed',
 							'user_application_password_unknown_login_failed',
 						),
 						_x( 'Failed login (known user)', 'User logger: search', 'simple-history' ) => array(
 							'user_login_failed',
+							'user_two_factor_login_failed',
 						),
 						_x( 'Failed login (unknown user)', 'User logger: search', 'simple-history' ) => array(
 							'user_unknown_login_failed',
@@ -190,6 +196,7 @@ class User_Logger extends Logger {
 	public const FAILED_LOGIN_MESSAGE_KEYS_EXISTING_USER = [
 		'user_login_failed',
 		'user_application_password_login_failed',
+		'user_two_factor_login_failed',
 	];
 
 	/**
@@ -201,6 +208,42 @@ class User_Logger extends Logger {
 		'user_unknown_login_failed',
 		'user_application_password_unknown_login_failed',
 	];
+
+	/**
+	 * Error codes that two-factor plugins pass to `wp_login_failed` when the
+	 * second factor fails, mapped to the plugin's wordpress.org slug. Core fires
+	 * the same action for wrong passwords, so only these codes are logged by
+	 * on_wp_login_failed().
+	 *
+	 * - `better-wp-security`: Kadence Security, formerly Solid Security.
+	 * - `wordfence`: Wordfence. The closed Wordfence Login Security plugin
+	 *   shares the module and the error code, so it is reported as Wordfence too.
+	 *
+	 * @var array<string,string>
+	 */
+	public const TWO_FACTOR_FAILED_ERROR_CODES = [
+		'two_factor_invalid'            => 'two-factor',
+		'two_factor_too_fast'           => 'two-factor',
+		'itsec-two-factor-invalid-code' => 'better-wp-security',
+		'wfls_twofactor_failed'         => 'wordfence',
+	];
+
+	/**
+	 * Context keys shared by every two-factor plugin, on both successful and
+	 * failed logins.
+	 *
+	 * - `two_factor_used`: 1 when the login used a second factor, 0 when a
+	 *   two-factor plugin is active but this login did not use it. Not stored
+	 *   when no supported two-factor plugin is active.
+	 * - `two_factor_plugin`: wordpress.org slug of the two-factor plugin.
+	 * - `two_factor_method`: the plugin's label for the method used, for
+	 *   example "Authenticator App". Successful logins only.
+	 * - `two_factor_error`: the plugin's error code. Failed logins only.
+	 */
+	public const CONTEXT_TWO_FACTOR_USED   = 'two_factor_used';
+	public const CONTEXT_TWO_FACTOR_PLUGIN = 'two_factor_plugin';
+	public const CONTEXT_TWO_FACTOR_METHOD = 'two_factor_method';
+	public const CONTEXT_TWO_FACTOR_ERROR  = 'two_factor_error';
 
 	/**
 	 * Get every message key that represents a failed login attempt.
@@ -234,6 +277,9 @@ class User_Logger extends Logger {
 		// run this later than 10 because WordPress own email login check is done with priority 20
 		// so if we run at 10 we just get null.
 		add_filter( 'authenticate', array( $this, 'onAuthenticate' ), 30, 3 );
+
+		// Failed second factor from a two-factor plugin.
+		add_action( 'wp_login_failed', array( $this, 'on_wp_login_failed' ), 10, 2 );
 
 		// User is created.
 		add_action( 'user_register', array( $this, 'on_user_register' ), 10, 2 );
@@ -502,7 +548,7 @@ class User_Logger extends Logger {
 
 		// Set by the bail above; read from the Basic-auth header (may be an empty string).
 		// phpcs:ignore WordPressVIPMinimum.Variables.ServerVariables.BasicAuthentication -- Reading the attempted username for security logging only; authentication is handled by WP core.
-		$attempted_username = sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_USER'] ) );
+		$attempted_username = Helpers::truncate_request_value( sanitize_text_field( wp_unslash( $_SERVER['PHP_AUTH_USER'] ) ) );
 
 		$error_code    = is_a( $error, 'WP_Error' ) ? $error->get_error_code() : '';
 		$error_message = is_a( $error, 'WP_Error' ) ? wp_strip_all_tags( $error->get_error_message() ) : '';
@@ -511,10 +557,9 @@ class User_Logger extends Logger {
 			'_initiator'             => Log_Initiators::WEB_USER,
 			'error_code'             => (string) $error_code,
 			'error_message'          => $error_message,
-			'request_uri'            => sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ),
-			'request_method'         => sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ),
-			// phpcs:ignore WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__HTTP_USER_AGENT__ -- User agent logging important for security (brute force detection). Accept VIP caching limitation.
-			'server_http_user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
+			'request_uri'            => Helpers::truncate_request_value( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ) ), 1000 ),
+			'request_method'         => Helpers::truncate_request_value( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ), 20 ),
+			'server_http_user_agent' => Helpers::get_request_user_agent(),
 			// Same occasions group as failed logins through the login form. A
 			// brute force burst that mixes both channels then collapses into
 			// one row instead of alternating between two groups.
@@ -993,7 +1038,17 @@ class User_Logger extends Logger {
 		$output          = parent::get_log_row_plain_text_output( $row );
 		$current_user_id = get_current_user_id();
 
-		if ( $context['_message_key'] === 'user_updated_profile' ) {
+		if ( $context['_message_key'] === 'user_logged_in' && (string) ( $context[ self::CONTEXT_TWO_FACTOR_USED ] ?? '' ) === '1' ) {
+			if ( ! empty( $context[ self::CONTEXT_TWO_FACTOR_METHOD ] ) ) {
+				$output = helpers::interpolate(
+					__( 'Logged in using two-factor authentication ({two_factor_method})', 'simple-history' ),
+					$this->esc_html_context_keys( $context, [ self::CONTEXT_TWO_FACTOR_METHOD ] ),
+					$row
+				);
+			} else {
+				$output = esc_html__( 'Logged in using two-factor authentication', 'simple-history' );
+			}
+		} elseif ( $context['_message_key'] === 'user_updated_profile' ) {
 			$wp_user = get_user_by( 'id', $context['edited_user_id'] );
 
 			// If edited_user_id and _user_id is the same then a user edited their own profile
@@ -1065,9 +1120,6 @@ class User_Logger extends Logger {
 	public function on_wp_login( $user_login = null, $user = null ) {
 
 		$user_obj = null;
-		$context  = array(
-			'user_login' => $user_login,
-		);
 
 		if ( isset( $user_login ) ) {
 			$user_obj = get_user_by( 'login', $user_login );
@@ -1075,27 +1127,204 @@ class User_Logger extends Logger {
 			$user_obj = get_user_by( 'id', $user->ID );
 		}
 
-		if ( is_a( $user_obj, 'WP_User' ) ) {
-			$context = array(
-				'user_id'    => $user_obj->ID,
-				'user_email' => $user_obj->user_email,
-				'user_login' => $user_obj->user_login,
-			);
-
-			// Override some data that is usually set automagically by Simple History
-			// Because wp_get_current_user() does not return any data yet at this point.
-			$context['_initiator']  = Log_Initiators::WP_USER;
-			$context['_user_id']    = $user_obj->ID;
-			$context['_user_login'] = $user_obj->user_login;
-			$context['_user_email'] = $user_obj->user_email;
-			// phpcs:ignore WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__HTTP_USER_AGENT__ -- User agent logging important for security (brute force detection). Accept VIP caching limitation.
-			$context['server_http_user_agent'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) );
-
-			$this->info_message( 'user_logged_in', $context );
-		} else {
+		if ( ! is_a( $user_obj, 'WP_User' ) ) {
 			// Could not get any info about the user logging in.
-			$this->warning_message( 'user_unknown_logged_in', $context );
+			$this->warning_message( 'user_unknown_logged_in', array( 'user_login' => $user_login ) );
+
+			return;
 		}
+
+		// The password was correct, but a two-factor plugin is about to show its
+		// challenge and throw this session away. The plugin's support logger
+		// calls log_two_factor_login() when the second factor passes, and a
+		// wrong code is logged by on_wp_login_failed().
+		if ( $this->is_login_pending_second_factor( $user_obj ) ) {
+			return;
+		}
+
+		$this->log_user_logged_in( $user_obj, $this->get_two_factor_login_context( $user_obj ) );
+	}
+
+	/**
+	 * Log a login that completed after a second factor.
+	 *
+	 * Called by the support logger of a two-factor plugin, for example
+	 * Plugin_Two_Factor_Logger, so the login is logged as a regular
+	 * `user_logged_in` event.
+	 *
+	 * @param \WP_User $user         The authenticated user.
+	 * @param string   $plugin       wordpress.org slug of the two-factor plugin.
+	 * @param string   $method_label The plugin's label for the method used.
+	 */
+	public function log_two_factor_login( $user, $plugin, $method_label = '' ) {
+		if ( ! is_a( $user, 'WP_User' ) ) {
+			return;
+		}
+
+		$this->log_user_logged_in( $user, $this->build_two_factor_context( $plugin, true, $method_label ) );
+	}
+
+	/**
+	 * Log a failed second factor from a two-factor plugin.
+	 *
+	 * Two-factor plugins report a wrong code through core's `wp_login_failed`
+	 * action. Core fires the same action for every wrong password too, and those
+	 * are already logged by onWpAuthenticateUser() and onAuthenticate(), so only
+	 * the error codes in TWO_FACTOR_FAILED_ERROR_CODES are handled here.
+	 *
+	 * @param string         $username Username or email address.
+	 * @param \WP_Error|null $error    Error that caused the failure. Added in WP 5.4.
+	 */
+	public function on_wp_login_failed( $username, $error = null ) {
+		if ( ! is_wp_error( $error ) ) {
+			return;
+		}
+
+		$error_code = (string) $error->get_error_code();
+
+		if ( ! isset( self::TWO_FACTOR_FAILED_ERROR_CODES[ $error_code ] ) ) {
+			return;
+		}
+
+		// A logged-in user confirming their code again, for example before
+		// changing security settings in Two Factor. That is not a login.
+		if ( is_user_logged_in() ) {
+			return;
+		}
+
+		// Wordfence passes what was typed in the login form, which can be an email address.
+		$user = get_user_by( 'login', $username );
+
+		if ( ! $user && is_email( $username ) ) {
+			$user = get_user_by( 'email', $username );
+		}
+
+		if ( ! is_a( $user, 'WP_User' ) ) {
+			return;
+		}
+
+		$context = array(
+			'_initiator'                    => Log_Initiators::WEB_USER,
+			'login_id'                      => $user->ID,
+			'login_email'                   => $user->user_email,
+			'login'                         => $user->user_login,
+			self::CONTEXT_TWO_FACTOR_USED   => 1,
+			self::CONTEXT_TWO_FACTOR_PLUGIN => self::TWO_FACTOR_FAILED_ERROR_CODES[ $error_code ],
+			self::CONTEXT_TWO_FACTOR_ERROR  => $error_code,
+			'server_http_user_agent'        => Helpers::get_request_user_agent(),
+			'_occasionsID'                  => self::class . '/failed_user_login',
+		);
+
+		$this->warning_message( 'user_two_factor_login_failed', $context );
+	}
+
+	/**
+	 * Check if a two-factor plugin will interrupt this login with a challenge.
+	 *
+	 * @param \WP_User $user User whose password was just accepted.
+	 * @return bool
+	 */
+	private function is_login_pending_second_factor( $user ) {
+		/**
+		 * Filter whether a login is waiting for a second factor.
+		 *
+		 * Return true when a two-factor plugin will show a challenge after
+		 * `wp_login` and discard the session if the challenge is not passed.
+		 * The login is then not logged on `wp_login`. Call
+		 * User_Logger::log_two_factor_login() when the challenge passes.
+		 *
+		 * @since 5.35.0
+		 *
+		 * @param bool     $is_pending Whether the login waits for a second factor. Default false.
+		 * @param \WP_User $user       User whose password was just accepted.
+		 */
+		return (bool) apply_filters( 'simple_history/user_logger/login_pending_second_factor', false, $user );
+	}
+
+	/**
+	 * Get two-factor context for a login that completed on `wp_login`.
+	 *
+	 * @param \WP_User $user User logging in.
+	 * @return array Context to store, empty when no supported two-factor plugin is active.
+	 */
+	private function get_two_factor_login_context( $user ) {
+		/**
+		 * Filter how a login that completed on `wp_login` used two-factor.
+		 *
+		 * Return an array when a two-factor plugin handles logins on this site,
+		 * also for users who have not turned it on:
+		 *
+		 * - `plugin` (string) wordpress.org slug of the plugin. Required.
+		 * - `used` (bool) Whether this login used a second factor.
+		 * - `method` (string) Label of the method used, for example "Passkey". Optional.
+		 *
+		 * Return null when no two-factor plugin handled the login. Plugins that
+		 * challenge after `wp_login` use the `login_pending_second_factor`
+		 * filter and User_Logger::log_two_factor_login() instead.
+		 *
+		 * @since 5.35.0
+		 *
+		 * @param array|null $two_factor Two-factor details for this login. Default null.
+		 * @param \WP_User   $user       User logging in.
+		 */
+		$two_factor = apply_filters( 'simple_history/user_logger/two_factor_login', null, $user );
+
+		if ( ! is_array( $two_factor ) || empty( $two_factor['plugin'] ) || ! is_string( $two_factor['plugin'] ) ) {
+			return array();
+		}
+
+		return $this->build_two_factor_context(
+			$two_factor['plugin'],
+			! empty( $two_factor['used'] ),
+			$two_factor['method'] ?? ''
+		);
+	}
+
+	/**
+	 * Build the shared two-factor context keys for a successful login.
+	 *
+	 * @param string $plugin       wordpress.org slug of the two-factor plugin.
+	 * @param bool   $used         Whether the login used a second factor.
+	 * @param string $method_label Label of the method used.
+	 * @return array
+	 */
+	private function build_two_factor_context( $plugin, $used, $method_label = '' ) {
+		$context = array(
+			self::CONTEXT_TWO_FACTOR_USED   => $used ? 1 : 0,
+			self::CONTEXT_TWO_FACTOR_PLUGIN => $plugin,
+		);
+
+		$method_label = is_string( $method_label ) ? wp_strip_all_tags( $method_label ) : '';
+
+		if ( $method_label !== '' ) {
+			$context[ self::CONTEXT_TWO_FACTOR_METHOD ] = $method_label;
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Log a successful login.
+	 *
+	 * @param \WP_User $user_obj      User that logged in.
+	 * @param array    $extra_context Extra context to store with the event.
+	 */
+	private function log_user_logged_in( $user_obj, $extra_context = array() ) {
+		$context = array(
+			'user_id'    => $user_obj->ID,
+			'user_email' => $user_obj->user_email,
+			'user_login' => $user_obj->user_login,
+		);
+
+		// Override some data that is usually set automagically by Simple History
+		// Because wp_get_current_user() does not return any data yet at this point.
+		$context['_initiator']             = Log_Initiators::WP_USER;
+		$context['_user_id']               = $user_obj->ID;
+		$context['_user_login']            = $user_obj->user_login;
+		$context['_user_email']            = $user_obj->user_email;
+		$context['server_http_user_agent'] = Helpers::get_request_user_agent();
+
+		$this->info_message( 'user_logged_in', array_merge( $context, $extra_context ) );
 	}
 
 	/**
@@ -1184,8 +1413,7 @@ class User_Logger extends Logger {
 				'login_id'               => $userOrError->ID,
 				'login_email'            => $userOrError->user_email,
 				'login'                  => $userOrError->user_login,
-				// phpcs:ignore WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__HTTP_USER_AGENT__ -- User agent logging important for security (brute force detection). Accept VIP caching limitation.
-				'server_http_user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
+				'server_http_user_agent' => Helpers::get_request_user_agent(),
 				'_occasionsID'           => self::class . '/failed_user_login',
 			);
 
@@ -1228,9 +1456,8 @@ class User_Logger extends Logger {
 		if ( is_a( $user, 'WP_Error' ) && ( $user->get_error_code() === 'invalid_username' || $user->get_error_code() === 'invalid_email' ) ) {
 			$context = array(
 				'_initiator'             => Log_Initiators::WEB_USER,
-				'failed_username'        => $username,
-				// phpcs:ignore WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__HTTP_USER_AGENT__ -- User agent logging important for security (brute force detection). Accept VIP caching limitation.
-				'server_http_user_agent' => sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ),
+				'failed_username'        => Helpers::truncate_request_value( $username ),
+				'server_http_user_agent' => Helpers::get_request_user_agent(),
 				// Count all failed logins to unknown users as the same occasions,
 				// to prevent log being flooded with login/hack attempts.
 				'_occasionsID'           => self::class . '/failed_user_login',
@@ -1378,16 +1605,6 @@ class User_Logger extends Logger {
 				),
 			);
 
-			require_once ABSPATH . 'wp-admin/includes/translation-install.php';
-			$translations = wp_get_available_translations();
-
-			if ( ! isset( $translations['en_US'] ) ) {
-				$translations['en_US'] = array(
-					'language'     => 'en_US',
-					'english_name' => 'English',
-				);
-			}
-
 			foreach ( $arr_user_keys_to_show_diff_for as $key => $val ) {
 				if ( ! isset( $context[ "user_prev_{$key}" ] ) || ! isset( $context[ "user_new_{$key}" ] ) ) {
 					continue;
@@ -1398,6 +1615,11 @@ class User_Logger extends Logger {
 
 				// Transform locale codes to display names.
 				if ( $key === 'locale' ) {
+					// Only fetched for a language change: the list can come from an HTTP
+					// request to WordPress.org, and details are also rendered at log time
+					// for the log file and forwarding channels.
+					$translations = $this->get_available_translations();
+
 					if ( isset( $translations[ $user_old_value ] ) ) {
 						$user_old_value = "{$translations[ $user_old_value ]['english_name']} ({$user_old_value})";
 					} elseif ( $user_old_value === 'SITE_DEFAULT' ) {
@@ -1460,6 +1682,23 @@ class User_Logger extends Logger {
 			}
 		}
 
+		if ( isset( $context[ self::CONTEXT_TWO_FACTOR_USED ] ) ) {
+			$group->add_item(
+				( new Event_Details_Item( null, __( 'Two-factor authentication', 'simple-history' ) ) )
+					->set_new_value(
+						(string) $context[ self::CONTEXT_TWO_FACTOR_USED ] === '1'
+							? __( 'Used', 'simple-history' )
+							: __( 'Not used', 'simple-history' )
+					)
+			);
+		}
+
+		if ( isset( $context[ self::CONTEXT_TWO_FACTOR_METHOD ] ) ) {
+			$group->add_item(
+				( new Event_Details_Item( self::CONTEXT_TWO_FACTOR_METHOD, __( 'Two-factor method', 'simple-history' ) ) )
+			);
+		}
+
 		// Common for both modified and added users.
 		if ( isset( $context['user_added_roles'] ) ) {
 			$group->add_item(
@@ -1478,6 +1717,25 @@ class User_Logger extends Logger {
 		}
 
 		return $group;
+	}
+
+	/**
+	 * Get the available translations, with English added.
+	 *
+	 * @return array<string, array<string, mixed>> Translations keyed by locale.
+	 */
+	private function get_available_translations() {
+		require_once ABSPATH . 'wp-admin/includes/translation-install.php';
+		$translations = wp_get_available_translations();
+
+		if ( ! isset( $translations['en_US'] ) ) {
+			$translations['en_US'] = array(
+				'language'     => 'en_US',
+				'english_name' => 'English',
+			);
+		}
+
+		return $translations;
 	}
 
 	/**

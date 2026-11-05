@@ -4,6 +4,7 @@ namespace Simple_History;
 
 use Simple_History\Simple_History;
 use Simple_History\Services\Setup_Settings_Page;
+use Simple_History\Services\Stealth_Mode;
 use Simple_History\Date_Helper;
 
 /**
@@ -290,6 +291,46 @@ class Helpers {
 	}
 
 	/**
+	 * Shorten a value that comes from the request, such as a username typed
+	 * into the login form or the user agent header.
+	 *
+	 * These values are stored in full in a longtext column, so without a limit
+	 * one unauthenticated request could write a value as large as the request.
+	 *
+	 * @since 5.36.0
+	 *
+	 * @param string $value      Value to shorten.
+	 * @param int    $max_length Max number of characters to keep.
+	 * @return string Value with at most $max_length characters.
+	 */
+	public static function truncate_request_value( $value, $max_length = 255 ) {
+		$value = (string) $value;
+
+		// PCRE does not allow a repeat count above 65535.
+		$max_length = min( 65535, max( 0, (int) $max_length ) );
+
+		// Cut on a character boundary. PCRE's u flag works without mbstring.
+		if ( preg_match( '/^.{0,' . $max_length . '}/us', $value, $matches ) ) {
+			return $matches[0];
+		}
+
+		// Not valid UTF-8, so cut on a byte boundary instead.
+		return substr( $value, 0, $max_length );
+	}
+
+	/**
+	 * Get the user agent of the current request, shortened to a sane length.
+	 *
+	 * @since 5.36.0
+	 *
+	 * @return string User agent, or an empty string if the request has none.
+	 */
+	public static function get_request_user_agent() {
+		// phpcs:ignore WordPressVIPMinimum.Variables.RestrictedVariables.cache_constraints___SERVER__HTTP_USER_AGENT__ -- User agent logging important for security (brute force detection). Accept VIP caching limitation.
+		return self::truncate_request_value( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ) );
+	}
+
+	/**
 	 * Returns the context key prefixes that hold an IP address for an event.
 	 *
 	 * A context key holds an IP address if it equals one of these or begins with
@@ -317,6 +358,54 @@ class Helpers {
 		}
 
 		return $prefixes;
+	}
+
+	/**
+	 * Returns the exact context keys gated by the view IP address capability,
+	 * on top of the prefixes from get_ip_address_context_key_prefixes().
+	 *
+	 * The commenter IP address the comments logger stores, the address the
+	 * Limit Login Attempts logger stores, and the WP-CLI server usernames and
+	 * SSH client IP. Both the output gate and the search exclusions read this
+	 * list, so a key added here is hidden and unsearchable.
+	 *
+	 * @since 5.35.0
+	 * @since 5.36.0 Added "ip", used by the Limit Login Attempts logger.
+	 *
+	 * @return array<string> Context keys.
+	 */
+	public static function get_ip_address_context_keys() {
+		return array_merge(
+			array( 'comment_author_IP', 'ip' ),
+			Services\CLI_Origin_Detector::SENSITIVE_CONTEXT_KEYS
+		);
+	}
+
+	/**
+	 * Whether a context key is gated by the view IP address capability.
+	 *
+	 * True for the keys from get_ip_address_context_keys() and
+	 * get_ip_address_context_key_prefixes(). The WP-CLI server usernames are
+	 * there because valid SSH login names are reconnaissance data of the same
+	 * kind as the addresses admins connect from.
+	 *
+	 * @since 5.35.0
+	 *
+	 * @param string $key Context key.
+	 * @return bool
+	 */
+	public static function is_ip_address_context_key( $key ) {
+		if ( in_array( $key, self::get_ip_address_context_keys(), true ) ) {
+			return true;
+		}
+
+		foreach ( self::get_ip_address_context_key_prefixes() as $prefix ) {
+			if ( str_starts_with( $key, $prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -1408,6 +1497,25 @@ class Helpers {
 	}
 
 	/**
+	 * Whether the current user may view the history.
+	 *
+	 * Checks the view history capability and Stealth Mode. Use this instead of
+	 * current_user_can( get_view_history_capability() ) wherever history or a
+	 * link to it is shown, so Stealth Mode hides it too.
+	 *
+	 * @since 5.36.0
+	 * @return bool
+	 */
+	public static function current_user_can_view_history() {
+		// phpcs:ignore WordPress.WP.Capabilities.Undetermined -- Capability is filterable, defaults to 'edit_pages'.
+		if ( ! current_user_can( self::get_view_history_capability() ) ) {
+			return false;
+		}
+
+		return Stealth_Mode::is_gui_visible_to_user();
+	}
+
+	/**
 	 * Whether the current user may look up another user's identifying details.
 	 *
 	 * Scoped to lookups that answer an arbitrary user id — the user card. That
@@ -1435,6 +1543,102 @@ class Helpers {
 		 * @param bool $can_view Defaults to current_user_can( 'list_users' ).
 		 */
 		return apply_filters( 'simple_history/user_can_view_user_pii', current_user_can( 'list_users' ) );
+	}
+
+	/**
+	 * Return the capability required to see IP addresses in the log.
+	 *
+	 * Reading the log only takes get_view_history_capability(), which is
+	 * "edit_pages" — an Editor, and on multi-author sites often a freelancer or
+	 * contractor. IP addresses are personal data that a content role rarely
+	 * needs, so they get a capability of their own.
+	 *
+	 * Not to be confused with the 'simple_history/row_header_output/display_ip_address'
+	 * filter. That one decides whether an IP is interesting for a kind of event;
+	 * this one decides whether the reader may see it at all.
+	 *
+	 * @since 5.35.0
+	 * @return string Capability. Default "manage_options".
+	 */
+	public static function get_view_ip_address_capability() {
+		/**
+		 * Filters the capability required to see IP addresses in the log.
+		 *
+		 * @example Let Editors see IP addresses again.
+		 *
+		 * ```php
+		 * add_filter(
+		 *     'simple_history/view_ip_address_capability',
+		 *     function () {
+		 *         return 'edit_pages';
+		 *     }
+		 * );
+		 * ```
+		 *
+		 * @since 5.35.0
+		 *
+		 * @param string $capability Capability. Default "manage_options".
+		 */
+		return apply_filters( 'simple_history/view_ip_address_capability', 'manage_options' );
+	}
+
+	/**
+	 * Whether the current user may see IP addresses in the log.
+	 *
+	 * WP-CLI always may: anyone who can run commands on the server can read the
+	 * database directly, and the CLI commands already bypass the logger read
+	 * capabilities for the same reason.
+	 *
+	 * @since 5.35.0
+	 * @return bool
+	 */
+	public static function current_user_can_view_ip_addresses() {
+		if ( defined( 'WP_CLI' ) && WP_CLI ) {
+			return true;
+		}
+
+		// phpcs:ignore WordPress.WP.Capabilities.Undetermined -- Dynamic capability from Helpers::get_view_ip_address_capability(), filterable.
+		$can_view = current_user_can( self::get_view_ip_address_capability() );
+
+		/**
+		 * Filter whether the current request may see IP addresses.
+		 *
+		 * For requests that are authorized some other way than a logged in
+		 * user, like the RSS feed with a valid secret.
+		 *
+		 * @since 5.35.0
+		 *
+		 * @param bool $can_view Whether the current user has the capability.
+		 */
+		return (bool) apply_filters( 'simple_history/current_user_can_view_ip_addresses', $can_view );
+	}
+
+	/**
+	 * Remove IP addresses from an event context unless the current user may see them.
+	 *
+	 * The one place every output path goes through — REST, the row header,
+	 * export — so the next output path inherits the gate instead of having to
+	 * remember it. See is_ip_address_context_key() for the keys removed.
+	 *
+	 * @since 5.35.0
+	 *
+	 * @param array<string,mixed> $context Event context.
+	 * @return array<string,mixed> Context, without IP address keys if the user may not see them.
+	 */
+	public static function filter_ip_addresses_for_current_user( $context ) {
+		if ( ! is_array( $context ) || self::current_user_can_view_ip_addresses() ) {
+			return $context;
+		}
+
+		foreach ( array_keys( $context ) as $key ) {
+			if ( ! self::is_ip_address_context_key( (string) $key ) ) {
+				continue;
+			}
+
+			unset( $context[ $key ] );
+		}
+
+		return $context;
 	}
 
 	/**
@@ -1877,6 +2081,89 @@ class Helpers {
 		} catch ( \Exception $e ) {
 			return '';
 		}
+	}
+
+	/**
+	 * Get the changed parts of a stored JSON diff (from jfcherng/php-diff JsonHtml renderer).
+	 *
+	 * The diff only has the changed lines, not the whole texts, so this is
+	 * what can be said about the change as data: one entry per run of changed
+	 * lines, or per line when as many lines replace them, with the old and new
+	 * lines as plain text. Unchanged context lines are left out. An added run
+	 * has no prev_value, a removed run no new_value.
+	 *
+	 * There is no line number: the diff is made from the texts with blank
+	 * lines removed (normalize_whitespace()), so its offsets don't match the
+	 * lines of the post.
+	 *
+	 * @param string $json_diff_string JSON-encoded diff array.
+	 *
+	 * @return array<int, array{prev_value?: string, new_value?: string}>
+	 */
+	public static function get_json_diff_changes( $json_diff_string ) {
+		$hunks = json_decode( (string) $json_diff_string, true );
+
+		if ( ! is_array( $hunks ) ) {
+			return [];
+		}
+
+		// The renderer marks changed words with <ins>/<del> and escapes the text itself,
+		// so tags are markup and entities are text.
+		$to_text = function ( $lines ) {
+			if ( ! is_array( $lines ) || $lines === [] ) {
+				return '';
+			}
+
+			$text = implode( "\n", array_map( 'strval', $lines ) );
+
+			return html_entity_decode( wp_strip_all_tags( $text ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		};
+
+		$changes = [];
+
+		foreach ( $hunks as $hunk ) {
+			if ( ! is_array( $hunk ) ) {
+				continue;
+			}
+
+			foreach ( $hunk as $block ) {
+				if ( ! is_array( $block ) || ( $block['tag'] ?? 'eq' ) === 'eq' ) {
+					continue;
+				}
+
+				$old_lines = is_array( $block['old']['lines'] ?? null ) ? array_values( $block['old']['lines'] ) : [];
+				$new_lines = is_array( $block['new']['lines'] ?? null ) ? array_values( $block['new']['lines'] ) : [];
+
+				// As many new lines as old: line by line, so each old line
+				// is shown next to the line that replaced it.
+				$pairs = count( $old_lines ) === count( $new_lines )
+					? array_map( null, array_chunk( $old_lines, 1 ), array_chunk( $new_lines, 1 ) )
+					: [ [ $old_lines, $new_lines ] ];
+
+				foreach ( $pairs as list( $old_part, $new_part ) ) {
+					$prev = $to_text( $old_part );
+					$new  = $to_text( $new_part );
+
+					if ( $prev === '' && $new === '' ) {
+						continue;
+					}
+
+					$change = [];
+
+					if ( $prev !== '' ) {
+						$change['prev_value'] = $prev;
+					}
+
+					if ( $new !== '' ) {
+						$change['new_value'] = $new;
+					}
+
+					$changes[] = $change;
+				}
+			}
+		}
+
+		return $changes;
 	}
 
 	/**
@@ -3128,10 +3415,13 @@ class Helpers {
 	 * and truncates to a reasonable length. Useful for cleaning up
 	 * error messages that may contain HTML (like WordPress database errors).
 	 *
+	 * Tags are stripped before entities are decoded, so the result can contain
+	 * "<" and other markup characters. Escape it before putting it in HTML.
+	 *
 	 * @since 5.6.0
 	 * @param string $message    The raw error message.
 	 * @param int    $max_length Maximum length before truncation. Default 500.
-	 * @return string The sanitized error message.
+	 * @return string The sanitized error message, as plain text that is not safe for HTML output.
 	 */
 	public static function sanitize_error_message( $message, $max_length = 500 ) {
 		// Strip HTML tags.

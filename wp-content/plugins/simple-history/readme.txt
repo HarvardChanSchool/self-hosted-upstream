@@ -4,7 +4,7 @@ Contributors: eskapism, wpsimplehistory
 Donate link: https://simple-history.com/sponsor/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=sponsorship&utm_content=readme_donate_link
 Tags: history, audit log, event log, user tracking, activity
 Tested up to: 7.1
-Stable tag: 5.34.0
+Stable tag: 5.36.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,13 +64,17 @@ _"I see three failed logins from an unfamiliar IP address overnight. Let me clic
 
 -   Privacy data export and user data erasure requests
 -   Privacy page changes
--   IP addresses anonymized by default — no cookies, no external fonts
+-   IP addresses are masked by default: the last part is removed before storing
+-   Sets no cookies and loads no external fonts
 -   WordPress AI plugin activity is logged without ever storing API keys or prompt content
 
 ### 🔌 Built-in Third-Party Plugin Support
 
 Simple History includes built-in logging for:
 
+-   **Two Factor** – Logins are logged when the two-factor code is accepted, with the method used, and wrong codes as failed logins
+-   **Wordfence** – Whether a login used two-factor authentication and which method, and wrong codes as failed logins
+-   **Kadence Security (formerly Solid Security)** – Wrong two-factor codes as failed logins
 -   **WordPress AI plugin** – Feature toggles, AI provider and model changes, and connector approval requests, grants, and revocations
 -   **Jetpack** – Module activations and deactivations
 -   **Advanced Custom Fields (ACF)** – Field group and field changes
@@ -219,14 +223,15 @@ Yes! You can **filter logs by username**, making it easy to track individual act
 
 GDPR compliance depends on **how you use the plugin** and how you handle collected data. WordPress guidelines prohibit plugins from making legal compliance claims, so you should review your site's data policies to ensure compliance.
 
-That said, Simple History follows **privacy-friendly practices**:
+What Simple History does by default:
 
--   ❌ No Google Fonts
--   ❌ No cookies
--   ❌ No local storage
--   ✅ IP addresses are anonymized by default
+-   ❌ Loads no Google Fonts
+-   ❌ Sets no cookies
+-   ❌ Keeps no data in the browser's local storage
+-   ✅ Masks IP addresses: the last part is removed before storing (192.168.1.x; IPv6 addresses keep only the first half)
+-   ✅ Looks up an IP address at ipinfo.io only when an administrator clicks it
 
-Since the plugin logs events (which may contain personal data), it's **your responsibility** to ensure GDPR compliance based on your site's usage.
+The log can contain personal data (called personal information in some laws), such as usernames, email addresses and masked IP addresses. A masked IP address can still be linked to a person through the rest of the log entry. Which privacy laws apply, and what they require, depends on your site, so mention the activity log in your privacy policy. Simple History adds suggested text for this under Settings → Privacy → Policy Guide.
 
 For more information, see our support page [GDPR and Privacy: How Your Data is Stored in Simple History](https://simple-history.com/support/gdpr-and-privacy/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_gdpr_support).
 
@@ -262,7 +267,71 @@ For more information, see our support page [GDPR and Privacy: How Your Data is S
 -   [Add a 5-star review so other users know it's good.](https://wordpress.org/support/plugin/simple-history/reviews/?filter=5)
 -   [Get the premium add-on for more features.](https://simple-history.com/add-ons/premium?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_doc_premium)
 
-> Experimental entries are gated behind the experimental features setting (Settings → Simple History → Experimental). Enable it to try them, then share feedback so we know what to ship for everyone.
+> Experimental entries are gated behind the "Experimental features" checkbox under Simple History → Settings. Tick it to try them, then share feedback so we know what to ship for everyone.
+
+### 5.36.0 (October 2026)
+
+Post edits are easier to read outside the log: Copy as JSON, log files and forwarded events list each changed field with its old and new value. This release also contains security fixes.
+[Screenshots and details in the release post](https://simple-history.com/2026/simple-history-5-36-0-released/)
+
+**Added**
+
+-   Experimental — A short "Updated to Simple History X.Y.Z" line at the top of the log after an update, with how many new features and fixes it brought and a link to the release post. Premium updates get their own line.
+-   Experimental — Premium customers see a message on the log page when a subscription payment didn't go through or the subscription is about to end, and sites with an expired Premium license see what's new in Premium since their version.
+
+**Changed**
+
+-   Post title, permalink, excerpt and content changes are separate fields with old and new values in the REST API, Copy as JSON and Copy as Markdown. For long posts, only the changed lines of the content are listed.
+-   Premium and other add-ons check for updates only when WordPress itself checks for updates, so admin pages no longer wait for simple-history.com.
+-   For developers: the `simple_history/post_logger/label_for_key` filter also gets the status, publish date, comment status, author and template labels of post changes. Labels are escaped, so return plain text.
+-   For developers: the `simple_history/post_logger/post_updated/diff_table_output` filter no longer gets the title, permalink, excerpt, content and other changed fields, only the rows that callbacks add. `Post_Logger::extra_diff_record()` is deprecated and no longer used.
+
+**Fixed**
+
+-   Similar events didn't load on sites that use SQLite instead of MySQL with version 2.x of the [SQLite Database Integration](https://wordpress.org/plugins/sqlite-database-integration/) plugin.
+-   Log files written by [Log Forwarding](https://simple-history.com/features/log-forwarding/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_changelog_log_forwarding) → Local Files now include what changed in each event, like the roles added and removed on a profile edit, not only the event message.
+-   The one-click [weekly email](https://simple-history.com/features/weekly-email-report/?utm_source=wordpress_org&utm_medium=plugin_directory&utm_campaign=documentation&utm_content=readme_changelog_weekly_email) offer and its confirmation now name everyone who will get the email, like the site admin, not only you.
+-   Page template changes: the first template picked for a page wasn't logged, block themes showed the template slug instead of its name, and an extra row labelled "page_template_name" showed next to the Template row.
+-   "Check again" on Dashboard → Updates now checks for new versions of Premium and other add-ons right away, instead of up to an hour later.
+
+**Security**
+
+-   Similar events now follow the same access rules as the log, so editors no longer see events like failed logins there.
+-   Forwarded IP addresses, usernames and user agents are now capped in length, so a single crafted request can't fill the log.
+-   IP addresses in Limit Login Attempts events are now anonymized and hidden from users who can't view IP addresses.
+-   Plugin and theme file edits are logged only when WordPress accepts the edit.
+-   Stealth Mode now also hides events in the REST API and Abilities API, and history links, notices and the command palette, from users outside the allowlist.
+-   Hardened database queries and output escaping in the plugin stats and the category and settings events.
+-   Line breaks and control characters in event text are escaped in the log file, so they can't add fake lines or change what a terminal shows.
+
+### 5.35.0 (October 2026)
+
+This release is about logins and privacy. Logins with two-factor authentication are logged when the code is accepted, IP addresses in the log are only shown to administrators, and there is suggested text about the log for your privacy policy. The weekly email settings got simpler too.
+[Read more about it in the release post](https://simple-history.com/2026/simple-history-5-35-0-released/)
+
+**Added**
+
+-   Suggested privacy policy text for the activity log, under Settings → Privacy → Policy Guide.
+-   Support for the Two Factor plugin: logins are logged when the two-factor code is accepted, not when the password is entered, and show whether two-factor authentication was used.
+-   Logins on sites using Wordfence show whether two-factor authentication was used, and how: authenticator app, recovery code, passkey or remembered device.
+-   Experimental — Emails that WordPress fails to send are logged as errors, and a notice in the sidebar and email settings shows how many failed in the last 30 days.
+-   Experimental — WP-CLI events store the command, the server user and, for commands run over SSH, the masked IP address they came from. Nothing is shown in the log yet.
+
+**Changed**
+
+-   Weekly email settings have a "Site admin" checkbox that sends the email to the site's admin address and follows it when it changes, and adding more recipients no longer stops the email to the admin.
+-   IP addresses in the log are shown only to administrators. Editors and other roles that can read the log no longer see them in events, event details, exports or search. The secret RSS feed still shows them.
+-   IP addresses are described as masked instead of anonymized, since a masked address can still be linked to a person through the rest of the log entry.
+-   XML export events say what was exported (all content or a post type) and show the author, category, date and status filters used, also for past exports.
+-   Experimental — Role logger: removing capabilities from a role is a notice instead of a warning, and granting a capability that controls the site (such as `manage_options` or `install_plugins`), or creating a role with one, is now a warning.
+
+**Fixed**
+
+-   The IP address of people who comment is now masked like every other IP address in the log, and only administrators can see it. Earlier comment events keep the full address but are hidden from other roles.
+-   Core files check no longer reports official WordPress files in the site's language or in English as modified, such as a German `wp-config-sample.php` on a site installed in English.
+-   Image changes in event details, such as a new featured image, line up with the text changes above them.
+-   Event details are easier to read on phones: each label sits above its value, and image thumbnails fit inside their column.
+-   Wrong two-factor codes from the Two Factor, Kadence Security (formerly Solid Security) and Wordfence plugins are logged as failed logins.
 
 ### 5.34.0 (September 2026)
 

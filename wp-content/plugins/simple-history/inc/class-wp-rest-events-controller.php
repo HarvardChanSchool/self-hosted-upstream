@@ -272,8 +272,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 		// cannot open the history page still read single events by id, for any
 		// logger whose own capability they hold. The reaction routes share this
 		// callback, so they inherit the same floor.
-		// phpcs:ignore WordPress.WP.Capabilities.Undetermined -- Dynamic capability from Helpers::get_view_history_capability().
-		if ( ! current_user_can( Helpers::get_view_history_capability() ) ) {
+		if ( ! Helpers::current_user_can_view_history() ) {
 			return new WP_Error(
 				'rest_forbidden_context',
 				__( 'Sorry, you are not allowed to view events.', 'simple-history' ),
@@ -575,7 +574,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 		);
 
 		$query_params['ip_address'] = array(
-			'description'       => __( 'Limit result set to events from a specific IP address. Supports anonymized IPs with ".x" suffix.', 'simple-history' ),
+			'description'       => __( 'Limit result set to events from a specific IP address. Supports masked IPv4 addresses ending in ".x".', 'simple-history' ),
 			'type'              => 'string',
 			'validate_callback' => static function ( $value ) {
 				return Helpers::is_valid_ip_address_filter( $value );
@@ -890,8 +889,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 		// e.g. an author could read Notes logger events despite being blocked
 		// from the history page. The per logger filter in Log_Query stays as
 		// defence in depth.
-		// phpcs:ignore WordPress.WP.Capabilities.Undetermined -- Dynamic capability from Helpers::get_view_history_capability().
-		if ( ! current_user_can( Helpers::get_view_history_capability() ) ) {
+		if ( ! Helpers::current_user_can_view_history() ) {
 			return new WP_Error(
 				'rest_forbidden_context',
 				__( 'Sorry, you are not allowed to view events.', 'simple-history' ),
@@ -1389,7 +1387,7 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 				$item
 			);
 
-			if ( $include_ip_addresses_for_event ) {
+			if ( $include_ip_addresses_for_event && Helpers::current_user_can_view_ip_addresses() ) {
 				// Look for additional ip addresses.
 				$arr_found_additional_ip_headers = Helpers::get_event_ip_number_headers( $item );
 
@@ -1506,6 +1504,10 @@ class WP_REST_Events_Controller extends WP_REST_Controller {
 
 		if ( rest_is_field_included( 'context', $fields ) ) {
 			$context_for_output = $item->context ?? [];
+
+			// IP addresses, and the WP-CLI server usernames and SSH client IPs,
+			// only for users with the view IP address capability.
+			$context_for_output = Helpers::filter_ip_addresses_for_current_user( $context_for_output );
 
 			// `_annotation` never goes out raw.
 			//

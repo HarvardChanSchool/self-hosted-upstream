@@ -531,6 +531,14 @@ class Abilities_Service extends Service {
 	 * @return bool
 	 */
 	public function check_stats_permission() {
+		// The stats controller does not check Stealth Mode (the events
+		// controller does, through Helpers::current_user_can_view_history()),
+		// so check it here. Without this the ability would fail later with a
+		// 404 from the hidden route instead of a permission error.
+		if ( ! Stealth_Mode::is_gui_visible_to_user() ) {
+			return false;
+		}
+
 		$controller = new WP_REST_Stats_Controller();
 
 		$permission = $controller->get_items_permissions_check(
@@ -795,6 +803,7 @@ class Abilities_Service extends Service {
 			'SimpleUserLogger:user_unknown_login_failed',
 			'SimpleUserLogger:user_application_password_login_failed',
 			'SimpleUserLogger:user_application_password_unknown_login_failed',
+			'SimpleUserLogger:user_two_factor_login_failed',
 		];
 
 		return $this->present_events( $this->dispatch( '/simple-history/v1/events', $params ), $include_context );
