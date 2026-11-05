@@ -1,94 +1,11 @@
 {
-    "name": "harvardchanschool/self-hosted-upstream",
+    "name": "harvardchanschool/your-self-hosted-website",
     "type": "project",
-    "require": {
-		"harvardchanschool/plugin-design-system": "dev-main",
-		"harvardchanschool/plugin-social": "dev-master",
-		"harvardchanschool/plugin-ui-shortcodes": "dev-main",
-		"the-events-calendar/events-calendar-pro": "^7.4.2",
-		"rankmath/seo-by-rank-math-pro": "^3.0.80",
-		"harvardchanschool/hsph-wordpress-toolkit": "dev-main",
-    "composer/installers": "^2.3"
-	},
-	"repositories": [
-		{
-			"type": "vcs",
-			"url": "https://github.com/HarvardChanSchool/hsph-wordpress-toolkit"
-		},
-		{
-			"type": "vcs",
-			"url": "https://github.com/HarvardChanSchool/plugin-design-system"
-		},
-		{
-			"type": "vcs",
-			"url": "https://github.com/HarvardChanSchool/plugin-social"
-		},
-		{
-			"type": "vcs",
-			"url": "https://github.com/HarvardChanSchool/plugin-ui-shortcodes"
-		},
-		{
-			"type": "package",
-			"package": {
-				"name": "the-events-calendar/events-calendar-pro",
-				"version": "7.4.2",
-				"type": "wordpress-plugin",
-				"dist": {
-					"url": "https://evnt.is/fetch-ecp?key=a0fb1ee00ac1590ec344fecde11be9fd2b4710fd&version=7.4.2",
-					"type": "zip"
-				}
-			}
-		},
-		{
-			"type": "package",
-			"package": {
-					"name": "rankmath/seo-by-rank-math-pro",
-					"type": "wordpress-plugin",
-					"version": "3.0.80",
-						"dist": {
-							"type": "zip",
-							"url": "https://rankmath.com/download/510590/?username=deane&api_key=bad0233c27f41b4aa64560a2254ef85f"
-					}
-			}
-		}
-	],
-	"extra": {
-		"installer-paths": {
-			"wp-content/mu-plugins/{$name}": [
-				"type:wordpress-muplugin"
-			]
-		}
-	},
+    "require": {},
+    "repositories": [],
     "config": {
         "allow-plugins": {
             "composer/installers": true
-        },
-				"policy": {
-					"advisories": {
-						"ignore-id": [
-							"PKSA-vznr-tgp9-fd7d",
-							"PKSA-7qs6-zvnz-h66r",
-							"PKSA-gm5x-j3mz-71n9",
-							"PKSA-jj5t-2zs1-dcfm",
-							"PKSA-hn62-zkx4-1y5q",
-							"PKSA-gvzg-s447-b5b5",
-							"PKSA-gcrk-3vtt-1r14",
-							"PKSA-cnw1-2ytm-cgr8",
-							"PKSA-fy2t-3c5f-827y",
-							"PKSA-qxvb-2bpp-dnk6",
-							"PKSA-bbs6-q5q9-f3t4",
-							"PKSA-bcdd-5xc7-gwfb",
-							"PKSA-pwsk-hy21-4gby",
-							"PKSA-93qv-9n9h-6k6p",
-							"PKSA-k22t-f949-t9g6",
-							"PKSA-yfw5-9gnj-n2c7",
-							"PKSA-k1b4-kshy-xgbh",
-							"PKSA-2z36-j4q9-rsfy",
-							"PKSA-fvw5-9t6n-nwvr",
-							"PKSA-6d8m-6kgw-18zr",
-							"PKSA-stmn-hvzq-wph6"
-						]
-					}
-				}
+        }
     }
 }
