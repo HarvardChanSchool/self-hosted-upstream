@@ -1,11 +1,10 @@
 # WP Crontrol
 
-Contributors: johnbillion, scompt
+Contributors: johnbillion, scompt, smub, seedprod
 Tags: cron, wp-cron, crontrol, debug, woocommerce
 Tested up to: 7.1
-Stable tag: 1.21.2
+Stable tag: 2.0.0
 License: GPL v2 or later
-Donate link: https://github.com/sponsors/johnbillion
 
 Take control of the cron events on your WordPress website or WooCommerce store with WP Crontrol.
 
@@ -14,6 +13,9 @@ Take control of the cron events on your WordPress website or WooCommerce store w
 Take control of the cron events on your WordPress website or WooCommerce store with WP Crontrol. From the admin screens you can:
 
  * View all scheduled cron events along with their arguments, schedule, callback functions, and when they are next due.
+* Log each run of the events you choose, with its duration, errors, HTTP requests, and emails sent.
+* Get an email when a logged event fails.
+* Let an AI assistant check, run, and pause cron events and read their logs, through the WordPress Abilities API (WordPress 6.9 and later).
  * Edit, delete, pause, resume, and immediately run cron events.
  * Add new cron events.
  * Bulk delete cron events.
@@ -24,8 +26,12 @@ WP Crontrol is aware of timezones, will alert you to events that have no actions
 
 ### Usage
 
-1. Go to the `Tools → Cron Events` menu to manage cron events.
-2. Go to the `Settings → Cron Schedules` menu to manage cron schedules.
+1. Go to the `Cron → Cron Events` menu to manage cron events. `Tools → Cron Events` still works too.
+2. Go to the `Cron → Cron Logs` menu to see what ran, once you turn on logging for an event.
+3. Go to the `Cron → Cron Insights` menu to see how your events behaved over the last week.
+4. Go to the `Cron → Cron Alerts` menu to get an email when a logged event fails.
+5. Go to the `Cron → Cron AI` menu to see what an AI assistant can do with your cron events.
+6. Go to the `Cron → Cron Schedules` menu to manage cron schedules.
 
 ### Documentation
 
@@ -54,23 +60,25 @@ Developers use WP Crontrol to streamline and debug their WordPress development p
 
 ### Other Plugins
 
-I maintain several other plugins for developers. Check them out:
+WP Crontrol was built by John Blackbourn, who also maintains these plugins for developers:
 
 * [Query Monitor](https://wordpress.org/plugins/query-monitor/) is the developer tools panel for WordPress.
 * [User Switching](https://wordpress.org/plugins/user-switching/) provides instant switching between user accounts in WordPress.
 
-### Thanks
+### More Plugins From Our Team
 
-The time that I spend maintaining this plugin and others is in part sponsored by:
+WP Crontrol is now looked after by the Duplicator team. If it's useful to you, these might be too:
 
-* [Automattic](https://automattic.com/)
-* [ServMask](https://servmask.com/)
-* [WP Staging](https://wp-staging.com/)
-* [All my kind sponsors on GitHub](https://github.com/sponsors/johnbillion)
+* [WPVibe](https://wordpress.org/plugins/vibe-ai/) connects AI assistants like Claude and ChatGPT to your WordPress site, so they can build and manage it for you.
+* [Duplicator](https://wordpress.org/plugins/duplicator/) backs up, migrates, and clones WordPress sites.
+* [WP Mail SMTP](https://wordpress.org/plugins/wp-mail-smtp/) fixes WordPress email delivery, so the emails your scheduled tasks send actually arrive.
+* [WPCode](https://wordpress.org/plugins/insert-headers-and-footers/) adds custom code snippets to WordPress safely, without editing your theme's functions.php file.
 
 ### Privacy Statement
 
 WP Crontrol is private by default and always will be. It does not send data to any third party, nor does it include any third party resources. [WP Crontrol's full privacy statement can be found here](https://wp-crontrol.com/privacy/).
+
+Cron alerts are sent by your site's own email setup, only to the addresses you choose. When you install or activate one of our other plugins from a WP Crontrol screen, WP Crontrol notes which one in your site's database, so you can see what came from WP Crontrol. That note stays on your site and is never sent anywhere.
 
 ### Accessibility Statement
 
@@ -140,7 +148,9 @@ Yes, a CSV file of the event list can be exported and downloaded via the "Export
 
 ### Can I see a historical log of all the cron events that ran on my site?
 
-Not yet, but I hope to add this functionality soon.
+Yes. Go to `Tools → Cron Logs` and turn on logging for the events you want to watch, or use the "Enable logging" link next to an event on the Cron Events screen. Logging is off by default. Each run of a logged event records its duration, errors and warnings, HTTP requests, emails sent, and database queries. Entries are kept for 30 days, up to 10,000 entries per site. Event arguments are not stored, and the query strings of logged HTTP requests are removed.
+
+The `Tools → Cron Insights` screen shows when your events are due over the coming week and the errors from the last seven days.
 
 ### Can I see a historical log of edits, additions, and deletions of cron events and schedules?
 
@@ -156,7 +166,7 @@ There are two steps to getting a functioning cron event that executes regularly.
 
 *Step One: Adding the event*
 
-From the Tools → Cron Events menu, click on Add Cron Event. Fill out the details of the event. You're best off using a hook name that conforms to normal PHP variable naming conventions. The schedule is how often the event will be executed. If you don't see a good interval, then add one in the Settings → Cron Schedules menu.
+From the Tools → Cron Events menu, click on Add Cron Event. Fill out the details of the event. You're best off using a hook name that conforms to normal PHP variable naming conventions. The schedule is how often the event will be executed. If you don't see a good interval, then add one in the Cron → Cron Schedules menu.
 
 *Step Two: Writing the function*
 
@@ -182,7 +192,7 @@ From the Tools → Cron Events menu, click on Add Cron Event. Select the "URL cr
 
 ### How do I create a new PHP cron event?
 
-From the Tools → Cron Events menu, click on Add Cron Event. Select the "PHP cron event" option and enter the schedule and next run time. The event schedule is how often your event will be executed. If you don't see a good interval, then add one in the Settings → Cron Schedules menu. In the "PHP Code" area, enter the PHP code that should be run when your cron event is executed. You don't need to provide the PHP opening tag (`<?php`).
+From the Tools → Cron Events menu, click on Add Cron Event. Select the "PHP cron event" option and enter the schedule and next run time. The event schedule is how often your event will be executed. If you don't see a good interval, then add one in the Cron → Cron Schedules menu. In the "PHP Code" area, enter the PHP code that should be run when your cron event is executed. You don't need to provide the PHP opening tag (`<?php`).
 
 Creating, editing, and running PHP cron events is subject to restrictive security permissions. [You can read all about the features and security of PHP cron events on the WP Crontrol website](https://wp-crontrol.com/docs/php-cron-events/).
 
@@ -202,6 +212,12 @@ If the `CRONTROL_DISALLOW_PHP_EVENTS` constant is defined and set to `true`, the
 
 [You can read all about the features and security of PHP cron events on the WP Crontrol website](https://wp-crontrol.com/docs/php-cron-events/).
 
+### Can I move WP Crontrol back under the Tools menu?
+
+Yes. WP Crontrol adds its own Cron menu, and Tools → Cron Events keeps working. To remove the Cron menu, add this to a must-use plugin or your theme's functions.php file:
+
+`add_filter( 'crontrol/top_level_menu', '__return_false' );`
+
 ### Are any WP-CLI commands available?
 
 The cron commands which were previously included in WP Crontrol are now part of WP-CLI itself. See `wp help cron` for more info.
@@ -212,7 +228,7 @@ The cron commands which were previously included in WP Crontrol are now part of 
 
 ### How can I report a security bug?
 
-You can submit a private security vulnerability report to WP Crontrol via [the Security tab on the GitHub repo](https://github.com/johnbillion/wp-crontrol/security). The GitHub Security Advisory process facilitates private collaboration on security issues. You'll receive credit for a valid report and a CVE if necessary.
+You can submit a private security vulnerability report to WP Crontrol via [the Security tab on the GitHub repo](https://github.com/awesomemotive/wp-crontrol/security). The GitHub Security Advisory process facilitates private collaboration on security issues. You'll receive credit for a valid report and a CVE if necessary.
 
 Do not report security issues on the WordPress.org support forums or via email. Thank you.
 
@@ -225,7 +241,28 @@ The photo was taken by <a href="https://www.flickr.com/photos/michaelpardo/21453
 1. Cron events can be modified, deleted, and executed
 2. New cron events can be added
 3. New cron schedules can be added, giving plugin developers more options when scheduling events
+
 ## Changelog ##
+
+### 2.0.0 (15 October 2026) ###
+
+* Cron event logging and Cron Insights, previously part of WP Crontrol Pro, are now free for everyone. Logging is off until you turn it on for an event.
+* WP Crontrol now has its own Cron menu in the admin, with Events, Logs, Insights, Alerts, AI, and Schedules in one place. Tools > Cron Events still works.
+* New: Cron Alerts. Get an email when a logged cron event fails, as it happens (at most once an hour for each event) or as a daily summary, with a test button to check that alerts arrive.
+* New: Cron AI. WP Crontrol registers its features with the WordPress Abilities API (WordPress 6.9 and later), so an AI assistant can list, run, and pause cron events, turn logging on, and read logs and insights, with your account's permissions. Assistants can't create or edit PHP or URL cron events.
+* Logs now show when an email sent by a logged event failed to send.
+* Dates and times in the event list can now be translated, including month names. Thanks to @zalemcitizen for the request.
+* Logs never store event arguments, and logged HTTP requests keep only the site address.
+* Logs are kept for 30 days, up to 10,000 entries per site. Deleting the plugin removes its log tables and settings.
+* Shows a note about WP Crontrol's new home at the top of the Cron screens until you dismiss it, with plugins from the same team that aren't active on your site.
+* Suggests Duplicator on the Cron Events screen when no backup plugin or scheduled backup is found, and WPCode under the PHP cron event code field. Each suggestion can be dismissed for good.
+
+### 1.22.0 (8 October 2026) ###
+
+* WP Crontrol is now maintained by the team at Awesome Motive. Thank you to John Blackbourn for building and looking after WP Crontrol for so many years. It remains free, open source, and private by default.
+* Fixes Run Now reporting a failure when the event was scheduled successfully, for example when a plugin such as Cavalcade stores events outside the cron option. Props @abdulraheemalick.
+* Security: Hardens several permission and integrity checks for cron events.
+* Removes the sponsor link.
 
 ### 1.21.2 (29 August 2026) ###
 
@@ -256,7 +293,7 @@ The photo was taken by <a href="https://www.flickr.com/photos/michaelpardo/21453
 
 ### 1.19.2 (19 August 2025) ###
 
-* Security: Hardens the "URL cron event" functionality by rejecting disallowed URLs. [More information see the security advisory](https://github.com/johnbillion/wp-crontrol/security/advisories/GHSA-35c5-67fm-cpcp).
+* Security: Hardens the "URL cron event" functionality by rejecting disallowed URLs. [More information see the security advisory](https://github.com/awesomemotive/wp-crontrol/security/advisories/GHSA-35c5-67fm-cpcp).
 * Tweaks the display of some non-persistent WordPress core hooks when Multisite is enabled.
 
 ### 1.19.1 (3 June 2025) ###
@@ -282,4 +319,4 @@ The photo was taken by <a href="https://www.flickr.com/photos/michaelpardo/21453
 
 ### Earlier versions ###
 
-For the changelog of earlier versions, <a href="https://github.com/johnbillion/wp-crontrol/releases">refer to the releases page on GitHub</a>.
+For the changelog of earlier versions, <a href="https://github.com/awesomemotive/wp-crontrol/releases">refer to the releases page on GitHub</a>.
