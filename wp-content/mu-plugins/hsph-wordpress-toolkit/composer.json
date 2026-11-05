@@ -1,0 +1,12 @@
+{
+  "name": "harvardchanschool/hsph-wordpress-toolkit",
+  "type": "wordpress-muplugin",
+  "config": {
+    "allow-plugins": {
+      "composer/installers": true
+    }
+  },
+  "require": {
+    "psr/log": "^1.0.1 || ^2.0 || ^3.0"
+  }
+}

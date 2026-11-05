@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html class="hsph-bootstrap">
+
+    <head>
+        <link rel="stylesheet" type="text/css" href="hsph-bootstrap-no-conflict.css">
+        <link rel="stylesheet" type="text/css" href="hsph-fontawesome.css">
+        <meta charset="utf-8">
+    </head>
+
+    <body>
+        <style type="text/css">
+
+            pre {
+                background: #f7f7f9;
+            }
+
+            @media (min-width: 768px) {
+                body>.navbar-transparent {
+                    box-shadow: none;
+                }
+
+                body>.navbar-transparent .navbar-nav>.open>a {
+                    box-shadow: none;
+                }
+            }
+
+            .bs-docs-section {
+                margin-top: 35px;
+            }
+
+            .bs-docs-section .page-header h1 {
+                padding: 2rem 0;
+                font-size: 3rem;
+            }
+
+            .dropdown-menu.show[aria-labelledby=themes] {
+                display: flex;
+                width: 420px;
+                flex-wrap: wrap;
+            }
+
+            .dropdown-menu.show[aria-labelledby=themes] .dropdown-item {
+                width: 33.333%;
+            }
+
+            .dropdown-menu.show[aria-labelledby=themes] .dropdown-item:first-child {
+                width: 100%;
+            }
+
+            .bs-component {
+                position: relative;
+            }
+
+            .bs-component+.bs-component {
+                margin-top: 1rem;
+            }
+
+            .bs-component .card {
+                margin-bottom: 1rem;
+            }
+
+            .bs-component .modal {
+                position: relative;
+                top: auto;
+                right: auto;
+                left: auto;
+                bottom: auto;
+                z-index: 1;
+                display: block;
+            }
+
+            .bs-component .modal-dialog {
+                width: 90%;
+            }
+
+            .bs-component .popover {
+                position: relative;
+                display: inline-block;
+                width: 220px;
+                margin: 20px;
+            }
+
+            .nav-tabs {
+                margin-bottom: 15px;
+            }
+
+            .progress {
+                margin-bottom: 10px;
+            }
+
+            ul {
+                list-style: none;
+                margin: 0 auto;
+                padding: 0;
+                width: 215px;
+            }
+
+            li {
+                padding: 10px;
+                font-size: 12px !important;
+                color: #fff;
+                font-family:  "Proxima Nova", "Helvetica Neue", Helvetica, sans-serif !important;
+            }
+
+            .light li {
+                color: #484c58;
+            }
+
+            li.light {
+                color: #484c58;
+            }
+
+            li.baseline-color {
+                position: relative;
+            }
+
+            li.baseline-color::before {
+                content: "‣";
+                font-size:28px;
+                color: #484c58;
+                position: absolute;
+                left: -12px;
+                top: -3px;
+            }
+
+
+
+        </style>
+
+        <div class="container-fluid text-center">
+            <h1 class="mt-2 mb-5">HSPH Color System</h1>
+                <div class="row tex">
+
+                    <div class="col-12 col-md-4 col-lg-2 light">
+                        <h3 class="text-secondary mb-3">Light-grays</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#fff;"></li>
+                            <li style="background-color:#fff;"></li>
+                            <li style="background-color:#fff;"></li>
+                            <li style="background-color:#fcfcfc;">$light-gray-300: #fcfcfc;</li>
+                            <li style="background-color:#f7f7f7;">$light-gray-400: #f7f7f7;</li>
+                            <li class="baseline-color" style="background-color:#f0f0f2;">$light-gray/$light-gray-500: #f0f0f2;</li>
+                            <li style="background-color:#d6d6db;">$light-gray-600: #d6d6db;</li>
+                            <li style="background-color:#cbcbd1;">$light-gray-700: #cbcbd1;</li>
+                            <li style="background-color:#fff;"></li>
+                            <li style="background-color:#fff;"></li>
+                        </ul>
+                    </div>
+
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Grays</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#ebedf1;">$gray-000: #ebedf1;</li>
+                            <li style="background-color:#b3b7c9;">$gray-100: #b3b7c9;</li>
+                            <li style="background-color:#9499b0;">$gray-200: #9499b0;</li>
+                            <li style="background-color:#7d8296;">$gray-300: #7d8296;</li>
+                            <li style="background-color:#626778;">$gray-400: #626778;</li>
+                            <li class="baseline-color" style="background-color:#484C58;">$gray/$gray-500: #484C58;</li>
+                            <li style="background-color:#393d47;">$gray-600: #393d47;</li>
+                            <li style="background-color:#292d33;">$gray-700: #292d33;</li>
+                            <li style="background-color:#1d2024;">$gray-800: #1d2024;</li>
+                            <li style="background-color:#15171a;">$gray-900: #15171a;</li>
+                        </ul>
+                    </div>
+
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Crimson</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#f0e4e8;">$crimson-000: #f0e4e8;</li>
+                            <li style="background-color:#d99aa3;">$crimson-100: #d99aa3;</li>
+                            <li style="background-color:#cb7e8a;">$crimson-200: #cb7e8a;</li>
+                            <li style="background-color:#be6371;">$crimson-300: #be6371;</li>
+                            <li style="background-color:#b23f50;">$crimson-400: #b23f50;</li>
+                            <li class="baseline-color" style="background-color:#a51c30;">$crimson/$crimson-500: #a51c30;</li>
+                            <li style="background-color:#8c1226;">$crimson-600: #8c1226;</li>
+                            <li style="background-color:#7d1022;">$crimson-700: #7d1022;</li>
+                            <li style="background-color:#730f1f;">$crimson-800: #730f1f;</li>
+                            <li style="background-color:#660d1c;">$crimson-900: #660d1c;</li>
+                        </ul>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Blue</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#e8f1f7;">$blue-000: #e8f1f7;</li>
+                            <li style="background-color:#a2cce8;">$blue-100: #a2cce8;</li>
+                            <li style="background-color:#72b4d7;">$blue-200: #72b4d7;</li>
+                            <li style="background-color:#50a4ce;">$blue-300: #50a4ce;</li>
+                            <li style="background-color:#288ec0;">$blue-400: #288ec0;</li>
+                            <li class="baseline-color" style="background-color:#007ead;">$blue/$blue-500: #007ead;</li>
+                            <li style="background-color:#00658c;">$blue-600: #00658c;</li>
+                            <li style="background-color:#005c80;">$blue-700: #005c80;</li>
+                            <li style="background-color:#015373;">$blue-800: #015373;</li>
+                            <li style="background-color:#004a66;">$blue-900: #004a66;</li>
+                        </ul>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Purple</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#e8ebf2;">$purple-000: #e8ebf2;</li>
+                            <li style="background-color:#afbbdb;">$purple-100: #afbbdb;</li>
+                            <li style="background-color:#9caad0;">$purple-200: #9caad0;</li>
+                            <li style="background-color:#8092c4;">$purple-300: #8092c4;</li>
+                            <li style="background-color:#677ebf;">$purple-400: #677ebf;</li>
+                            <li class="baseline-color" style="background-color:#4863ad;">$purple/$purple-500: #4863ad;</li>
+                            <li style="background-color:#40558c;">$purple-600: #40558c;</li>
+                            <li style="background-color:#3a4d80;">$purple-700: #3a4d80;</li>
+                            <li style="background-color:#344673;">$purple-800: #344673;</li>
+                            <li style="background-color:#2f3e66;">$purple-900: #2f3e66;</li>
+                        </ul>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Green</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#ecf1ee;">$green-000: #ecf1ee;</li>
+                            <li style="background-color:#bfd9ca;">$green-100: #bfd9ca;</li>
+                            <li style="background-color:#abd0ba;">$green-200: #abd0ba;</li>
+                            <li style="background-color:#93c5a7;">$green-300: #93c5a7;</li>
+                            <li style="background-color:#7cba95;">$green-400: #7cba95;</li>
+                            <li class="baseline-color" style="background-color:#65af82;">$green/$green-500: #65af82;</li>
+                            <li style="background-color:#5b9874;">$green-600: #5b9874;</li>
+                            <li style="background-color:#538b6a;">$green-700: #538b6a;</li>
+                            <li style="background-color:#4c7e60;">$green-800: #4c7e60;</li>
+                            <li style="background-color:#467459;">$green-900: #467459;</li>
+                        </ul>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Yellow</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#f7f1eb;">$yellow-000: #f7f1eb;</li>
+                            <li style="background-color:#fcdeba;">$yellow-100: #fcdeba;</li>
+                            <li style="background-color:#f7c892;">$yellow-200: #f7c892;</li>
+                            <li style="background-color:#f1bb7c;">$yellow-300: #f1bb7c;</li>
+                            <li style="background-color:#f2ad5f;">$yellow-400: #f2ad5f;</li>
+                            <li class="baseline-color" style="background-color:#f2a041;">$yellow/$yellow-500: #f2a041;</li>
+                            <li style="background-color:#e6933f;">$yellow-600: #e6933f;</li>
+                            <li style="background-color:#d9873b;">$yellow-700: #d9873b;</li>
+                            <li style="background-color:#cc7c35;">$yellow-800: #cc7c35;</li>
+                            <li style="background-color:#bf6f32;">$yellow-900: #bf6f32;</li>
+                        </ul>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-2">
+                        <h3 class="text-secondary mb-3">Red</h3>
+                        <ul>
+                            <li class="light light-shade" style="background-color:#f5ebeb;">$red-000: #f5ebeb;</li>
+                            <li style="background-color:#f2c4b8;">$red-100: #f2c4b8;</li>
+                            <li style="background-color:#e6a699;">$red-200: #e6a699;</li>
+                            <li style="background-color:#e3897b;">$red-300: #e3897b;</li>
+                            <li style="background-color:#df6f5e;">$red-400: #df6f5e;</li>
+                            <li class="baseline-color" style="background-color:#dc5540;">$red/$red-500: #dc5540;</li>
+                            <li style="background-color:#cf503c;">$red-600: #cf503c;</li>
+                            <li style="background-color:#c14c38;">$red-700: #c14c38;</li>
+                            <li style="background-color:#b54835;">$red-800: #b54835;</li>
+                            <li style="background-color:#a64430;">$red-900: #a64430;</li>
+                        </ul>
+                    </div>
+                </div>
+        </div>
+        <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+            integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+            crossorigin="anonymous"></script>
+        <script src="bootstrap.bundle.min.js"></script>
+    </body>
+</html>
