@@ -1,4 +1,13 @@
 <?php
+/**
+ * @package ACF
+ * @author  WP Engine
+ *
+ * © 2026 Advanced Custom Fields (ACF®). All rights reserved.
+ * "ACF" is a trademark of WP Engine.
+ * Licensed under the GNU General Public License v2 or later.
+ * https://www.gnu.org/licenses/gpl-2.0.html
+ */
 
 if ( ! class_exists( 'acf_pro' ) ) :
 
@@ -18,10 +27,11 @@ if ( ! class_exists( 'acf_pro' ) ) :
 
 			// update setting
 			acf_update_setting( 'pro', true );
-			acf_update_setting( 'name', __( 'Advanced Custom Fields PRO', 'acf' ) );
+			acf_update_setting( 'name', 'Advanced Custom Fields PRO' );
 
 			// includes
 			acf_include( 'pro/blocks.php' );
+			acf_include( 'pro/datastore.php' );
 			acf_include( 'pro/options-page.php' );
 			acf_include( 'pro/acf-ui-options-page-functions.php' );
 			acf_include( 'pro/updates.php' );
@@ -31,8 +41,24 @@ if ( ! class_exists( 'acf_pro' ) ) :
 				acf_include( 'pro/admin/admin-updates.php' );
 			}
 
+			// Initialize GEO Blocks output (PRO only).
+			if ( class_exists( 'ACF\Pro\AI\GEO\Outputs\Blocks' ) ) {
+				new \ACF\Pro\AI\GEO\Outputs\Blocks();
+			}
+
+			// Datastore integration (self-gates on acf_is_using_datastore()).
+			acf_new_instance( 'ACF\Pro\Datastore\REST_Save' );
+			acf_new_instance( 'ACF\Pro\Datastore\Localization' );
+			acf_new_instance( 'ACF\Pro\Datastore\Revisions' );
+			acf_new_instance( 'ACF\Pro\Datastore\Check_Screen' );
+
+			// JS block bindings layer (self-gates on enable_block_bindings + datastore).
+			acf_new_instance( 'ACF\Pro\Blocks\Bindings_Editor' );
+
 			// actions
 			add_action( 'init', array( $this, 'register_assets' ) );
+			add_action( 'acf/init', array( $this, 'update_plugin_name' ) );
+			add_action( 'woocommerce_init', array( $this, 'init_hpos_integration' ), 99 );
 			add_action( 'acf/init_internal_post_types', array( $this, 'register_ui_options_pages' ) );
 			add_action( 'acf/include_fields', array( $this, 'include_options_pages' ) );
 			add_action( 'acf/include_field_types', array( $this, 'include_field_types' ), 5 );
@@ -45,8 +71,32 @@ if ( ! class_exists( 'acf_pro' ) ) :
 
 			// Add filters.
 			add_filter( 'posts_where', array( $this, 'posts_where' ), 10, 2 );
+			add_filter( 'wp_plugin_dependencies_slug', array( $this, 'plugin_dependency_slug' ), 10 );
 			add_filter( 'acf/internal_post_type/admin_body_classes', array( $this, 'admin_body_classes' ) );
 			add_filter( 'acf/internal_post_type_list/admin_body_classes', array( $this, 'admin_body_classes' ) );
+		}
+
+		/**
+		 * Updates the plugin name to make it translatable.
+		 *
+		 * @since 6.4
+		 *
+		 * @return void
+		 */
+		public function update_plugin_name() {
+			acf_update_setting( 'name', __( 'Advanced Custom Fields PRO', 'acf' ) );
+		}
+
+		/**
+		 * Initializes the ACF WooCommerce HPOS integration.
+		 *
+		 * @since 6.4
+		 *
+		 * @return void
+		 */
+		public function init_hpos_integration() {
+			acf_new_instance( 'ACF\Pro\Meta\WooOrder' );
+			acf_new_instance( 'ACF\Pro\Forms\WC_Order' );
 		}
 
 		/**
@@ -118,6 +168,8 @@ if ( ! class_exists( 'acf_pro' ) ) :
 			wp_register_script( 'acf-pro-input', acf_get_url( "assets/build/js/pro/acf-pro-input{$min}.js" ), array( 'acf-input' ), $version );
 			wp_register_script( 'acf-pro-field-group', acf_get_url( "assets/build/js/pro/acf-pro-field-group{$min}.js" ), array( 'acf-field-group' ), $version );
 			wp_register_script( 'acf-pro-ui-options-page', acf_get_url( "assets/build/js/pro/acf-pro-ui-options-page{$min}.js" ), array( 'acf-input' ), $version );
+			wp_register_script( 'acf-datastore', acf_get_url( "assets/build/js/pro/acf-datastore{$min}.js" ), array( 'acf-input', 'wp-data' ), $version );
+			wp_register_script( 'acf-field-bindings', acf_get_url( "assets/build/js/pro/acf-field-bindings{$min}.js" ), array( 'acf-datastore', 'wp-blocks' ), $version );
 
 			// Register styles.
 			wp_register_style( 'acf-pro-input', acf_get_url( 'assets/build/css/pro/acf-pro-input' . $min . '.css' ), array( 'acf-input' ), $version );
@@ -296,6 +348,25 @@ if ( ! class_exists( 'acf_pro' ) ) :
 			}
 
 			return $classes;
+		}
+
+		/**
+		 * Filters the plugin dependency slug to allow ACF PRO to satisfy dependencies declared for ACF.
+		 *
+		 * ACF PRO is a superset of ACF, so a dependency on `advanced-custom-fields`
+		 * should be considered satisfied when ACF PRO is active.
+		 *
+		 * @since 6.8.2
+		 *
+		 * @param  string $slug The plugin dependency slug.
+		 * @return string
+		 */
+		public function plugin_dependency_slug( $slug ) {
+			if ( 'advanced-custom-fields' === $slug ) {
+				$slug = 'advanced-custom-fields-pro';
+			}
+
+			return $slug;
 		}
 	}
 
