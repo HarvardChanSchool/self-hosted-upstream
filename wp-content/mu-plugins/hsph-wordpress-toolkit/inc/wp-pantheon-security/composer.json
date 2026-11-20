@@ -1,0 +1,17 @@
+{
+    "name": "harvardchanschool/wp-pantheon-security",
+    "description": "A mu-plugin used to configure the wp-saml-auth plugin",
+    "license": "Apache-2.0+",
+    "type": "wordpress-muplugin",
+    "require": {
+            "composer/installers": "^2.2"
+    },
+    "config": {
+        "allow-plugins": {
+            "composer/installers": true
+        }
+    },
+    "require-dev": {
+        "squizlabs/php_codesniffer": "^3.12"
+    }
+}

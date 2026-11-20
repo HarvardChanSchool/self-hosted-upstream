@@ -1,0 +1,65 @@
+@import '../../../../../../seo-by-rank-math/assets/admin/scss/variables';
+
+// Overrides @wordpress/components' .is-link width: 100% so float/absolute positioning has a real box to work with.
+.rank-math-chat-mode-switcher {
+	width: auto;
+	white-space: nowrap;
+	font-size: 12px !important;
+
+	// Legacy mode: Chat.js's .tab-header has no slot for extra content, so the link overlays its top-right corner.
+	.rank-math-chat-mode-switcher-overlay & {
+		position: absolute;
+		z-index: 1;
+		top: .875rem;
+		right: .875rem;
+	}
+
+	.rank-math-chat-mode-switcher-full {
+		// content-ai.js's <PluginSidebar className="... rank-math-sidebar-content-ai-panel"> — shorten the label there.
+		.rank-math-content-ai-wrapper & {
+			display: none;
+		}
+	}
+
+	.rank-math-chat-mode-switcher-short {
+		display: none;
+
+		.rank-math-content-ai-wrapper & {
+			display: inline;
+		}
+	}
+}
+
+.rank-math-chat-mode-switcher-overlay {
+	position: relative;
+}
+
+// Legacy mode's border comes from .tab-header + .chat-container meeting edge to edge; WAP mode draws it once here.
+.rank-math-wap-chat-frame {
+	border: 1px solid $gray;
+
+	// That panel already has its own bordered chrome — skip the frame border here to avoid doubling it up.
+	.rank-math-content-ai-wrapper & {
+		border: 0;
+	}
+}
+
+.rank-math-wap-chat-embed {
+	height: 70vh;
+	min-height: 350px;
+}
+
+// Matches .tab-header's padding and background so the frame reads as one card.
+.rank-math-wap-chat-footer {
+	padding: .875rem;
+
+	text-align: right;
+
+	border-top: 1px solid $gray;
+	background: #f8f9fa;
+}
+
+.rank-math-content-ai-wrapper .wap-legal-notice {
+	flex: none;
+	width: 100%;
+}
